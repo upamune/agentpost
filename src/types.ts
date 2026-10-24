@@ -1,0 +1,58 @@
+export interface Env {
+  DB: D1Database;
+  MAIL: R2Bucket;
+  JOBS: Queue<Job>;
+  EMAIL_DOMAIN: string;
+  ADMIN_TOKEN: string;
+  CF_ACCOUNT_ID?: string;
+  CF_EMAIL_API_TOKEN?: string;
+}
+
+export type Job = { kind: "inbound" | "outbound"; id: string };
+
+export interface Inbox {
+  id: string;
+  address: string;
+  label: string;
+  token_hash: string;
+  active: number;
+  created_at: number;
+}
+
+export interface Message {
+  id: string;
+  inbox_id: string;
+  raw_key: string;
+  envelope_from: string;
+  envelope_to: string;
+  subject: string | null;
+  status: "pending" | "ready" | "failed";
+  error: string | null;
+  created_at: number;
+}
+
+export interface SendPayload {
+  from: string;
+  to: string[];
+  subject: string;
+  text: string;
+  html?: string;
+  headers?: Record<string, string>;
+}
+
+export interface Outbox {
+  id: string;
+  inbox_id: string;
+  idempotency_key: string;
+  payload: string;
+  payload_hash: string;
+  status: "pending" | "sending" | "accepted" | "failed" | "unknown";
+  attempts: number;
+  available_at: number;
+  provider_result: string | null;
+  error: string | null;
+  resolution_note: string | null;
+  resolved_at: number | null;
+  created_at: number;
+  updated_at: number;
+}

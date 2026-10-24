@@ -1,0 +1,32 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "agentpost",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-24",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "observability": { "enabled": true },
+  "vars": { "EMAIL_DOMAIN": "example.com" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "agentpost",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "r2_buckets": [{ "binding": "MAIL", "bucket_name": "agentpost" }],
+  "queues": {
+    "producers": [{ "binding": "JOBS", "queue": "agentpost" }],
+    "consumers": [
+      {
+        "queue": "agentpost",
+        "max_batch_size": 5,
+        "max_concurrency": 1,
+        "max_retries": 5,
+        "dead_letter_queue": "agentpost-dlq",
+      },
+    ],
+  },
+  "triggers": { "crons": ["*/5 * * * *"] },
+}

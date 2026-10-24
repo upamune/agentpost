@@ -1,0 +1,9 @@
+From: Sender <sender@example.net>
+To: agent@example.com
+Reply-To: sender@example.net
+Subject: Local inbox verification
+Message-ID: <local-verification@example.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Local mail storage works. Your code is 123456.

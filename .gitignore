@@ -1,0 +1,78 @@
+# 元ネタ: https://www.toptal.com/developers/gitignore/api/go,node（要抜粋）
+# Go / Bun (Node) どちらの新規プロジェクトにもそのままコピーしてよい all-in-one。
+# 関係のない行は単に発火しない。
+
+# OS
+.DS_Store
+
+# 環境変数（.env.example だけコミットする）
+.env
+.env.*
+!.env.example
+
+# ログ
+*.log
+
+### Go ###
+# ビルド成果物
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# go test -c のバイナリ
+*.test
+
+# coverage（go test -coverprofile など）
+*.out
+
+# Go workspace（使うときだけ）
+go.work
+go.work.sum
+# vendor/（vendor するならコメントを外す）
+
+### Node (Bun) ###
+# 依存
+node_modules/
+
+# ビルド出力。`out/` や `build/` に吐くプロジェクトは都度足す
+dist/
+
+# TypeScript の incremental ビルドキャッシュ
+*.tsbuildinfo
+
+# TanStack Start / Vite / nitro のキャッシュと出力。routeTree.gen.ts はコミットする
+.tanstack/
+.output/
+.nitro/
+.vite/
+
+# fallow の機械ローカルキャッシュ（TypeScript。Go では発火しない）
+.fallow/
+
+# coverage
+coverage/
+.nyc_output/
+
+# デバッグログ
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+### ローカル設定 ###
+# mise の個人設定。リポジトリでは共有しない
+.mise.local.toml
+
+# ultra-ship のチェックポイント置き場（root 直下の z/<branch>/）。コミット禁止
+/z/
+
+### 追加禁止 ###
+# .claude/（スキルの symlink 先）と .backlog/（タスクは backlog が管理する）は
+# コミット対象なので無視に加えない
+# Cloudflare local state and secrets
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.agentpost/

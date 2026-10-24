@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "init-project": {
+      "source": "upamune/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/init-project/SKILL.md",
+      "computedHash": "3292990c31200bd3295542b1f3e12e6141b1e8023d7d9bace099f29d7bc18525"
+    },
+    "writing-for-agents": {
+      "source": "upamune/skills",
+      "sourceType": "github",
+      "skillPath": "skills/external/writing-for-agents/SKILL.md",
+      "computedHash": "95da47fc97af998e85b7d7e6d57b3ac76727c1e290cfe9ea09005aacb826959f"
+    }
+  }
+}

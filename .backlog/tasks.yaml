@@ -1,0 +1,137 @@
+version: 1
+tasks:
+  - id: task_001
+    title: CloudflareメールAPIとMCPを実装し障害時の挙動を検証する
+    source_links: []
+    status: done
+    priority: P1
+    labels: []
+    repo_targets: []
+    acceptance_criteria: []
+    dependencies: []
+    planning:
+      split_status: pending
+      risk: medium
+    execution_defaults:
+      manual_approval_required: false
+      auto_commit: true
+      push_when_done: true
+      create_pr: false
+      merge_pr: false
+      worktree_mode: direct
+      preferred_agents: []
+      max_subagents: 5
+    sync:
+      source_of_truth: backlog
+      push_status: false
+      push_comments: false
+    created_at: 2026-10-24T02:06:12.880Z
+    updated_at: 2026-10-24T02:16:38.866Z
+  - id: task_002
+    title: 購入ドメインで送受信と監視・復旧手順を本番検証する
+    source_links: []
+    status: ready
+    priority: P1
+    labels: []
+    repo_targets: []
+    acceptance_criteria: []
+    dependencies: []
+    planning:
+      split_status: pending
+      risk: medium
+    execution_defaults:
+      manual_approval_required: false
+      auto_commit: true
+      push_when_done: true
+      create_pr: false
+      merge_pr: false
+      worktree_mode: direct
+      preferred_agents: []
+      max_subagents: 5
+    sync:
+      source_of_truth: backlog
+      push_status: false
+      push_comments: false
+    created_at: 2026-10-24T02:06:13.002Z
+    updated_at: 2026-10-24T02:06:13.002Z
+  - id: task_003
+    title: agentpost CLIと最新MCP・Events対応を実装しprivate GitHubへ公開する
+    source_links: []
+    status: done
+    priority: P1
+    labels: []
+    repo_targets: []
+    acceptance_criteria: []
+    dependencies: []
+    planning:
+      split_status: pending
+      risk: medium
+    execution_defaults:
+      manual_approval_required: false
+      auto_commit: true
+      push_when_done: true
+      create_pr: false
+      merge_pr: false
+      worktree_mode: direct
+      preferred_agents: []
+      max_subagents: 5
+    sync:
+      source_of_truth: backlog
+      push_status: false
+      push_comments: false
+    created_at: 2026-10-24T02:40:29.136Z
+    updated_at: 2026-10-24T02:55:25.756Z
+  - id: task_004
+    title: 公開リポジトリ向けの秘密情報監査・ライセンス・導入案内の整備
+    source_links: []
+    status: done
+    priority: P1
+    labels: []
+    repo_targets: []
+    acceptance_criteria: []
+    dependencies: []
+    planning:
+      split_status: pending
+      risk: medium
+    execution_defaults:
+      manual_approval_required: false
+      auto_commit: true
+      push_when_done: true
+      create_pr: false
+      merge_pr: false
+      worktree_mode: direct
+      preferred_agents: []
+      max_subagents: 5
+    sync:
+      source_of_truth: backlog
+      push_status: false
+      push_comments: false
+    created_at: 2026-10-24T06:52:12.397Z
+    updated_at: 2026-10-24T06:55:31.427Z
+  - id: task_005
+    title: 公開準備としてGit履歴を現在の完成状態の単一コミットに再作成する
+    source_links: []
+    status: done
+    priority: P1
+    labels: []
+    repo_targets: []
+    acceptance_criteria: []
+    dependencies: []
+    planning:
+      split_status: pending
+      risk: medium
+    execution_defaults:
+      manual_approval_required: false
+      auto_commit: true
+      push_when_done: true
+      create_pr: false
+      merge_pr: false
+      worktree_mode: direct
+      preferred_agents: []
+      max_subagents: 5
+    sync:
+      source_of_truth: backlog
+      push_status: false
+      push_comments: false
+    created_at: 2026-10-24T06:57:20.187Z
+    updated_at: 2026-10-24T06:57:41.185Z

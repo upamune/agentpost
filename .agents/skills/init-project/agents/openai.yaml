@@ -1,0 +1,5 @@
+interface:
+  display_name: "Init Project"
+  short_description: "Go / TypeScript Web の標準構成・CI・開発文書を初期化する"
+policy:
+  allow_implicit_invocation: false
