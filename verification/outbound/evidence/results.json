@@ -1,0 +1,73 @@
+{
+  "verifiedProductCommit": "ed15d43123471a7de7c89be7f77f5380da136dc9",
+  "bounds": {
+    "workers": 2,
+    "maxClaims": 8,
+    "actualRetryLimit": 8
+  },
+  "assumptions": [
+    "each D1 SQL statement is atomic",
+    "429 and explicit provider rejections do not accept a message",
+    "unknown provider outcomes may have accepted it",
+    "scheduler may delay a worker across Cron's two-minute threshold"
+  ],
+  "sourceFiles": [
+    {
+      "path": "src/outbound.ts",
+      "sha256": "4920c362299ca5648805ad9e12bf562f44e7c4683a287d322414730387e249d6"
+    },
+    {
+      "path": "src/maintenance.ts",
+      "sha256": "7a905b0d994b9220236329144ce243972ab93d0e5837d1aea6b5e8e1919197a8"
+    },
+    {
+      "path": "src/api.ts",
+      "sha256": "9f2e5c60c53db48e9f13b38e79a29589a10d0d72ead3addf67dc3b0abde399d3"
+    },
+    {
+      "path": "src/index.ts",
+      "sha256": "2c6dea0229a79ceae3e904d217740d95830832400342e64ae66e0d5f09621e87"
+    },
+    {
+      "path": "migrations/0001_mail.sql",
+      "sha256": "19e4db34a1f7703fea52aff0af80511d09f2f14c32a3d919f4d04cbfb9b19953"
+    }
+  ],
+  "checks": [
+    {
+      "invariant": "TypeOK",
+      "outcome": "passed"
+    },
+    {
+      "invariant": "AtMostOneAcceptance",
+      "outcome": "passed"
+    },
+    {
+      "invariant": "NoBlindRetry",
+      "outcome": "passed"
+    },
+    {
+      "invariant": "NoDispatchAfterDisable",
+      "outcome": "violated"
+    },
+    {
+      "invariant": "NoDispatchAfterUnknown",
+      "outcome": "violated"
+    }
+  ],
+  "replays": [
+    {
+      "title": "provider accepts the same request at most once with duplicate queue jobs",
+      "outcome": "passed"
+    },
+    {
+      "title": "no new provider request starts after disabling the inbox has completed",
+      "outcome": "failed"
+    },
+    {
+      "title": "stale worker does not start a provider call after Cron marks the outcome unknown",
+      "outcome": "failed"
+    }
+  ],
+  "provider": "local stub; no external email sent"
+}

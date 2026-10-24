@@ -1,0 +1,35 @@
+---
+config:
+  markdownAutoWrap: false
+  state:
+    useMaxWidth: false
+---
+stateDiagram-v2
+  classDef plainWrong fill:#f4f6f7,stroke:#c0392b,stroke-width:4px,color:#7b241c
+  classDef group0 fill:#d6eaf8,stroke:#6b757c,color:#1b2631
+  classDef group0Wrong fill:#d6eaf8,stroke:#c0392b,stroke-width:4px,color:#7b241c
+  classDef group1 fill:#fdebd0,stroke:#7f7668,color:#1b2631
+  classDef group1Path fill:#fdebd0,stroke:#1f3a93,stroke-width:4px,color:#1b2631
+  state "Legend" as legend {
+    state "Needs review" as legendGroup0
+    state "Within the checked rules" as legendGroup1
+    state "Breaks a rule" as legendWrong
+  }
+  class legendGroup0 group0
+  class legendGroup1 group1
+  class legendWrong plainWrong
+  state "Inbox disabled but<br/>provider call starts" as s0
+  state "Inbox disabled; Earlier<br/>check said inbox enabled;<br/>sending; accepted 0" as s1
+  state "Inbox enabled; Earlier<br/>check said inbox enabled;<br/>sending; accepted 0" as s2
+  state "Inbox enabled; Queued for<br/>a worker; pending;<br/>accepted 0" as s3
+  state "Inbox enabled; Worker<br/>claimed request; sending;<br/>accepted 0" as s4
+  [*] --> s3
+  s3 --> s4 : 1. Worker claims queued<br/>request
+  s4 --> s2 : 2. Read whether inbox is<br/>enabled
+  s2 --> s1 : 3. Admin disables inbox
+  s1 --> s0 : 4. Call email provider using<br/>the earlier read
+  class s0 group0Wrong
+  class s1 group1Path
+  class s2 group1Path
+  class s3 group1Path
+  class s4 group1Path
