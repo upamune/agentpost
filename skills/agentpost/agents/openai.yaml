@@ -1,0 +1,3 @@
+interface:
+  display_name: "Agentpost"
+  short_description: "Send, receive, and monitor email with agentpost"

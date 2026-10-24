@@ -20,6 +20,29 @@ agentpostはAIエージェント向けのセルフホスト型メールサービ
 送信に使う[Cloudflare Email Sending](https://developers.cloudflare.com/email-service/get-started/send-emails/)はBetaです。
 本番導入前に、利用する環境で送受信と復旧手順を確認してください。
 
+## AIエージェント向けの導入
+
+AIエージェントには[INSTALL.md](INSTALL.md)を渡してください。
+既存Workerへの接続、ローカルでの動作確認、MCPの設定、自分のCloudflareアカウントへの導入を区別して進められる手順です。
+
+```text
+次の手順を読んで、agentpostをこのプロジェクトで使えるように設定してください。
+https://github.com/upamune/agentpost/blob/main/INSTALL.md
+```
+
+メール操作用の[agentpostスキル](skills/agentpost/SKILL.md)も同梱しています。
+受信箱の操作、送信時の冪等キー、送信状態の確認、イベント監視の扱いをエージェントに伝えます。
+次はCodex向けの導入例です。スキルを使うプロジェクトのディレクトリで実行してください。
+Claude Codeでは`--agent codex`を`--agent claude-code`に変更します。
+
+```sh
+mise exec bun@1.4.4 -- bunx skills@1.7.4 add upamune/agentpost \
+  --skill agentpost --agent codex --yes
+```
+
+スキルの導入と、CLI本体のインストールや接続先の設定は別です。
+CLI本体の準備と接続確認は`INSTALL.md`に従ってください。
+
 ## ローカルで試す
 
 [mise](https://mise.jdx.dev/getting-started.html)をインストールして、次のコマンドを実行します。
@@ -223,7 +246,8 @@ mise run format
 mise run ci
 ```
 
-CIでは整形、静的解析、型検査、テスト、dry-runビルド、秘密情報チェックを実行します。
+CIではmainへのpushとPRごとに、整形、静的解析、型検査、テスト、Workerのdry-runビルド、秘密情報チェックを自動実行します。
+CLIはBunで実行する構成で、単体バイナリの自動配布は行っていません。
 実メールの送信と本番への自動デプロイは行いません。
 不具合や提案は[Issues](https://github.com/upamune/agentpost/issues)、開発手順は[CONTRIBUTING.md](CONTRIBUTING.md)を参照してください。
 
