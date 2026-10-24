@@ -167,6 +167,16 @@ export function createMailServer(client: MailClient): McpServer {
         client.call("GET", `${inboxPath(inbox_id)}/outbox?limit=${limit}&offset=${offset}`),
       ),
   );
+  server.registerTool(
+    "check_domain",
+    {
+      description:
+        "Diagnose the configured mail domain's public sending SPF, DKIM, explicit DMARC, bounce/routing MX and optional Cloudflare sending configuration. Administrator only. Read-only: does not change DNS or send mail. Inspect each pass/warning/fail/unknown check and remediation; this is not proof of delivery or inbox placement.",
+      inputSchema: z.object({}).strict(),
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    () => output(() => client.call("GET", "/v1/domain/check")),
+  );
   registerEventMethods(server, client);
   return server;
 }

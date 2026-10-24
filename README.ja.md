@@ -238,6 +238,10 @@ Cloudflare WorkersがAPIとMCPを提供し、Queuesでメールを処理しま�
 
 監視項目、再試行の条件、障害時の復旧手順は[運用設計](docs/operations.ja.md)を参照してください。
 
+## ドメイン設定の診断
+
+管理者は `mise exec -- bun run cli domain check`、APIの `GET /v1/domain/check`、MCPの `check_domain` でSPF・DKIM・明示DMARC・送受信用MXを確認できます。任意の専用資格情報があればCloudflareの送信設定とも照合します。修正案と確認不能な項目を表示し、メール送信やDNS変更は行いません。[診断範囲と設定](docs/domain-diagnostics.ja.md)を参照してください。通過しても受信トレイへの到達は保証できません。
+
 ## 制約
 
 | 項目                | 対応範囲                                                          |

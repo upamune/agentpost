@@ -196,6 +196,10 @@ Incoming mail is stored before parsing. Saved originals remain available when pa
 
 See [operations](docs/operations.md) for retry rules, monitoring, backups, and recovery procedures.
 
+## Domain diagnostics
+
+Administrators can run `mise exec -- bun run cli domain check`, `GET /v1/domain/check`, or MCP `check_domain` to inspect SPF, DKIM, explicit DMARC and sending/routing MX. Optional dedicated credentials compare Cloudflare sending configuration. Findings include remediation and unknown states; no email or DNS changes occur. See [scope and setup](docs/domain-diagnostics.md). Passing does not guarantee inbox placement.
+
 ## Limits
 
 | Area              | Current support                                              |

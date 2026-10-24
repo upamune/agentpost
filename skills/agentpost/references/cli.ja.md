@@ -56,3 +56,7 @@ mise exec --cd /absolute/path/to/agentpost -- bun run src/cli.ts events watch \
 既定は`message.received`です。送信の終端状態は`--name message.send_status_changed`を指定します。カーソルなしなら現在から始まり、既存メールには`message list`を使います。`--max-age-ms`は再取得の経過時間上限で、単独では過去履歴を要求しません。
 
 標準出力の書き出し後にチェックポイントを保存します。その間のクラッシュは再配信になるため、`eventId`で重複を除去します。トークン・受信箱・型・稼働プロセスごとにファイルを分けます。履歴の空白はメッセージ/outbox APIと照合し、カーソルや認証の失敗を無視して初期化しません。旧署名形式から暗号化v2形式へは自動移行できません。既存状態と照合してから明示的に新しい購読を始めます。
+
+## ドメインを診断する
+
+許可された管理者として `mise exec --cd /absolute/path/to/agentpost -- bun run src/cli.ts domain check` を実行します。警告も失敗にする場合は`--strict`を付けます。設定上の問題があってもJSONを出力し、終了コードは0がpass/warning、1がfail（またはstrict時のwarning）、2が既知のfailはなくunknownがある場合です。HTTP 200や終了コード0だけで配送済みと判断せず、全項目を確認します。対象は運用者の設定済みドメインであり、送信やDNS変更は行いません。

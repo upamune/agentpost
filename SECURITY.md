@@ -40,3 +40,7 @@ Sender and Reply-To headers are claims made by an external sender, not proof of 
 Before production use, verify private R2 access, API-token permissions, DNS, external monitoring, backup/restore procedures, and actual mail delivery in that environment. Code checks alone do not establish production readiness.
 
 See the [2026-10-25 adversarial audit](docs/security-audit.md) for exercised boundaries, remediated findings, and unverified areas.
+
+## Diagnostic egress
+
+Admin domain diagnostics use fixed Cloudflare API/DoH HTTPS origins and reject redirects. Body size, query count and network deadlines are bounded; resolution/schema failures remain unknown. A dedicated provider diagnostic token goes only to the API and never falls back to sending credentials. DNS content and upstream error bodies are not reflected in reports. See [diagnostic details](docs/domain-diagnostics.md).

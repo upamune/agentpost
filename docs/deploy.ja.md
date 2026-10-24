@@ -15,6 +15,9 @@ CLIとstdioのMCPはプロセスの環境変数を読み、Workerは`wrangler.js
 | `AGENTPOST_API_TOKEN`                  | CLI / stdio MCP          | 操作に使う管理者トークンまたは受信箱トークン                            |
 | `AGENTPOST_ADMIN_TOKEN`                | Worker Secret            | 全受信箱を管理するトークン                                              |
 | `AGENTPOST_EMAIL_DOMAIN`               | `wrangler.jsonc`の`vars` | メールアドレスを発行するドメイン                                        |
+| `AGENTPOST_CF_ZONE_ID`                 | Worker vars              | 診断対象のゾーンID（任意）                                              |
+| `AGENTPOST_CF_SENDING_SUBDOMAIN_ID`    | Worker vars              | 診断対象の送信ドメインID（任意）                                        |
+| `AGENTPOST_CF_DIAGNOSTICS_API_TOKEN`   | Worker Secret            | 上記2件と併せて使う専用の診断資格情報                                   |
 | `AGENTPOST_CF_ACCOUNT_ID`              | Worker Secret            | Email Sendingを利用するCloudflareアカウントID                           |
 | `AGENTPOST_CF_EMAIL_API_TOKEN`         | Worker Secret            | Email Sending権限を持つCloudflare APIトークン                           |
 | `AGENTPOST_AUTH_MODE`                  | Worker vars              | `token`（既定）・`oauth`・`both`                                        |
@@ -55,6 +58,8 @@ token専用で`AGENTPOST_CURSOR_KEY`を省略した場合は管理者トーク�
 `wrangler.jsonc`の`vars.AGENTPOST_EMAIL_DOMAIN`を購入ドメインに変える。`AGENTPOST_CF_ACCOUNT_ID`はそのドメインとEmail Sendingを所有するアカウントのID。
 
 公式資料: [ドメイン設定](https://developers.cloudflare.com/email-service/configuration/domains/)、[送信](https://developers.cloudflare.com/email-service/get-started/send-emails/)、[REST API](https://developers.cloudflare.com/email-service/api/send-emails/rest-api/)。
+
+DNS設定後、管理者として `mise exec -- bun run cli domain check` を実行し、[ドメイン診断](domain-diagnostics.ja.md)の結果を確認してください。`--strict` は警告も失敗にします。Cloudflareとの照合用資格情報は任意で、送信用トークンとは分けます。伝播や実メールの認証確認は別途必要です。
 
 ## 2. ストレージとキュー
 

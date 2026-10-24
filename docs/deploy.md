@@ -14,6 +14,9 @@ All application environment variables use the `AGENTPOST_` prefix. The CLI and s
 | `AGENTPOST_API_TOKEN`                  | CLI / stdio MCP       | Admin or inbox token for the operation                           |
 | `AGENTPOST_ADMIN_TOKEN`                | Worker Secret         | Administration in token/both mode                                |
 | `AGENTPOST_EMAIL_DOMAIN`               | `wrangler.jsonc` vars | Domain for generated addresses                                   |
+| `AGENTPOST_CF_ZONE_ID`                 | Worker vars           | Optional diagnostic zone ID                                      |
+| `AGENTPOST_CF_SENDING_SUBDOMAIN_ID`    | Worker vars           | Optional diagnostic sending-domain ID                            |
+| `AGENTPOST_CF_DIAGNOSTICS_API_TOKEN`   | Worker Secret         | Dedicated diagnostic credential, used with both IDs above        |
 | `AGENTPOST_CF_ACCOUNT_ID`              | Worker Secret         | Cloudflare account with Email Sending enabled                    |
 | `AGENTPOST_CF_EMAIL_API_TOKEN`         | Worker Secret         | API token authorized for Email Sending                           |
 | `AGENTPOST_AUTH_MODE`                  | Worker vars           | `token` (default), `oauth`, or `both`                            |
@@ -51,6 +54,8 @@ Register the renamed Worker secrets before deployment, and update CLI/MCP config
 Set `vars.AGENTPOST_EMAIL_DOMAIN` in `wrangler.jsonc` to your domain. Set `AGENTPOST_CF_ACCOUNT_ID` to the account that owns the domain and Email Sending.
 
 Official references: [domains](https://developers.cloudflare.com/email-service/configuration/domains/), [sending](https://developers.cloudflare.com/email-service/get-started/send-emails/), [REST API](https://developers.cloudflare.com/email-service/api/send-emails/rest-api/).
+
+After configuring DNS, run `mise exec -- bun run cli domain check` as an administrator and inspect [domain diagnostics](domain-diagnostics.md). `--strict` also fails on warnings. Provider comparison uses optional dedicated credentials, separate from sending. Propagation and real-message authentication still need verification.
 
 ## 2. Storage and queues
 

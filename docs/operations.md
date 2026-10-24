@@ -34,6 +34,8 @@ Cloudflare Email Sending has no documented provider idempotency contract used by
 
 ## Monitoring
 
+Run admin [domain diagnostics](domain-diagnostics.md) on demand to inspect sending-domain configuration. This is separate from health/Cron and does not send mail or change DNS.
+
 MCP Events and CLI watch follow the [event contract](mcp-events.md). D1 triggers commit state and events together. Cursors are encrypted and scoped by inbox, token, and event type. Consumers must tolerate redelivery and deduplicate by `eventId`.
 
 `GET /v1/health` checks D1/R2 access, presence of sending credentials, unresolved failed/unknown sends, parsing failures, raw-index recovery failures, and pending work older than 15 minutes. Problems return 503. This endpoint does not verify credential validity, Cron execution, queue delivery, DNS, or actual email reachability.

@@ -66,7 +66,7 @@ The CLI and stdio MCP retain their environment-token workflow. This change adds 
 
 | Identity                    | Allowed operations                                                                                                                     |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Admin token / OAuth `admin` | All inboxes, provisioning, token management when enabled, disabling/enabling, health, and reconciliation                               |
+| Admin token / OAuth `admin` | All inboxes, provisioning, token management when enabled, disabling/enabling, health, domain diagnostics, and reconciliation           |
 | Inbox token                 | Read/send/reply/events for that active inbox; cannot provision/list all inboxes or administer                                          |
 | OAuth `agent`               | Provision owned inboxes, list own inbox metadata, read/send/reply on active owned inboxes; events require an explicit owned `inbox_id` |
 

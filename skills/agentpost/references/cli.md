@@ -60,3 +60,7 @@ The default event is `message.received`; pass `--name message.send_status_change
 The cursor is checkpointed after stdout is flushed. A crash between output and checkpoint can replay an event, so deduplicate by `eventId`. Use one cursor file per token, inbox, event type, and active watcher. A history gap requires reconciling state through the message/outbox API. Invalid cursors and auth failures need investigation; don't silently discard the checkpoint.
 
 Legacy signed cursor checkpoints are rejected by the encrypted v2 format. Reconcile message/outbox state before deliberately starting a new subscription; never silently reset a rejected checkpoint.
+
+## Diagnose a domain
+
+With authorized admin access, run `mise exec --cd /absolute/path/to/agentpost -- bun run src/cli.ts domain check`. Add `--strict` to fail on warnings. JSON is printed even for configuration findings: exit 0 is pass/warning, 1 is fail (or strict warning), and 2 is unknown without a known failure. Read every check rather than treating HTTP 200 or exit 0 as delivery confirmation. The domain is configured by the operator; this command neither sends mail nor edits DNS.

@@ -105,3 +105,7 @@ mise exec -- bun run cli events watch --inbox YOUR_INBOX_UUID \
 Watch emits NDJSON to stdout and atomically renames a temporary checkpoint after output is flushed. Restart resumes from that position. A crash between output and checkpoint can replay an event; downstream consumers must deduplicate by `eventId`.
 
 Errors go to stderr. Authorization failures and invalid cursors are not skipped automatically. SIGINT/SIGTERM stop monitoring. Use one process per subscription/checkpoint file; never let multiple watchers write the same file.
+
+## Domain diagnostic tool
+
+`check_domain` accepts `{}` and returns a read-only report for the configured mail domain. It requires an admin token or OAuth `admin`. Failed findings remain normal structured diagnostic data; this tool neither subscribes to events nor sends mail or modifies DNS. See [diagnostic scope](domain-diagnostics.md).

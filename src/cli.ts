@@ -30,6 +30,7 @@ Use --url to override the URL. Credentials are read from the environment.
   events poll|watch [--name message.received] [--inbox INBOX_ID]
        [--cursor CURSOR] [--max-age-ms N] [--limit N]
        watch also accepts --cursor-file FILE for persistent checkpoints
+  domain check [--strict]
   health
   mcp
 
@@ -70,6 +71,7 @@ async function main(): Promise<void> {
       output: { type: "string" },
       outcome: { type: "string" },
       note: { type: "string" },
+      strict: { type: "boolean" },
     },
   });
   if (values.version || positionals[0] === "version") {
@@ -107,7 +109,18 @@ async function main(): Promise<void> {
   };
   let result: unknown;
   if (command === "health") result = await client.call("GET", "/v1/health");
-  else if (command === "inbox") {
+  else if (command === "domain" && action === "check") {
+    result = await client.call("GET", "/v1/domain/check");
+    const report = z
+      .object({ status: z.enum(["pass", "warning", "fail", "unknown"]) })
+      .parse(result);
+    process.exitCode =
+      report.status === "unknown"
+        ? 2
+        : report.status === "fail" || (values.strict && report.status === "warning")
+          ? 1
+          : 0;
+  } else if (command === "inbox") {
     if (action === "create")
       result = await client.call(
         "POST",

@@ -7,3 +7,8 @@ AGENTPOST_CF_EMAIL_API_TOKEN=
 # AGENTPOST_CURSOR_KEY: independently generated with openssl rand -hex 32
 # Access team domain, AUD, role allowlist, resource URL, and AS issuer in vars.
 # See docs/authentication.md before enabling OAuth.
+
+# Optional provider-side domain diagnostics (separate from sending credentials):
+# Set AGENTPOST_CF_ZONE_ID and AGENTPOST_CF_SENDING_SUBDOMAIN_ID in Worker vars,
+# and AGENTPOST_CF_DIAGNOSTICS_API_TOKEN as a dedicated Worker Secret.
+# See docs/domain-diagnostics.md; public DNS checks need none of these.

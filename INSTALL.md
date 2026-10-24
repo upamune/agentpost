@@ -126,3 +126,7 @@ The smoke test provisions a local inbox, injects a fixture into Wrangler, waits 
 GitHub Actions runs checks and the Worker dry-run build on pushes to `main` and on pull requests. `mise run build` invokes `wrangler deploy --dry-run`; it does not deploy or publish CLI binaries. Local full checks use `mise install` followed by `mise run ci`.
 
 Report the checkout path, CLI version, skill installation scope, and which connection or local checks passed. List missing configuration without exposing values. Distinguish source installation, MCP connection, local Worker verification, and production deployment. Production mail requires the domain, Email Routing, Email Sending Beta, DNS, credentials, and explicit real send/receive checks in the deployment guide. Run a real send test only with a user-specified recipient; installation alone does not authorize sending mail.
+
+## Diagnose domain configuration
+
+After hosting setup, or when investigating authentication/deliverability, use MCP `check_domain` or CLI `domain check` with authorized administrator access. Do not automatically replace inbox/OAuth-agent credentials with admin credentials. Inspect pass/warning/fail/unknown findings and remediation; diagnostics do not guarantee delivery. Do not send a test message without a specified, authorized recipient or automatically edit DNS. See [setup and limits](docs/domain-diagnostics.md).

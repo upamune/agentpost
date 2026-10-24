@@ -125,3 +125,7 @@ mise exec -- bun run smoke:local
 GitHub ActionsはmainへのpushとPRで検査とWorkerのdry-runビルドを行います。`mise run build`は`wrangler deploy --dry-run`で、デプロイやCLIバイナリ公開ではありません。ローカルの全検査は`mise install`後に`mise run ci`を使います。
 
 checkout先、CLIの版、スキルの導入範囲、成功した接続・ローカル検査を報告します。資格情報の値を出さず、不足設定を列挙します。ソース導入、MCP接続、ローカル検証、本番デプロイを区別します。本番送受信にはドメイン、Email Routing/Sending Beta、DNS、資格情報、導入手順の実送受信確認が必要です。実送信は利用者が指定した宛先でのみ行い、インストールの依頼だけでは送信しません。
+
+## ドメイン設定を診断する
+
+ホスティング設定後や認証・到達性の問題では、管理者としてMCP `check_domain` またはCLI `domain check` を実行します。受信箱トークンやOAuth `agent` から管理者権限へ自動的に切り替えません。レポートのpass・warning・fail・unknownと修正案を確認し、診断だけで到達を保証しません。宛先の指定・許可がないテスト送信やDNS自動修正は行いません。[診断の設定と制限](docs/domain-diagnostics.ja.md)を参照してください。

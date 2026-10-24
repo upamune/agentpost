@@ -34,6 +34,7 @@ APIは選択した[認証方式](authentication.ja.md)を使います。トー�
 | POST   | `/v1/inboxes/{inbox}/outbox/{send}/resolve`                  | 確認済みの送信結果を記録（管理者）                        |
 | GET    | `/v1/events`                                                 | イベント型の一覧                                          |
 | POST   | `/v1/events/poll`                                            | イベントの取得                                            |
+| GET    | `/v1/domain/check`                                           | ドメインの送信DNS・Cloudflare設定診断（管理者）           |
 | GET    | `/v1/health`                                                 | ストレージ疎通、滞留、要確認件数（管理者）                |
 
 一覧の`limit`は1〜100、既定値は25です。
@@ -95,3 +96,7 @@ curl "$AGENTPOST_API_URL/v1/inboxes/INBOX_ID/send" \
 受信箱の無効化は、同じ受信箱で先行する送信処理が終わり、無効化を保存してから成功を返します。タイムアウトは停止完了を意味しません。状態を確認してから後続の操作へ進んでください。
 
 CLI・stdio MCPの成功JSON応答は64 MiBまでです。大きなoutbox一覧ではlimitを下げて取得してください。無効化後の新しい受信は拒否しますが、既に受け入れた原文の保存は後から完了できます。
+
+## ドメイン診断
+
+`GET /v1/domain/check` は設定済みのドメインに固定した読み取り専用の診断です。レポートを生成できれば検査がfailでもHTTP 200を返すため、JSONの `status` と `checks` を確認してください。管理者トークンまたはOAuth `admin` が必要です。送信やDNS変更は行いません。[検査範囲・終了コード・制限](domain-diagnostics.ja.md)を参照してください。

@@ -1,6 +1,6 @@
 ---
 name: agentpost
-description: Use agentpost to provision agent email addresses, read messages and attachments, send or reply to email, and monitor mailbox events through its CLI or MCP server. Applies when the task uses an agentpost inbox or endpoint.
+description: Use agentpost to provision agent email addresses, read messages and attachments, send or reply to email, monitor mailbox events, and diagnose sending-domain configuration through its CLI or MCP server. Applies when the task uses an agentpost inbox or endpoint.
 license: MIT
 ---
 
@@ -40,3 +40,7 @@ Save the returned outbox ID and use `get_send_status` or `list_outbox` to inspec
 | `unknown`             | Outcome is uncertain. Stop automatic resending and have the operator reconcile provider records. |
 
 If a response was lost before the outbox ID was recorded, inspect the outbox list; don't generate a new idempotency key. Disabling an inbox waits for earlier send processing before reporting success. A timeout is not proof that disabling completed; inspect the inbox state. Administrative reconciliation records evidence and does not resend mail. Report the inbox/message/outbox IDs and the observed state without exposing credentials or claiming delivery from queueing or API acceptance.
+
+## Diagnose domain configuration
+
+For hosting setup or suspected email-authentication problems, an authorized administrator can use MCP `check_domain` or CLI `domain check`. Inspect every finding and remediation; `unknown` is missing evidence, not success. Do not substitute admin credentials without authorization. Diagnostics neither send mail nor modify DNS, and passing does not guarantee delivery or inbox placement. For optional provider credentials, scope and limitations, consult https://github.com/upamune/agentpost/blob/main/docs/domain-diagnostics.md. Real email tests still need the user to specify and authorize a recipient.

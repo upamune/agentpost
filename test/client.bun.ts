@@ -758,4 +758,103 @@ describe("agent client and MCP", () => {
       await server.close();
     }
   });
+  test("domain CLI preserves findings and has explicit pass/warning/fail/unknown exit behavior", async () => {
+    let status = "pass";
+    const requests: { method: string; path: string; hasBody: boolean }[] = [];
+    const source = Bun.serve({
+      port: 0,
+      fetch: (request) => {
+        requests.push({
+          method: request.method,
+          path: new URL(request.url).pathname,
+          hasBody: request.body !== null,
+        });
+        return Response.json({
+          domain: "example.com",
+          status,
+          delivery_verified: false,
+          checks: [],
+        });
+      },
+    });
+    servers.push(source);
+    const cases: [string, boolean, number][] = [
+      ["pass", false, 0],
+      ["warning", false, 0],
+      ["warning", true, 1],
+      ["fail", false, 1],
+      ["unknown", false, 2],
+    ];
+    for (const [value, strict, exit] of cases) {
+      status = value;
+      const child = Bun.spawn(
+        [process.execPath, "run", "src/cli.ts", "domain", "check", ...(strict ? ["--strict"] : [])],
+        {
+          env: {
+            ...process.env,
+            AGENTPOST_API_URL: source.url.href,
+            AGENTPOST_API_TOKEN: "test-admin",
+          },
+          stdout: "pipe",
+          stderr: "pipe",
+        },
+      );
+      const output = new Response(child.stdout).text();
+      const error = new Response(child.stderr).text();
+      expect(await child.exited).toBe(exit);
+      expect(JSON.parse(await output)).toMatchObject({ status: value, delivery_verified: false });
+      expect(await error).toBe("");
+    }
+    expect(requests).toHaveLength(5);
+    expect(
+      requests.every(
+        (request) =>
+          request.method === "GET" && request.path === "/v1/domain/check" && !request.hasBody,
+      ),
+    ).toBe(true);
+  });
+
+  test("MCP exposes read-only domain diagnostics and returns failing findings as structured data", async () => {
+    const calls: { path: string; method: string; body: unknown }[] = [];
+    const report = {
+      domain: "example.com",
+      status: "fail",
+      delivery_verified: false,
+      checks: [{ id: "dkim", status: "fail", remediation: "Restore the active key." }],
+    };
+    const server = createMcpHandler(() =>
+      createMailServer(
+        new MailClient({
+          url: "https://mail.example.com",
+          token: "test-admin",
+          fetch: async (url, init) => {
+            calls.push({ path: url.pathname, method: init.method!, body: init.body });
+            return Response.json(report);
+          },
+        }),
+      ),
+    );
+    const client = new Client(
+      { name: "domain-test", version: "1" },
+      { versionNegotiation: { mode: { pin: "2026-07-28" } } },
+    );
+    await client.connect(
+      new StreamableHTTPClientTransport(new URL("http://localhost/mcp"), {
+        fetch: (url, init) => server.fetch(new Request(url, init)),
+      }),
+    );
+    try {
+      const tools = await client.listTools();
+      expect(
+        tools.tools.find((tool) => tool.name === "check_domain")?.annotations?.readOnlyHint,
+      ).toBe(true);
+      const result = await client.callTool({ name: "check_domain", arguments: {} });
+      expect(result.isError).not.toBe(true);
+      expect(result.structuredContent).toEqual(report);
+      expect(calls).toEqual([{ path: "/v1/domain/check", method: "GET", body: undefined }]);
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
 });

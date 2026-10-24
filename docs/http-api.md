@@ -30,6 +30,7 @@ An admin token provisions and administers inboxes and can access every inbox. An
 | POST   | `/v1/inboxes/{inbox}/outbox/{send}/resolve`                  | Record a reconciled outcome (admin)                   |
 | GET    | `/v1/events`                                                 | Discover event types                                  |
 | POST   | `/v1/events/poll`                                            | Poll events                                           |
+| GET    | `/v1/domain/check`                                           | Read-only domain DNS/provider diagnostics (admin)     |
 | GET    | `/v1/health`                                                 | Storage access, backlog, and attention counts (admin) |
 
 List limits range from 1 to 100, default 25. Use `next_cursor` for inbound message pagination and `next_offset` for inbox/outbox pagination. See [MCP and Events](mcp-events.md) for event inputs and cursor behavior. The CLI/stdio MCP client bounds successful JSON responses at 64 MiB; reduce the page limit for unusually large outbox pages.
@@ -76,3 +77,7 @@ curl "$AGENTPOST_API_URL/v1/inboxes/INBOX_ID/send" \
 `202` means the send request was persisted. Inspect its outbox `id`. `accepted` means Cloudflare accepted the request, not that the recipient received it. `unknown` requires operator reconciliation; do not generate a new key and automatically resend. Follow [operations](operations.md) to inspect and record outcomes.
 
 Disabling waits for earlier send processing and persists the disabled state before returning success. A timeout does not prove completion: inspect state before proceeding. New inbound admissions are rejected after disabling; already admitted deliveries may finish retaining their originals.
+
+## Domain diagnostics
+
+`GET /v1/domain/check` is read-only and fixed to the configured mail domain. A completed report uses HTTP 200 even for failed checks; inspect JSON `status` and `checks`. An admin token or OAuth `admin` grant is required. It neither sends mail nor modifies DNS. See [scope, exit codes and limits](domain-diagnostics.md).

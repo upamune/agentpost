@@ -11,6 +11,7 @@ import { enqueue, parseMime } from "./inbound";
 import { eventDescriptors, eventQuerySchema } from "./event-schema";
 import { EventQueryError, pollEvents } from "./events";
 import { enforceRateLimit } from "./http-security";
+import { checkDomain } from "./domain-check";
 import type { Env, Inbox, Message, Outbox, SendPayload } from "./types";
 
 type Bindings = { Bindings: Env; Variables: { principal: Principal; inbox: Inbox } };
@@ -144,6 +145,11 @@ app.get("/v1/inboxes", async (context) => {
     items: rows.results,
     next_offset: rows.results.length === limit ? offset + limit : null,
   });
+});
+
+app.get("/v1/domain/check", async (context) => {
+  requireAdmin(context);
+  return context.json(await checkDomain(context.env));
 });
 
 app.get("/v1/health", async (context) => {
