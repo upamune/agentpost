@@ -152,6 +152,131 @@ describe("API and inbox isolation", () => {
     expect(row?.token_hash).not.toBe(first.token);
   });
 
+  test("custom names are canonical, bounded, and keep the configured domain", async () => {
+    for (const name of ["Research.Team+2026_1-dev", "a", "x".repeat(64)]) {
+      const response = await request("/v1/inboxes", { method: "POST", body: { local_part: name } });
+      expect(response.status).toBe(201);
+      const box = await response.json<CreatedInbox>();
+      expect(box.address).toBe(`${name.toLowerCase()}@example.com`);
+      expect((await request(`/v1/inboxes/${box.id}`, { token: box.token })).status).toBe(200);
+    }
+  });
+
+  test("concurrent case-insensitive name claims create one inbox without replacing credentials", async () => {
+    const responses = await Promise.all(
+      ["Research", "RESEARCH"].map((local_part, index) =>
+        request("/v1/inboxes", { method: "POST", body: { local_part, label: `claim-${index}` } }),
+      ),
+    );
+    expect(responses.map((response) => response.status).sort()).toEqual([201, 409]);
+    const winner = await responses
+      .find((response) => response.status === 201)!
+      .json<CreatedInbox>();
+    const conflict = await responses.find((response) => response.status === 409)!.json();
+    expect(conflict).toEqual({ error: "Email address already exists" });
+    const row = await bindings.DB.prepare("SELECT id, token_hash FROM inboxes WHERE address = ?")
+      .bind("research@example.com")
+      .first<{ id: string; token_hash: string }>();
+    expect(row?.id).toBe(winner.id);
+    expect(row?.token_hash).toBe(await sha256(winner.token));
+    expect(
+      (await bindings.DB.prepare("SELECT count(*) AS count FROM inboxes").first())?.count,
+    ).toBe(1);
+  });
+
+  test("disabled names stay reserved and cannot be reclaimed with a new token", async () => {
+    const created = await request("/v1/inboxes", {
+      method: "POST",
+      body: { local_part: "reserved" },
+    });
+    const box = await created.json<CreatedInbox>();
+    expect(
+      (await request(`/v1/inboxes/${box.id}`, { method: "PATCH", body: { active: false } })).status,
+    ).toBe(200);
+    const conflict = await request("/v1/inboxes", {
+      method: "POST",
+      body: { local_part: "RESERVED" },
+    });
+    expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toEqual({ error: "Email address already exists" });
+    const row = await bindings.DB.prepare(
+      "SELECT id, active, token_hash FROM inboxes WHERE address = ?",
+    )
+      .bind(box.address)
+      .first<{ id: string; active: number; token_hash: string }>();
+    expect(row).toEqual({ id: box.id, active: 0, token_hash: await sha256(box.token) });
+  });
+
+  test("invalid mailbox names and full addresses are rejected before allocation", async () => {
+    for (const name of [
+      "",
+      "x".repeat(65),
+      ".first",
+      "last.",
+      "two..dots",
+      " space",
+      "space ",
+      "two names",
+      "name@example.net",
+      "name/child",
+      "name\\child",
+      "name%2e",
+      "名前",
+      "name\r\nBcc:other",
+      "a\0b",
+      null,
+      123,
+    ]) {
+      const response = await request("/v1/inboxes", { method: "POST", body: { local_part: name } });
+      expect(response.status).toBe(400);
+    }
+    expect(
+      (await bindings.DB.prepare("SELECT count(*) AS count FROM inboxes").first())?.count,
+    ).toBe(0);
+  });
+
+  test("combined address length is validated without changing the configured domain", async () => {
+    const longDomain = ["b".repeat(63), "c".repeat(63), "d".repeat(63), "example", "com"].join(".");
+    const response = await app.request(
+      "https://mail.test/v1/inboxes",
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${admin}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ local_part: "x".repeat(64) }),
+      },
+      { ...bindings, AGENTPOST_EMAIL_DOMAIN: longDomain },
+    );
+    expect(response.status).toBe(400);
+    expect(
+      (await bindings.DB.prepare("SELECT count(*) AS count FROM inboxes").first())?.count,
+    ).toBe(0);
+  });
+
+  test("a named inbox receives mail and persists sends using its canonical address", async () => {
+    const created = await request("/v1/inboxes", {
+      method: "POST",
+      body: { local_part: "Research.Team+1" },
+    });
+    const box = await created.json<CreatedInbox>();
+    const incoming = email(box.address.toUpperCase(), mime);
+    await receive(incoming.input, bindings);
+    expect(incoming.rejected).toEqual([]);
+    const message = await bindings.DB.prepare("SELECT id FROM messages WHERE inbox_id = ?")
+      .bind(box.id)
+      .first<{ id: string }>();
+    expect(message).not.toBeNull();
+    await parseMessage(bindings, message!.id);
+    expect(
+      (await request(`/v1/inboxes/${box.id}/messages/${message!.id}`, { token: box.token })).status,
+    ).toBe(200);
+    const { response, row } = await send(box, "named-inbox");
+    expect(response.status).toBe(202);
+    const stored = await bindings.DB.prepare("SELECT payload FROM outbox WHERE id = ?")
+      .bind(row.id)
+      .first<{ payload: string }>();
+    expect(JSON.parse(stored!.payload).from).toBe("research.team+1@example.com");
+  });
+
   test("an inbox token cannot provision, list, or access other inboxes", async () => {
     const first = await inbox();
     const second = await inbox();
@@ -162,6 +287,15 @@ describe("API and inbox isolation", () => {
     expect(
       (await request(`/v1/inboxes/${second.id}/messages`, { token: first.token })).status,
     ).toBe(404);
+    expect(
+      (
+        await request("/v1/inboxes", {
+          method: "POST",
+          body: { local_part: "research" },
+          token: first.token,
+        })
+      ).status,
+    ).toBe(403);
     expect((await request(`/v1/inboxes/${first.id}`, { token: first.token })).status).toBe(200);
   });
 

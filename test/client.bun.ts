@@ -26,6 +26,104 @@ describe("agent client and MCP", () => {
     expect((await new Response(child.stdout).text()).trim()).toBe(`agentpost ${version}`);
   });
 
+  test("CLI provisions named or random inboxes and rejects invalid names before requests", async () => {
+    const bodies: unknown[] = [];
+    const source = Bun.serve({
+      port: 0,
+      fetch: async (request) => {
+        bodies.push(await request.json());
+        return Response.json({ address: "research@example.com" }, { status: 201 });
+      },
+    });
+    servers.push(source);
+    for (const args of [["--local-part", "Research.Team+1", "--label", "research"], []]) {
+      const child = Bun.spawn([process.execPath, "run", "src/cli.ts", "inbox", "create", ...args], {
+        env: {
+          ...process.env,
+          AGENTPOST_API_URL: source.url.href,
+          AGENTPOST_API_TOKEN: "test-admin",
+        },
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      const output = new Response(child.stdout).text();
+      const error = new Response(child.stderr).text();
+      expect(await child.exited).toBe(0);
+      expect(JSON.parse(await output)).toEqual({ address: "research@example.com" });
+      expect(await error).toBe("");
+    }
+    const invalid = Bun.spawn(
+      [
+        process.execPath,
+        "run",
+        "src/cli.ts",
+        "inbox",
+        "create",
+        "--local-part",
+        "other@example.net",
+      ],
+      {
+        env: {
+          ...process.env,
+          AGENTPOST_API_URL: source.url.href,
+          AGENTPOST_API_TOKEN: "test-admin",
+        },
+        stdout: "pipe",
+        stderr: "pipe",
+      },
+    );
+    const error = new Response(invalid.stderr).text();
+    expect(await invalid.exited).toBe(1);
+    expect(await new Response(invalid.stdout).text()).toBe("");
+    expect(await error).not.toBe("");
+    expect(bodies).toEqual([{ label: "research", local_part: "Research.Team+1" }, { label: "" }]);
+  });
+
+  test("MCP discovers and provisions custom names while preserving random allocation", async () => {
+    const bodies: unknown[] = [];
+    const server = createMcpHandler(() =>
+      createMailServer(
+        new MailClient({
+          url: "https://mail.example.com",
+          token: "test-admin",
+          fetch: async (_url, init) => {
+            bodies.push(JSON.parse(String(init.body)));
+            return Response.json({ address: "research@example.com" }, { status: 201 });
+          },
+        }),
+      ),
+    );
+    const client = new Client(
+      { name: "named-inbox-test", version: "1" },
+      {
+        versionNegotiation: { mode: { pin: "2026-07-28" } },
+      },
+    );
+    await client.connect(
+      new StreamableHTTPClientTransport(new URL("http://localhost/mcp"), {
+        fetch: (url, init) => server.fetch(new Request(url, init)),
+      }),
+    );
+    try {
+      const tools = await client.listTools();
+      expect(
+        tools.tools.find((tool) => tool.name === "create_inbox")?.inputSchema.properties,
+      ).toHaveProperty("local_part");
+      const properties = z
+        .object({ local_part: z.object({ pattern: z.string() }) })
+        .parse(tools.tools.find((tool) => tool.name === "create_inbox")?.inputSchema.properties);
+      expect(new RegExp(properties.local_part.pattern).test("Research.Team+1")).toBe(true);
+      for (const input of [{ local_part: "Research.Team+1", label: "research" }, {}]) {
+        const result = await client.callTool({ name: "create_inbox", arguments: input });
+        expect(result.isError).not.toBe(true);
+      }
+      expect(bodies).toEqual([{ label: "research", local_part: "Research.Team+1" }, { label: "" }]);
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
+
   test("stdio push notifications stop polling when the client cancels", async () => {
     let published = false;
     let polls = 0;

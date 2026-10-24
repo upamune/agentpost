@@ -26,6 +26,8 @@ Downloads require an unused output path and create files with permissions 0600. 
 
 `inbox create --label NAME` requires an admin token and returns `id`, `address`, and a secret `token`. Save the response privately and return only the requested non-secret identity to the user. Use the inbox token for subsequent mailbox work. If creation times out, inspect `inbox list` before deciding what to do; blindly repeating creation can allocate a second address. A lost token can be rotated by an admin, which invalidates the old token and its event cursors.
 
+Choose a name with `inbox create --local-part research --label task-name`; omit `--local-part` for a random address. The domain comes from the Worker configuration. Names use 1–64 ASCII letters/digits, `_`, `+`, `-`, and single internal dots and are stored lowercase. A full address, whitespace, Unicode, leading/trailing dots, or consecutive dots is invalid. Dots and plus suffixes identify distinct inboxes. Existing names return 409 even when disabled; provisioning never changes their credentials or reassigns the address. Inspect existing task state/inbox listings after a conflict instead of creating or rotating another inbox automatically.
+
 ## Send or reply
 
 After the user has authorized the recipient and purpose, choose one idempotency key for that logical message and persist it with the task's inbox ID and payload before calling send. Use a new key for a different message, and the original key for a retry of the same request.

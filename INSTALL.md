@@ -50,6 +50,8 @@ Verify access without sending a message. With a supplied inbox UUID, use:
 mise exec --cd /absolute/path/to/agentpost -- bun run src/cli.ts inbox get INBOX_UUID
 ```
 
+When the user authorizes provisioning, `inbox create --local-part research` chooses `research` on the configured domain; omit the option for a random name. Existing names conflict even when disabled, and provisioning never reassigns them.
+
 An admin token can instead use `inbox list --limit 1`. `health` also requires admin access, so its rejection does not mean an inbox token is invalid. If the URL, credentials, or inbox identity are missing, finish source installation and report the missing connection configuration. Do not create an inbox or send mail just to prove installation.
 
 ## Configure MCP

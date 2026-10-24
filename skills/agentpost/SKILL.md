@@ -8,13 +8,13 @@ license: MIT
 
 [日本語ガイド](references/guide.ja.md)
 
-Use agentpost's configured MCP tools or Bun CLI. Each operator self-hosts agentpost on their own Cloudflare account and domain. The Worker issues random addresses on that domain; an inbox UUID identifies the mailbox in API and tool calls.
+Use agentpost's configured MCP tools or Bun CLI. Each operator self-hosts agentpost on their own Cloudflare account and domain. The Worker issues random or custom-named addresses on that domain; an inbox UUID identifies the mailbox in API and tool calls.
 
 ## Connection and access
 
 Prefer the configured MCP connection when available. For CLI use, read [CLI workflows](references/cli.md); it explains the source-checkout launcher and file paths. If setup is missing, read `INSTALL.md` in the agentpost checkout, or obtain it from https://github.com/upamune/agentpost/blob/main/INSTALL.md. A copied skill is not a source checkout or a configured service.
 
-The CLI and stdio MCP use `AGENTPOST_API_URL` and `AGENTPOST_API_TOKEN`. Use an inbox token for mailbox work; admin access is required for inbox creation, listing, disabling, and token rotation. Don't replace an inbox token with admin credentials to bypass an authorization failure. Keep tokens private. Save new inbox IDs and addresses with task state, and save creation/rotation responses only in private storage because they contain the inbox token.
+The CLI and stdio MCP use `AGENTPOST_API_URL` and `AGENTPOST_API_TOKEN`. Use an inbox token for mailbox work; admin access is required for inbox creation, listing, disabling, and token rotation. Don't replace an inbox token with admin credentials to bypass an authorization failure. Keep tokens private. For authorized provisioning, `create_inbox` accepts optional `local_part` (the name before `@`); omission creates a random name. A conflict never grants access to an existing inbox or permission to replace its token. Save new inbox IDs and addresses with task state, and save creation/rotation responses only in private storage because they contain the inbox token.
 
 ## Read and monitor
 

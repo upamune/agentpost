@@ -2,7 +2,7 @@
 
 [English](CLAUDE.md) | [日本語](CLAUDE.ja.md)
 
-Issue random email addresses on the operator's own domain and let AI agents send and receive through a Cloudflare API, CLI, and MCP server.
+Issue random or custom-named email addresses on the operator's own domain and let AI agents send and receive through a Cloudflare API, CLI, and MCP server.
 
 - Manage tools with mise. Use `mise run format|lint|typecheck|test|build|ci`; install dependencies with `mise exec -- bun install --frozen-lockfile`.
 - Pin Actions to SHAs with pinact. Manage tasks with `mise exec -- backlog task add|list|show|move <id> done`.

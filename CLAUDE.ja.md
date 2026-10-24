@@ -2,7 +2,7 @@
 
 [English](CLAUDE.md) | [日本語](CLAUDE.ja.md)
 
-AIエージェントに独自ドメインのランダムなメールアドレスを発行し、Cloudflareで送受信するAPI・CLI・MCPサーバー。
+AIエージェントに独自ドメインのランダムまたは指定名のメールアドレスを発行し、Cloudflareで送受信するAPI・CLI・MCPサーバー。
 
 - 文書・コメント・エージェント向けの指示は英語を既定にし、保守する文書には日本語版の`*.ja.md`と相互リンクを用意する。
 - ツールはmiseで管理する。`mise run format|lint|typecheck|test|build|ci`。依存取得は`mise exec -- bun install --frozen-lockfile`。

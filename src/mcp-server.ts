@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { version } from "../package.json";
 import { MailClient } from "./client";
+import { inboxInputSchema } from "./inbox-schema";
 import { registerEventMethods } from "./mcp-events";
 
 export function createMailServer(client: MailClient): McpServer {
@@ -43,10 +44,10 @@ export function createMailServer(client: MailClient): McpServer {
     "create_inbox",
     {
       description:
-        "Create a random email address on the configured domain. Requires admin token. Save the returned inbox ID and inbox token; the token is returned only on creation. Do not automatically retry creation after a timeout.",
-      inputSchema: z.object({ label: z.string().max(100).optional() }),
+        "Create an email address on the configured domain. Omit local_part for a random address or provide a mailbox name. Existing names conflict, including disabled inboxes. Requires admin token. Save the returned inbox ID and inbox token; the token is returned only on creation. Do not automatically retry creation after a timeout.",
+      inputSchema: inboxInputSchema,
     },
-    ({ label }) => output(() => client.call("POST", "/v1/inboxes", { label: label ?? "" })),
+    (input) => output(() => client.call("POST", "/v1/inboxes", input)),
   );
   server.registerTool(
     "list_inboxes",

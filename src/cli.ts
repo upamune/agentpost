@@ -4,6 +4,7 @@ import { open } from "node:fs/promises";
 import { MAX_MAIL_BYTES, readBounded } from "./common";
 import { version } from "../package.json";
 import { MailClient } from "./client";
+import { inboxInputSchema } from "./inbox-schema";
 import { watchEvents } from "./watch";
 import { z } from "zod";
 
@@ -12,7 +13,7 @@ const help = `agentpost — email for AI agents
 Configuration: AGENTPOST_API_URL and AGENTPOST_API_TOKEN (admin or inbox token).
 Use --url to override the URL. Credentials are read from the environment.
 
-  inbox create [--label NAME]
+  inbox create [--local-part NAME] [--label LABEL]
   inbox list [--limit N] [--offset N]
   inbox get|enable|disable|rotate-token INBOX_ID
   message list INBOX_ID [--limit N] [--cursor CURSOR]
@@ -52,6 +53,7 @@ async function main(): Promise<void> {
       version: { type: "boolean" },
       url: { type: "string" },
       label: { type: "string" },
+      "local-part": { type: "string" },
       limit: { type: "string" },
       offset: { type: "string" },
       cursor: { type: "string" },
@@ -107,7 +109,14 @@ async function main(): Promise<void> {
   if (command === "health") result = await client.call("GET", "/v1/health");
   else if (command === "inbox") {
     if (action === "create")
-      result = await client.call("POST", "/v1/inboxes", { label: values.label ?? "" });
+      result = await client.call(
+        "POST",
+        "/v1/inboxes",
+        inboxInputSchema.parse({
+          label: values.label ?? "",
+          local_part: values["local-part"],
+        }),
+      );
     else if (action === "list") result = await client.call("GET", `/v1/inboxes?${page}`);
     else if (action === "get") result = await client.call("GET", path(id));
     else if (action === "enable" || action === "disable")

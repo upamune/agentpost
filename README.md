@@ -10,7 +10,7 @@ Use a fresh inbox for a research task, give a long-running agent its own identit
 
 ## What you can do
 
-- **Create inboxes on demand.** Issue random addresses on your domain, give each agent an inbox token, and rotate or revoke access independently.
+- **Create inboxes on demand.** Issue random or custom-named addresses on your domain, give each agent an inbox token, and rotate or revoke access independently.
 - **Send, receive, and reply.** Read message bodies, attachments, and original `.eml` files. Reply using the sender's Reply-To and threading headers.
 - **Use your agent's existing tools.** Choose JSON CLI commands, an HTTP API, or MCP tools over stdio or Streamable HTTP.
 - **Watch for new mail.** Subscribe to received messages and send-status changes, then resume from a saved cursor after a disconnect.
@@ -71,6 +71,14 @@ export AGENTPOST_API_TOKEN='YOUR_ADMIN_TOKEN'
 
 mise exec -- bun run cli inbox create --label research-agent
 ```
+
+To choose the address instead, supply the part before `@`:
+
+```sh
+mise exec -- bun run cli inbox create --local-part research --label research-agent
+```
+
+This creates `research@YOUR_DOMAIN`. Omit `--local-part` for a random address. Names are stored lowercase; existing names return 409, including disabled inboxes. See [naming rules](docs/http-api.md#mailbox-names).
 
 Save the returned `id`, `address`, and secret `token`. Inbox tokens are returned only on creation or rotation. Give the agent that inbox's token for subsequent work:
 

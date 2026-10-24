@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import { z } from "zod";
 import { authenticate } from "./auth";
+import { inboxInputSchema } from "./inbox-schema";
 import { equalHash, MAX_REQUEST_BYTES, randomToken, readBounded, sha256 } from "./common";
 import { enqueue, parseMime } from "./inbound";
 import { eventDescriptors, eventQuerySchema } from "./event-schema";
@@ -23,7 +24,6 @@ const sendInput = z
   })
   .strict();
 const replyInput = sendInput.omit({ to: true, subject: true });
-const inboxInput = z.object({ label: z.string().max(100).default("") }).strict();
 const pageInput = z.object({ limit: z.coerce.number().int().min(1).max(100).default(25) });
 
 app.use("*", async (context, next) => {
@@ -88,19 +88,26 @@ app.post("/v1/events/poll", async (context) => {
 
 app.post("/v1/inboxes", async (context) => {
   requireAdmin(context);
-  const input = await readJson(context, inboxInput);
+  const input = await readJson(context, inboxInputSchema);
   const domain = context.env.AGENTPOST_EMAIL_DOMAIN.toLowerCase();
   if (!z.hostname().safeParse(domain).success || !domain.includes("."))
     throw new ApiError(503, "Invalid AGENTPOST_EMAIL_DOMAIN");
   const id = crypto.randomUUID();
-  const email = `${crypto.randomUUID().replaceAll("-", "")}@${domain}`;
+  const localPart = input.local_part?.toLowerCase() ?? crypto.randomUUID().replaceAll("-", "");
+  const email = `${localPart}@${domain}`;
+  if (email.length > 254)
+    throw new ApiError(
+      input.local_part === undefined ? 503 : 400,
+      "Email address exceeds 254 characters",
+    );
   const token = randomToken();
   const now = Date.now();
-  await context.env.DB.prepare(
-    "INSERT INTO inboxes (id, address, label, token_hash, created_at) VALUES (?, ?, ?, ?, ?)",
+  const created = await context.env.DB.prepare(
+    "INSERT INTO inboxes (id, address, label, token_hash, created_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(address) DO NOTHING RETURNING id",
   )
     .bind(id, email, input.label, await sha256(token), now)
-    .run();
+    .first<{ id: string }>();
+  if (!created) throw new ApiError(409, "Email address already exists");
   return context.json({ id, address: email, label: input.label, token, created_at: now }, 201);
 });
 

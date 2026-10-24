@@ -13,7 +13,7 @@ An admin token provisions and administers inboxes and can access every inbox. An
 | Method | Path                                                         | Operation                                             |
 | ------ | ------------------------------------------------------------ | ----------------------------------------------------- |
 | GET    | `/healthz`                                                   | Unauthenticated liveness check                        |
-| POST   | `/v1/inboxes`                                                | Issue a random address (admin)                        |
+| POST   | `/v1/inboxes`                                                | Issue a random or named address (admin)               |
 | GET    | `/v1/inboxes?limit=25&offset=0`                              | List inboxes (admin)                                  |
 | GET    | `/v1/inboxes/{inbox}`                                        | Inbox details                                         |
 | PATCH  | `/v1/inboxes/{inbox}`                                        | Set activity, e.g. `{"active":false}` (admin)         |
@@ -44,6 +44,20 @@ curl "$AGENTPOST_API_URL/v1/inboxes" \
 ```
 
 Save the returned `id`, `address`, and secret `token` privately. If the response is lost, inspect the admin inbox list before allocating another inbox. An admin can rotate a lost token, invalidating the old one.
+
+### Mailbox names
+
+Omit `local_part` for a random address, or choose the part before `@`:
+
+```json
+{ "local_part": "research.team+1", "label": "research-agent" }
+```
+
+The result uses the configured domain, e.g. `research.team+1@example.com`. Names accept 1–64 ASCII letters/digits, `_`, `+`, `-`, and internal single dots. Leading/trailing dots, adjacent dots, whitespace, Unicode, and complete addresses are rejected with 400. The complete address must fit 254 characters. ASCII uppercase is normalized to lowercase; dots and plus suffixes remain distinct names, not aliases.
+
+Allocation remains admin-only. A single atomic D1 insert claims the address: duplicates, concurrent claims, and names belonging to disabled inboxes return 409 without changing the original inbox or revealing its token. Names cannot be reassigned through provisioning. Inspect or administer the existing inbox instead; never treat a conflict as permission to rotate its credentials. No migration is required for existing random inboxes.
+
+CLI: `inbox create --local-part research.team+1`. MCP: `create_inbox` with `local_part`. Both support omission for random allocation.
 
 ## Send and reply
 
