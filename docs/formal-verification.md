@@ -71,6 +71,8 @@ Replays call product APIs/classes and real local D1/R2. Tests age claim timestam
 
 The security hardening adds a 16 MiB parsed-JSON preflight before parsed put. It introduces no new persistence step: rejection retains raw and never commits ready. The model's successful-parse action describes inputs within limits; a permanent size violation is outside EventuallyReady's valid-input assumption. The dedicated regression checks raw retention, absent parsed output, pending state, and no event. See the [security audit](security-audit.md).
 
+The OAuth addition changes HTTP authentication and inbox authorization, not the modeled send, disable, recovery, raw-index, or parse ordering. The existing models and real-code replays were rerun unchanged. OAuth discovery, JWT validation, inbox ownership, and cursor refresh are covered separately by `test/oauth.test.ts`; these are regression tests, not a formal proof of authentication. See [authentication](authentication.md).
+
 ## Rerun and CI
 
 ```sh
