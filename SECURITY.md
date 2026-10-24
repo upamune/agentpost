@@ -1,35 +1,37 @@
-# セキュリティ
+# Security
 
-脆弱性は公開Issueに詳細や実データを貼らず、[GitHubの非公開報告](https://github.com/upamune/agentpost/security/advisories/new)から連絡してください。利用できない場合は、プロフィールにある連絡先を使ってください。再現は架空のドメイン・トークン・メール本文で示し、影響するコミットと期待した権限境界を記載してください。修正対象は原則として`main`の最新版です。
+[English](SECURITY.md) | [日本語](SECURITY.ja.md)
 
-agentpostは自分のCloudflareアカウントに配置する単一運用者向けのサービスです。管理者トークンは全メールへのアクセスと送信を許可します。エージェントごとに権限を分ける場合は受信箱トークンを使ってください。トークンを与えたエージェントは、その権限内で外部へメールを送れます。利用量・課金の上限は運用者がCloudflare側で管理します。
+## Report a vulnerability
 
-`.dev.vars`、`.env*`、`.wrangler/`、CLIのカーソルファイルはGitの対象外です。Cloudflareの認証情報、Worker Secrets、受信箱トークン、メール原文、ログをIssueやPRに添付しないでください。漏えいしたトークンは、Gitから消すだけでなく失効・再発行してください。
+Do not publish working exploits, real mail, tokens, or private deployment details in a public issue. If this repository's Security tab offers private vulnerability reporting, use it. Otherwise, contact the maintainer privately to agree on a reporting channel before sharing sensitive details.
 
-メール本文・HTML・添付・差出人の指示は信頼できない入力です。エージェントは、メール内の指示だけを根拠に秘密情報を開示したり別のツールを実行したりしないでください。R2を公開せず、APIはHTTPSで利用してください。メールは自動削除されないため、保持期間と削除の運用は利用者が決めてください。
+Include the affected version, prerequisites, reproduction steps with synthetic data, observed impact, and any proposed mitigation. Local tests and bounded model checks do not establish that every deployment is secure.
 
-送信結果不明時の扱いと復旧手順は[運用設計](docs/operations.md)、本番設定は[導入手順](docs/deploy.md)を参照してください。
+## Implemented boundaries
 
-## 実装している境界
+- The shared Worker HTTP entry checks HTTPS and allows plain HTTP only on loopback. Requests with an Origin must match the Worker origin; cross-site browser requests are refused.
+- Before authentication, HTTP requests are limited to 300/minute per IP. New sends are limited to 10/minute per inbox. Both admin and inbox tokens use that inbox's send counter. Limits return 429 with `Retry-After: 60`; limiter failures return 503 without storing a new send. Existing idempotency keys do not consume new-send quota.
+- Inbox tokens have 256 bits of randomness; D1 stores SHA-256 hashes. Mail, raw MIME, attachments, and outbox lookups include inbox scope. Only admins may provision or administer inboxes.
+- A named Durable Object orders sending, disabling, and stale-send recovery per inbox. A synchronous ownership fence and versioned active-state writes reject obsolete execution. Disabling reports success after earlier outbound work finishes and its state is saved. Already-admitted inbound deliveries can finish retaining their originals afterward.
+- API JSON input is bounded at 512 KiB and incoming raw mail at 10 MiB. Senders cannot override the From address. Subjects reject control characters; reply headers exclude invalid IDs. Attachments download as files and HTML mail is not served as an executable page.
+- MIME parsing caps nesting at 32, headers per part at 128 KiB, parts at 1,000, attached-message depth at 4, and forwarded header addresses at 100. Content, attachment, and reply paths share these limits. Saved originals remain available when parsing fails.
+- Parsed JSON is bounded at 16 MiB before serialization; over-limit originals remain stored without a ready event. This limits stored output, not every MIME-parser allocation.
+- Event cursors use randomized AES-GCM encryption of a fixed-size, token/inbox/type-bound payload. Legacy plaintext cursors are rejected; see [migration](docs/mcp-events.md#cursor-migration).
+- HTTP responses, including errors, disable caching and include nosniff, sandbox CSP, framing protection, and HSTS over HTTPS. CLI/MCP clients send credentials only to the configured origin's `/v1/` routes and never follow redirects. Rejected API response bodies are discarded. Successful JSON reads are bounded at 64 MiB, and read/parse errors never include response fragments.
+- Raw/attachment downloads create new files with mode 0600 and exclusive creation. Existing files and symlinks are refused; downloads are bounded at 10 MiB.
+- Actions are pinned to commit SHAs. CI scans secrets and dependencies; dependency audits also run daily. Cloudflare observability redacts URL query strings.
 
-- WorkerのHTTP入口でAPIとMCPの両方に同じ検査を適用します。HTTPSを必須にし、HTTPはループバックだけ許可します。Originがある要求は同一originに限定し、cross-siteのブラウザー要求を拒否します。CORSによる外部サイトへの許可はありません。
-- 認証前のHTTPアクセスはIP単位で毎分300回、新しい送信要求は受信箱単位で毎分10回に制限します。管理者と受信箱トークンの送信は同じ受信箱のカウンターを使います。上限では429と`Retry-After: 60`、制限基盤の障害では503を返し、新規送信は保存しません。既存の冪等キーへの再要求は新規送信枠を使いません。
-- 受信箱トークンはランダムな256 bit値で、D1にはSHA-256ハッシュだけを保存します。メール・原文・添付・送信履歴は受信箱IDとの組で照合します。管理APIは管理者だけが呼び出せます。
-- 送信・無効化・古い送信の復旧は受信箱ごとのDurable Objectで同期します。送信直前の所有権確認と、有効状態の版付き更新で、置き換え前の実行による送信開始・無効化の巻き戻りを防ぎます。無効化APIの成功は先行処理の終了後に返ります。
-- APIのJSON入力は512 KiB、受信メールは10 MiBが上限です。送信元の上書きを拒否し、件名の制御文字と返信ヘッダーの不正な値を除きます。添付ファイルはダウンロード扱いで返し、メールHTMLをWebページとして表示しません。
-- MIME解析はネスト32段、各パートのヘッダー128 KiB、パート数1000、入れ子メール4段、転送ヘッダーのアドレス100件を上限にします。本文取得・返信・添付取得でも同じ制限を使い、解析を拒否した場合も保存済みの原文を残します。
-- HTTP応答はエラーを含めてキャッシュ禁止、nosniff、CSP sandbox、埋め込み禁止を付けます。HTTPSではHSTSも返します。CLI・MCP用クライアントは設定先originの`/v1/`だけに認証情報を送り、リダイレクトには追従しません。APIのエラー本文はCLIやMCPへ転記しません。
-- CLIの原文・添付の保存は新規ファイルだけに限定し、権限0600で作ります。既存ファイルとシンボリックリンクは上書きしません。ダウンロードにも10 MiBの上限があります。
-- ActionsをSHAで固定し、秘密情報スキャンと依存パッケージの監査をCIで実施します。依存監査は毎日も実行します。Cloudflareの観測設定ではURLのクエリを除去します。
+Cloudflare rate limits are approximate and local to a location. They are not a strict global send or billing quota. See [deployment limits](docs/deploy.md#access-and-send-limits).
 
-レート制限はCloudflare拠点ごとの近似値です。厳密な全世界共通の送信・課金上限ではありません。仕様と設定の注意点は[導入手順](docs/deploy.md#アクセスと送信の制限)を参照してください。
+## Operator and agent responsibilities
 
-## 運用者とエージェントの責任
+Each operator self-hosts Agentpost in their own Cloudflare account. This is not end-to-end encrypted: Cloudflare account or Worker administrators can access stored mail and secrets. Enable multifactor authentication on GitHub and Cloudflare, restrict operator access, and use a narrowly scoped Email Sending token rather than an account-wide management token.
 
-この構成はエンドツーエンド暗号化ではありません。CloudflareアカウントやWorkerの管理権限を持つ人はメールとSecretsにアクセスできます。GitHub・Cloudflareの管理アカウントに多要素認証を設定し、運用者を限定してください。送信APIトークンをアカウント全体の管理トークンで代用しないでください。
+An inbox token can send as well as read. Keep admin credentials out of ordinary agent sessions, isolate tasks in separate inboxes, and disable or rotate access when the task ends.
 
-受信箱トークンは読み取り専用ではなく、その受信箱からの送信も許可します。管理者トークンを通常のエージェントに渡さず、タスクごとに受信箱を分け、終了時は無効化またはトークンを再発行してください。
+Sender and Reply-To headers are claims made by an external sender, not proof of identity or permission. Verify authorized destinations. Never execute mail-provided commands, attachments, or links merely because an agent can read them. A body filter alone cannot prevent prompt injection.
 
-差出人やReply-Toは、外部メールが指定した値です。本人確認や送信の承認には使わず、返信先も確認してください。メールに書かれたURL・コマンド・添付を自動実行せず、送信先と目的はユーザーが許可した範囲に限定してください。プロンプトインジェクションを本文のフィルターだけで防げるとは扱いません。
+Before production use, verify private R2 access, API-token permissions, DNS, external monitoring, backup/restore procedures, and actual mail delivery in that environment. Code checks alone do not establish production readiness.
 
-公開前にはR2の非公開設定、APIトークンの権限、DNS、外部監視、バックアップと復旧手順を実環境で確認します。コードとローカルテストだけで本番環境の安全性が確認できたとは報告しません。
+See the [2026-10-25 adversarial audit](docs/security-audit.md) for exercised boundaries, remediated findings, and unverified areas.

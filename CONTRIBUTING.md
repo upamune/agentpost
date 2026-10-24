@@ -1,16 +1,20 @@
-# 開発への参加
+# Contributing
 
-不具合や提案は[Issues](https://github.com/upamune/agentpost/issues)へ。脆弱性の報告は[SECURITY.md](SECURITY.md)に従ってください。
+[English](CONTRIBUTING.md) | [日本語](CONTRIBUTING.ja.md)
 
-リポジトリをcloneし、[READMEのローカル手順](README.md#ローカルで試す)で依存と開発用Secretsを用意します。PRを送る前に次を実行してください。
+Use [Issues](https://github.com/upamune/agentpost/issues) for bugs and proposals. Follow [SECURITY.md](SECURITY.md) for vulnerability reports.
+
+Clone the repository and follow the [local setup](README.md#try-it-locally), then run:
 
 ```sh
 mise run format
 mise run ci
 ```
 
-CIはモックの送信処理とローカルストレージを使います。実メール、実際のAPIトークンや本番データをテストに追加しないでください。ビルドはdry-runで、デプロイしません。`mise run secrets`はローカルに存在するGit履歴を検査するため、全履歴を取得したcloneで実行してください。ステージ中の差分は`mise exec -- gitleaks git --staged --redact --no-banner`で追加確認できます。
+Tests use provider stubs and local storage. Keep real mail, real API tokens, and production data out of fixtures. Builds are dry runs. `mise run secrets` scans locally available Git history, so use a full-history clone; inspect staged changes with `mise exec -- gitleaks git --staged --redact --no-banner` as well.
 
-変更の目的と確認した動作をPRに記載してください。メール処理の変更では[運用設計](docs/operations.md)の永続化・送信状態を保ち、MCPやEventsでは[参照仕様](docs/mcp-events.md)との互換性を確認します。
+Describe the problem, resulting behavior, and validation in your PR. Mail changes must preserve [operations invariants](docs/operations.md) and follow the relevant inbound/outbound verification skill. MCP and Events changes must follow the [pinned contracts](docs/mcp-events.md).
 
-依存更新時は`mise exec -- bun audit`も確認してください。`package.json`の`overrides`は、MiniflareとCloudflare Vitestプラグインが固定するUndici・Zodの脆弱な版を同一メジャーの修正版に置き換えます。上流が修正版を採用したら削除を検討してください。参照: [Undiciの修正版](https://github.com/advisories/GHSA-xjj6-f33q-929c)、[Zodの修正版](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5)。
+Write maintained documentation in English by default and provide the corresponding `*.ja.md` translation. Keep examples, limits, security guidance, and relative links consistent across both languages. Generated verification evidence and vendored upstream files retain their source language.
+
+Audit dependency updates with `mise exec -- bun audit`. The overrides in `package.json` replace vulnerable Undici/Zod versions pinned by Miniflare and the Cloudflare Vitest plugin with patched versions of the same major. Reconsider them when upstream adopts the fixes: [Undici advisory](https://github.com/advisories/GHSA-xjj6-f33q-929c), [Zod advisory](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5).

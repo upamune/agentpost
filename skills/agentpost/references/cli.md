@@ -1,5 +1,7 @@
 # CLI workflows
 
+[English](cli.md) | [日本語](cli.ja.md)
+
 Run the CLI from its source checkout. The installed skill directory is not the application checkout. Use the checkout path recorded during installation:
 
 ```sh
@@ -52,3 +54,5 @@ mise exec --cd /absolute/path/to/agentpost -- bun run src/cli.ts events watch \
 The default event is `message.received`; pass `--name message.send_status_changed` to watch terminal send-state changes. Without a cursor, monitoring starts now. Use `message list` for existing mail; `--max-age-ms` limits replay age and does not request older history by itself.
 
 The cursor is checkpointed after stdout is flushed. A crash between output and checkpoint can replay an event, so deduplicate by `eventId`. Use one cursor file per token, inbox, event type, and active watcher. A history gap requires reconciling state through the message/outbox API. Invalid cursors and auth failures need investigation; don't silently discard the checkpoint.
+
+Legacy signed cursor checkpoints are rejected by the encrypted v2 format. Reconcile message/outbox state before deliberately starting a new subscription; never silently reset a rejected checkpoint.

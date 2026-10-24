@@ -6,6 +6,8 @@ license: MIT
 
 # Agentpost
 
+[日本語ガイド](references/guide.ja.md)
+
 Use agentpost's configured MCP tools or Bun CLI. Each operator self-hosts agentpost on their own Cloudflare account and domain. The Worker issues random addresses on that domain; an inbox UUID identifies the mailbox in API and tool calls.
 
 ## Connection and access

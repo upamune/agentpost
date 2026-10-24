@@ -1,32 +1,28 @@
-# リリース
+# Releases
 
-mainへのpushで[tagpr](https://github.com/Songmu/tagpr)がリリースPRを作成・更新します。
-PRで`package.json`のバージョンと`CHANGELOG.md`を確認し、merge commitまたはsquashでマージすると、`v`付きタグとGitHub Releaseを作成します。
-CLIとMCPが返すバージョンも`package.json`から読み込みます。
-リリースPRのマージは管理者が判断してください。
+[English](releases.md) | [日本語](releases.ja.md)
 
-このフローはソースのリリースです。npmへの公開、CLIバイナリの配布、本番へのデプロイは含みません。
-Workerの導入・更新は[導入手順](deploy.md)に従って行います。
+Once configured, [tagpr](https://github.com/Songmu/tagpr) creates/updates a release PR on pushes to main. Review `package.json` and `CHANGELOG.md`; merging with a merge commit or squash creates a `v` tag and GitHub Release. CLI/MCP versions also come from `package.json`. A maintainer decides when to merge.
 
-## GitHub Appの初期設定
+This releases source only. It does not publish npm packages, CLI binaries, or production deployments. Deploy/update a Worker using the [deployment guide](deploy.md).
 
-`TAGPR_APP_CLIENT_ID`が未登録の間、tagprジョブはスキップされます。
-ワークフローの追加だけではリリースPRは作成されません。
+## GitHub App setup
 
-1. [GitHub Appを作成](https://github.com/settings/apps/new)します。既存のリリース用Appがあれば再利用できます。
-2. Webhookを無効にし、Repository permissionsにContents: Read and write、Pull requests: Read and write、Issues: Read-onlyを設定します。
-3. Appを対象リポジトリだけにインストールし、秘密鍵を生成します。
-4. 秘密鍵をActions secretに登録した後、Client IDをActions variableに登録します。鍵をGitやチャットに貼らないでください。
+The tagpr job is skipped while `TAGPR_APP_CLIENT_ID` is unset. Adding the workflow alone does not create release PRs.
+
+1. [Create a GitHub App](https://github.com/settings/apps/new), or reuse an existing release App.
+2. Disable webhooks. Set repository permissions: Contents and Pull requests **Read and write**, Issues **Read-only**.
+3. Install it only on the intended repository and generate a private key.
+4. Register the key as an Actions secret, then the Client ID as an Actions variable. Keep the key out of Git and chat.
 
 ```sh
 gh secret set TAGPR_APP_PRIVATE_KEY --repo upamune/agentpost < /absolute/path/to/app.private-key.pem
 gh variable set TAGPR_APP_CLIENT_ID --repo upamune/agentpost --body 'YOUR_APP_CLIENT_ID'
 ```
 
-`TAGPR_`はリリース自動化の認証設定で、アプリ本体の`AGENTPOST_`設定とは別です。
-Appの権限を変更した場合は、インストール先で変更を承認してください。
+`TAGPR_` configures release automation separately from application `AGENTPOST_` variables. Approve installation permission changes when modifying the App.
 
-ActionsからPRを作成する設定も有効にします。通常のワークフロートークンは読み取り権限のままにします。
+Enable workflow PR creation while keeping the ordinary workflow token read-only:
 
 ```sh
 gh api -X PUT repos/upamune/agentpost/actions/permissions/workflow -F can_approve_pull_request_reviews=true
@@ -38,21 +34,13 @@ gh run list --repo upamune/agentpost --workflow tagpr.yml
 gh pr list --repo upamune/agentpost --label tagpr
 ```
 
-初回は前回タグがないため、変更履歴は最初のコミットから始まります。
-最初のリリースは`0.1.0`を想定し、提案が異なる場合はリリースPR内の`package.json`を編集してからマージします。
-バージョンと変更履歴の差分、PRのCI成功を確認するまでマージしないでください。
+Without a previous tag, the first changelog starts at the first commit. The intended initial version is `0.1.0`; edit the release PR's version if the proposal differs. Verify version/changelog changes and passing PR CI before merging.
 
-## 通常のリリースと復旧
+## Routine releases and recovery
 
-通常はpatchを提案します。
-変更PRの`major`・`breaking`ラベルはmajor、`minor`・`enhancement`・`feature`はminorの提案に使います。
-リリースPRに直接`tagpr:major`・`tagpr:minor`を指定するか、バージョンファイルを編集して調整できます。
-変更履歴の分類は[release.yml](../.github/release.yml)で管理します。
+The default increment is patch. Change PR labels `major`/`breaking` suggest major, and `minor`/`enhancement`/`feature` suggest minor. Adjust with release PR labels `tagpr:major` / `tagpr:minor` or edit the version file. Changelog categories live in [release.yml](../.github/release.yml).
 
-実行が失敗した場合はAppのインストール先・権限・認証設定を確認し、Actionsからtagprを再実行します。
-手動実行はmainを指定してください。
-既存タグを移動したり、別のワークフローから同じタグを作成したりしないでください。
-マージ後はタグの対象コミットとGitHub Releaseを確認します。
+On failure, check App installation, permissions, and credentials, then rerun tagpr on main. Do not move existing tags or let another workflow create the same tag. After merging, inspect the tagged commit and GitHub Release:
 
 ```sh
 git fetch origin --tags

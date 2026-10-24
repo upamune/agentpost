@@ -1,53 +1,44 @@
 # agentpost
 
-AIエージェントのための独自ドメインのメール受信箱。
+[English](README.md) | [日本語](README.ja.md)
 
-agentpostは、自分のCloudflareアカウントと独自ドメインで動かす、AIエージェント向けのOSSメール基盤です。
-エージェントやタスクごとにランダムなメールアドレスを発行し、API、CLI、MCPからメールを送受信できます。
-自分のCloudflareアカウントで動かし、メールと認証情報を管理できます。
+**Give your AI agents as many email addresses as they need.**
 
-## できること
+Create an address for every agent, task, or workflow, then send and receive email through an API, CLI, or MCP. Agentpost runs on your own domain and Cloudflare account, so you keep control of your inboxes, mail, and credentials. It is open source under the MIT license.
 
-- 独自ドメインにランダムなメールアドレスを発行し、受信箱を作成します。有効化、無効化、トークンの再発行にも対応します。
-- メールの本文、HTML、添付ファイル、原文の`.eml`を取得できます。
-- 発行したアドレスからメールを送信し、Reply-Toとスレッド情報を引き継いで返信できます。
-- エージェントとの接続に、JSONを返すCLI、HTTP API、stdioとStreamable HTTPのMCPサーバーを提供します。
-- 受信と送信状態の変化を監視し、保存したカーソルから再開できます。
-- 受信箱トークンで、エージェントが操作できるメールを受信箱ごとに分離できます。
+Use a fresh inbox for a research task, give a long-running agent its own identity, or keep separate workflows from sharing mail. Provision addresses on demand and disable them when the work is done. There is no fixed inbox-count limit in Agentpost; infrastructure capacity, rate limits, and Cloudflare sending limits still apply.
 
-現在は初期開発段階です。
-ローカル環境での検証を行っていますが、独自ドメインでの実際のメール送受信は未検証です。
-送信に使う[Cloudflare Email Sending](https://developers.cloudflare.com/email-service/get-started/send-emails/)はBetaです。
-本番導入前に、利用する環境で送受信と復旧手順を確認してください。
+## What you can do
 
-## AIエージェント向けの導入
+- **Create inboxes on demand.** Issue random addresses on your domain, give each agent an inbox token, and rotate or revoke access independently.
+- **Send, receive, and reply.** Read message bodies, attachments, and original `.eml` files. Reply using the sender's Reply-To and threading headers.
+- **Use your agent's existing tools.** Choose JSON CLI commands, an HTTP API, or MCP tools over stdio or Streamable HTTP.
+- **Watch for new mail.** Subscribe to received messages and send-status changes, then resume from a saved cursor after a disconnect.
+- **Keep your deployment under your control.** Each operator brings their own Cloudflare account and domain. Agentpost does not provide a shared hosted email service.
 
-AIエージェントには[INSTALL.md](INSTALL.md)を渡してください。
-既存Workerへの接続、ローカルでの動作確認、MCPの設定、自分のCloudflareアカウントへの導入を区別して進められる手順です。
+Agentpost is in early development. Local tests and formal checks pass, but real send/receive behavior on a configured domain has not yet been verified. [Cloudflare Email Sending](https://developers.cloudflare.com/email-service/get-started/send-emails/) is Beta. Follow the deployment checks before relying on a new installation.
+
+## Install with an AI agent
+
+Give your agent [INSTALL.md](INSTALL.md). It covers connecting to an existing Worker, trying a local Worker, configuring MCP, and deploying to your own account.
 
 ```text
-次の手順を読んで、agentpostをこのプロジェクトで使えるように設定してください。
+Read these instructions and set up agentpost for this project:
 https://github.com/upamune/agentpost/blob/main/INSTALL.md
 ```
 
-メール操作用の[agentpostスキル](skills/agentpost/SKILL.md)も同梱しています。
-受信箱の操作、送信時の冪等キー、送信状態の確認、イベント監視の扱いをエージェントに伝えます。
-次はCodex向けの導入例です。スキルを使うプロジェクトのディレクトリで実行してください。
-Claude Codeでは`--agent codex`を`--agent claude-code`に変更します。
+The bundled [agentpost skill](skills/agentpost/SKILL.md) teaches inbox access, stable send keys, send-status checks, and event monitoring. From the project where you want the skill installed:
 
 ```sh
 mise exec bun@1.4.4 -- bunx skills@1.7.4 add upamune/agentpost \
   --skill agentpost --agent codex --yes
 ```
 
-スキルの導入と、CLI本体のインストールや接続先の設定は別です。
-CLI本体の準備と接続確認は`INSTALL.md`に従ってください。
+For Claude Code, replace `--agent codex` with `--agent claude-code`. Installing the skill does not install the CLI or configure credentials; follow `INSTALL.md` for those steps.
 
-## ローカルで試す
+## Try it locally
 
-[mise](https://mise.jdx.dev/getting-started.html)をインストールして、次のコマンドを実行します。
-必要なBunとNode.jsのバージョンはリポジトリで固定しています。
-ローカルの受信テストには、独自ドメインやCloudflareの認証情報は不要です。
+Install [mise](https://mise.jdx.dev/getting-started.html), then run:
 
 ```sh
 git clone https://github.com/upamune/agentpost.git
@@ -60,23 +51,19 @@ mise exec -- bun run db:migrate:local
 mise run dev
 ```
 
-`setup:local`はランダムな管理者トークンを含む`.dev.vars`を作成します。
-既存のファイルは上書きしません。
-このファイルはGitの管理対象外です。
+Tool versions are pinned. The local receive test needs no domain or Cloudflare credentials. `setup:local` creates an ignored `.dev.vars` with a random admin token and refuses to overwrite an existing file.
 
-サーバーを起動したまま、別のターミナルから受信テストを実行できます。
+Leave the server running. In a second terminal:
 
 ```sh
 mise exec -- bun run smoke:local
 ```
 
-このテストは受信箱の発行、テストメールの投入、キューによる解析、本文と原文の取得を確認します。
-外部へのメール送信は行いません。
+This provisions an inbox, injects a fixture, waits for queue parsing, and checks the message body and original MIME. It sends no external email.
 
-### CLIで受信箱を作る
+### Create your first inbox
 
-リポジトリのルートで、接続先とトークンを設定します。
-`AGENTPOST_API_TOKEN`には`.dev.vars`の`AGENTPOST_ADMIN_TOKEN`の値を指定してください。
+From the checkout, set the API URL and the admin token created in `.dev.vars`:
 
 ```sh
 export AGENTPOST_API_URL=http://localhost:8787
@@ -85,9 +72,7 @@ export AGENTPOST_API_TOKEN='YOUR_ADMIN_TOKEN'
 mise exec -- bun run cli inbox create --label research-agent
 ```
 
-応答に含まれる`id`、`address`、`token`を保存します。
-受信箱トークンは作成時と再発行時にだけ返されます。
-以後、その受信箱だけを扱うエージェントには`token`を渡してください。
+Save the returned `id`, `address`, and secret `token`. Inbox tokens are returned only on creation or rotation. Give the agent that inbox's token for subsequent work:
 
 ```sh
 export AGENTPOST_API_TOKEN='YOUR_INBOX_TOKEN'
@@ -98,32 +83,24 @@ mise exec -- bun run cli events watch --inbox YOUR_INBOX_UUID \
   --cursor-file .agentpost/received.cursor.json
 ```
 
-CLIはJSONを標準出力に返し、イベント監視では1行に1件のJSON（NDJSON）を返します。
-コマンドの一覧は`mise exec -- bun run cli --help`で確認できます。
-設定に使う環境変数はすべて`AGENTPOST_`で始まります。
-Worker、CLI、MCPそれぞれの設定先は[環境変数の一覧](docs/deploy.md#環境変数)を参照してください。
+The CLI emits JSON; event watch emits one JSON object per line. Use `mise exec -- bun run cli --help` for all commands. Application configuration uses the `AGENTPOST_` prefix; see the [configuration table](docs/deploy.md#environment-variables).
 
-## Cloudflareに導入する
+## Use your own domain
 
-実際のメールを送受信するには、次の準備が必要です。
+You need:
 
-- Cloudflare DNSで管理する独自ドメイン
-- Cloudflare Workers Paidと、D1、R2、Queues、Durable Objectsを利用できるアカウント
-- 対象ドメインのEmail RoutingとEmail Sendingの有効化
-- Email SendingのAPIトークンと、管理者トークン
+- A domain managed with Cloudflare DNS.
+- A Workers Paid account with D1, R2, Queues, and SQLite-backed Durable Objects.
+- Email Routing and Email Sending enabled for that domain.
+- An Email Sending API token and a separate Agentpost admin token.
 
-[導入手順](docs/deploy.md)に沿って、ストレージとキューの作成、DNS、Secrets、デプロイ、catch-allの設定を行ってください。
-アドレスごとのルーティング設定は不要です。
-agentpostが発行した有効なアドレスだけでメールを受け入れます。
+Follow the [deployment guide](docs/deploy.md) to create resources, configure DNS and secrets, deploy the Worker, and route catch-all mail to it. You do not need a routing rule for every address: the Worker accepts only issued, active recipients.
 
-導入後は`AGENTPOST_API_URL`をWorkerのHTTPS URLに変更すると、同じCLIとMCPを使えます。
-ローカルの`.dev.vars`に`AGENTPOST_CF_ACCOUNT_ID`と`AGENTPOST_CF_EMAIL_API_TOKEN`を設定した場合も、実際の送信APIを呼びます。
-そのため、送信テストには自分で管理する宛先を指定してください。
+After deployment, point `AGENTPOST_API_URL` at the Worker's HTTPS URL. Supplying real sending credentials in local `.dev.vars` can also call the real provider, so use a recipient you control for any real send test.
 
-### メールを送る
+### Send a message
 
-送信には同じ要求を識別する**冪等キー**を必ず指定します。
-同じメールの要求を再試行するときは、同じキーを使ってください。
+Persist one **idempotency key** for each logical message. Reuse that key when retrying the same request.
 
 ```sh
 mise exec -- bun run cli send YOUR_INBOX_UUID \
@@ -135,27 +112,22 @@ mise exec -- bun run cli send YOUR_INBOX_UUID \
 mise exec -- bun run cli outbox get YOUR_INBOX_UUID YOUR_SEND_UUID
 ```
 
-送信を要求すると、状態を確認するためのoutbox IDが返されます。
-`accepted`はCloudflareが要求を受理した状態で、宛先への配達完了を意味しません。
-タイムアウトなどで結果が`unknown`になった場合は、自動再送せず、管理者が送信結果を確認します。
+The send response contains an outbox ID for checking progress. `accepted` means Cloudflare accepted the request; it does not prove recipient delivery. An `unknown` outcome needs operator reconciliation and is never automatically resent.
 
-## MCPから使う
+## Connect over MCP
 
-MCPクライアントから、受信箱の発行、受信メールの取得、送信、返信、送信状態の確認を行えます。
-対応するプロトコルはMCP **2026-07-28**、公式TypeScript SDKはv2.4.0です。
+MCP tools let agents create inboxes, read mail, send, reply, and inspect send status. The implementation targets MCP **2026-07-28** with the official TypeScript SDK v2.4.0.
 
-| 操作       | ツール                                      |
-| ---------- | ------------------------------------------- |
-| 受信箱     | `create_inbox`、`list_inboxes`、`get_inbox` |
-| 受信メール | `list_messages`、`get_message`              |
-| 送信と返信 | `send_email`、`reply_email`                 |
-| 送信状態   | `get_send_status`、`list_outbox`            |
+| Purpose             | Tools                                       |
+| ------------------- | ------------------------------------------- |
+| Inboxes             | `create_inbox`, `list_inboxes`, `get_inbox` |
+| Received mail       | `list_messages`, `get_message`              |
+| Sending and replies | `send_email`, `reply_email`                 |
+| Send status         | `get_send_status`, `list_outbox`            |
 
 ### stdio
 
-クライアントの設定例です。
-`/absolute/path/to/agentpost`をcloneしたディレクトリに置き換えてください。
-ローカルサーバーに接続する場合は`AGENTPOST_API_URL`を`http://localhost:8787`に変更します。
+Replace the checkout path and supply private credentials in your client's configuration:
 
 ```json
 {
@@ -181,26 +153,21 @@ MCPクライアントから、受信箱の発行、受信メールの取得、�
 }
 ```
 
-受信箱の新規発行と一覧取得には管理者トークンが必要です。
-管理者トークンは全受信箱を操作できるため、必要なエージェントにだけ渡してください。
+For a local Worker, use `http://localhost:8787`. Creating and listing inboxes requires an admin token, which controls every inbox; keep it outside ordinary agent sessions. An inbox token permits both reading and sending for that inbox.
 
 ### Streamable HTTP
 
-Workerの`https://YOUR_WORKER.workers.dev/mcp`に接続し、各要求に`Authorization: Bearer <token>`を付けます。
-OAuth認証は未対応のため、接続先URLとBearerトークンを設定できるクライアントが必要です。
+Connect to `https://YOUR_WORKER.workers.dev/mcp` with `Authorization: Bearer <token>` on each request. OAuth is not implemented; your client must support a configured URL and Bearer token.
 
 ### MCP Events
 
-受信通知の`message.received`と、送信状態通知の`message.send_status_changed`を提供します。
-`events/list`、`events/poll`、`events/stream`に対応し、pollとpushで購読できます。
+`message.received` reports new parsed mail; `message.send_status_changed` reports terminal send-state changes. Discovery, polling, and push use `events/list`, `events/poll`, and `events/stream`.
 
-**MCP Eventsへの対応は作業部会のドラフトに基づく実験的な機能です**。
-MCP本体の確定仕様とは別に扱い、対応クライアントで利用してください。
-参照したドラフト、購読とカーソルの扱いは[MCPとEventsの対応範囲](docs/mcp-events.md)を参照してください。
+**Events is an experimental working-group draft, separate from the finalized MCP core specification.** Use a compatible client and consult the [MCP and Events contract](docs/mcp-events.md) for the pinned draft, subscriptions, and cursor handling.
 
 ## HTTP API
 
-受信箱の発行から送受信、イベント監視まで、Bearerトークン付きのHTTP APIで操作できます。
+Provision inboxes and manage mail with authenticated JSON requests:
 
 ```sh
 curl "$AGENTPOST_API_URL/v1/inboxes" \
@@ -209,53 +176,46 @@ curl "$AGENTPOST_API_URL/v1/inboxes" \
   -d '{"label":"research-agent"}'
 ```
 
-上の発行例には管理者トークンが必要です。
-エンドポイントと送信例は[HTTP APIリファレンス](docs/http-api.md)に記載しています。
+This provisioning example requires an admin token. See the [HTTP API reference](docs/http-api.md) for endpoints, pagination, send keys, and reply requests.
 
-## 保存と障害対応
+## Storage and recovery
 
-メールの原文と本文はR2、受信箱、処理状態、イベント履歴はD1に保存します。
-Cloudflare WorkersがAPIとMCPを提供し、Queuesでメールを処理します。
-送信・受信箱の無効化・送信中断の復旧は、受信箱ごとのDurable Objectで順番に処理します。
+Original MIME and parsed content live in R2. D1 stores inboxes, processing state, and events. Workers serve the API/MCP, Queues process mail, and a Durable Object per inbox orders sends, disabling, and stale-send recovery.
 
-受信時は原文を保存してから解析します。
-キューへの投入や解析が失敗した場合は、保存済みの原文から復旧を試みます。
-送信時は要求を永続化します。
-キュー処理が重複しても、条件付きの状態更新で二重送信を防ぎます。
+Incoming mail is stored before parsing. Saved originals remain available when parsing or queue publication fails. Outgoing requests are durable before queue publication, and conditional claims prevent duplicate queue deliveries from creating parallel sends. Unknown provider outcomes prioritize avoiding duplicate sends over automatic retry.
 
-監視項目、再試行の条件、障害時の復旧手順は[運用設計](docs/operations.md)を参照してください。
+See [operations](docs/operations.md) for retry rules, monitoring, backups, and recovery procedures.
 
-## 制約
+## Limits
 
-| 項目                | 対応範囲                                                          |
-| ------------------- | ----------------------------------------------------------------- |
-| 受信サイズ          | 1通あたり10 MiBまで                                               |
-| APIのJSONリクエスト | 512 KiBまで                                                       |
-| 送信形式            | テキストと任意のHTML。送信添付は未対応                            |
-| 保存期間            | メールとイベントを無期限に保存。自動削除は未対応                  |
-| イベント配信        | at-least-once。受信側で`eventId`による重複除去が必要              |
-| 認証                | 管理者トークンと受信箱トークン。OAuthは未対応                     |
-| インターフェース    | API、CLI、MCP。Web UI、IMAP、クライアント向けSMTPサーバーは未提供 |
+| Area              | Current support                                              |
+| ----------------- | ------------------------------------------------------------ |
+| Incoming mail     | Up to 10 MiB per message                                     |
+| Parsed JSON       | Up to 16 MiB; originals retained on overflow                 |
+| API JSON requests | Up to 512 KiB                                                |
+| Sending           | Required plain text, optional HTML; no outbound attachments  |
+| Retention         | Mail and events retained indefinitely; no automatic deletion |
+| Events            | At-least-once; consumers deduplicate by `eventId`            |
+| Authentication    | Admin and inbox tokens; no OAuth                             |
+| Interfaces        | API, CLI, MCP; no Web UI, IMAP, or client-facing SMTP server |
 
-メール本文や添付は信頼できない外部入力です。
-エージェントに渡す際の権限設定と、脆弱性の報告方法は[SECURITY.md](SECURITY.md)を参照してください。
+See the [adversarial security audit](docs/security-audit.md) for demonstrated findings, fixes, and remaining verification scope.
 
-## 開発とコントリビューション
+Mail bodies, headers, links, and attachments are untrusted external input. Review [SECURITY.md](SECURITY.md) before granting agents access.
+
+## Development
 
 ```sh
 mise run format
 mise run ci
 ```
 
-CIではmainへのpushとPRごとに、整形、静的解析、型検査、テスト、Workerのdry-runビルド、秘密情報チェックを自動実行します。
-依存パッケージの脆弱性監査もpush・PRと毎日実行します。
-CLIはBunで実行する構成で、単体バイナリの自動配布は行っていません。
-実メールの送信と本番への自動デプロイは行いません。
-リリースPRとタグ・GitHub Releaseはtagprで管理します。GitHub Appの初期設定とリリースの確認方法は[リリース手順](docs/releases.md)を参照してください。
-送信停止・復旧の競合と、受信原文・索引の復旧は[pstack / TLA+形式検証](docs/formal-verification.md)で検査します。モデル検査、実コードでの再現、ガードを壊す変異検査をCIで実行します。
-不具合や提案は[Issues](https://github.com/upamune/agentpost/issues)、開発手順は[CONTRIBUTING.md](CONTRIBUTING.md)を参照してください。
+Pushes to `main` and pull requests run formatting, linting, type checks, tests, a Worker dry-run build, secret scanning, and formal/real-code/mutation verification. Dependency audits also run daily. [Formal verification](docs/formal-verification.md) records the checked properties and their bounds.
 
-## ライセンス
+The CLI runs from source with Bun; standalone binaries and npm releases are not currently published. CI sends no real mail and does not deploy production. [tagpr release setup](docs/releases.md) documents source releases and the required GitHub App configuration.
 
-[MIT](LICENSE)。
-同梱スキルの出典とライセンスは[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)に記載しています。
+Report bugs and proposals in [Issues](https://github.com/upamune/agentpost/issues). See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution and language conventions.
+
+## License
+
+[MIT](LICENSE). Bundled third-party skills retain their original copyright and license notices in their own directories.

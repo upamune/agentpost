@@ -1,99 +1,102 @@
-# メール処理と障害対応
+# Mail processing and recovery
 
-## 保持する状態
+[English](operations.md) | [日本語](operations.ja.md)
+
+## Persisted state
 
 ```text
-受信: SMTP → Worker → R2の原文 → D1のpending → Queue → MIME解析 → R2の本文 + D1のready
-送信: API → D1のpending → Queue → 受信箱のDurable Object → 条件付きclaim → Cloudflare API → accepted / failed / unknown
-復旧: 5分おきのCron → R2原文の索引修復 + pendingのキュー再投入 + 古いsendingのunknown化
+Inbound: SMTP → Worker → R2 original → D1 pending → Queue → MIME parse → R2 content + D1 ready
+Outbound: API → D1 pending → Queue → inbox Durable Object → conditional claim → Cloudflare API → accepted / failed / unknown
+Recovery: Cron every 5 minutes → repair raw index + republish pending work + mark interrupted sending unknown
 ```
 
-R2への原文保存より前に失敗したメールはアプリが保持できていない。Cloudflareや送信元による再配達を、この実装だけで保証することはできない。R2への保存が成功した原文は、解析やキューが失敗しても残す。
+A failure before original MIME reaches R2 leaves no retained copy in the application. This implementation cannot guarantee Cloudflare/sender redelivery. Once stored successfully, originals remain available through parsing or queue failures.
 
-R2の原文には復旧用メタデータを付ける。R2保存後にD1への登録が失敗しても、Cronが原文を走査して索引を再作成する。壊れたメタデータ・復元待ちの受信箱・索引書き込みの失敗は、D1の`raw_recovery_failures`に記録して次の原文へ進む。失敗の記録自体ができなければカーソルは進めない。原文は削除せず、次の周回で再試行し、成功すると失敗記録を消す。一回の走査は100件で、カーソルをD1に保存し、末尾で先頭に戻る。原文が増えるほど一周にかかる時間が延びるため、即時回復の保証ではない。
+Originals carry recovery metadata. If D1 indexing fails after R2 storage, Cron scans originals and rebuilds indexes. Invalid metadata, a missing inbox awaiting restoration, or an index-write failure is recorded in D1 `raw_recovery_failures` before scanning continues. If the failure itself cannot be recorded, the cursor does not advance. Originals remain intact and are retried next cycle; successful repair clears attention. Each scan handles 100 objects, persists its cursor in D1, and wraps at the end. Larger collections take longer to scan; recovery is not immediate.
 
-原文の索引修復、送信中断の検出、受信pendingの再投入、送信pendingの再投入は独立に実行する。R2の走査が失敗しても、D1に保存済みの送信要求の再投入は試行し、失敗した復旧処理はCronのエラーとして記録する。修復された受信索引がキューに再投入されるまで、次のCron実行を待つ場合がある。
+Raw-index repair, interrupted-send recovery, inbound republishing, and outbound republishing run independently. An R2 scan failure does not prevent attempting to republish persisted outbound requests. Failed recovery stages produce a Cron error. Repaired inbound indexes can wait until the next Cron run for publication.
 
-## 重複と再試行
+## Deduplication and retries
 
-- 受信は受信箱IDと元のMIMEのSHA-256で識別する。同じ受信箱への同一原文は一件にまとめ、別の受信箱では別のメールとして保持する。送信元が再配達時に原文を変えた場合は別件になる。
-- APIの送信は受信箱IDとIdempotency-Keyの組を一意にする。キーはD1に無期限で残す。
-- 新しい送信・返信の受付は受信箱単位で毎分10回に制限する。429と503では新規要求を保存しない。同じキーで保存済みの要求を確認する場合は新規枠を使わず、元の状態を返す。これはプロバイダーの429による送信後の再試行とは別の制限。
-- Queuesの重複配信は、`pending → sending`の条件付きUPDATEで一つだけが処理する。
-- 送信、受信箱の有効・無効化、古い送信のunknown化は受信箱IDで決まる同じDurable Objectへ送る。Object内ではawaitをまたいで順番に実行する。D1へ直接状態を書き換える運用ではこの同期を維持できない。
-- プロバイダー呼び出しの直前にはDurable ObjectのSQLiteへ同期書き込みを行い、所有権を失った古いObjectからの送信を拒む。その確認と呼び出し開始の間にawaitを置かない。有効・無効化のD1更新には単調増加する版を付け、置き換え前のObjectによる遅れた更新が新しい無効化を上書きしないようにする。古い版の更新は失敗として返し、適用されなかった無効化を成功と報告しない。
-- 送信処理は一つのキューコンシューマーで順次行う。APIの429は30秒以上のバックオフを置き、最大8回まで。Cronが次の実行時刻以降に再投入するので、再試行には最大約5分の追加遅延がある。
-- 400/401/403/404/413/422はプロバイダーの拒否として`failed`にする。
-- 通信失敗、タイムアウト、5xx、不明な応答は`unknown`にする。自動再送しない。
-- 送信中にObjectが終了した場合は、2分以上古い`sending`をCronが同じObject経由で`unknown`にする。まだ動いている送信処理があれば復旧はその終了を待ち、更新時に状態と時刻を再確認する。時間切れだけを根拠に生きた処理の状態を書き換えない。
-- キュー投入の成否より先にD1へ保存する。キュー投入に失敗した`pending`はCronが再投入する。APIの202は配達完了を意味しない。
+- Inbound identity combines inbox ID and original MIME SHA-256. Identical MIME in one inbox deduplicates; another inbox retains its own message. A sender changing MIME on redelivery creates another identity.
+- Outbound uniqueness combines inbox ID and Idempotency-Key. Keys remain in D1 indefinitely.
+- New sends/replies are limited to 10 requests per minute per inbox. Rejected 429/503 requests are not saved. Requests already saved under the same key return their existing state without using another slot. Provider-429 retries are a separate mechanism.
+- A conditional `pending → sending` UPDATE admits only one duplicate queue delivery.
+- Sends, activity changes, and stale-send recovery go through the same inbox-ID-derived Durable Object. Its ordering spans awaits. Direct administrative D1 writes bypass these guarantees.
+- Immediately before provider dispatch, a synchronous SQLite write fences a replaced Object. There is no await between that ownership check and call initiation. Activity writes carry a monotonically increasing version; D1 rejects a delayed older write instead of rolling back a newer disable. An unapplied disable is reported as failure.
+- One queue consumer processes sends sequentially. Provider 429 retries use at least 30 seconds of backoff, up to eight attempts. Cron republishing can add approximately five minutes after the due time.
+- Provider 400/401/403/404/413/422 responses become `failed`.
+- Network failure, timeout, 5xx, or ambiguous responses become `unknown`, with no automatic resend.
+- After interrupted execution, Cron routes `sending` older than two minutes through the same Object and marks it `unknown`. Recovery waits behind a live send and rechecks state/time before updating. Age alone does not overwrite a live operation.
+- D1 persistence precedes queue publication. Cron republishes `pending` work after publication failures. API 202 is not delivery confirmation.
 
-Cloudflare Email Sendingに文書化された送信冪等キーの契約がないため、プロバイダーまで含むexactly-once配送は保証しない。可用性と二重送信回避が衝突する結果不明時は、二重送信回避を優先する。
+Cloudflare Email Sending has no documented provider idempotency contract used by this implementation. End-to-end exactly-once delivery is not guaranteed. When outcome uncertainty conflicts with availability, agentpost prioritizes avoiding duplicate sends.
 
-## 監視
+## Monitoring
 
-MCP EventsとCLIのwatchは[通知の契約](mcp-events.md)に従う。D1のトリガーが状態とイベントを同時に確定し、通知カーソルは受信箱・権限・イベント名ごとに分離する。切断後の再配送を許容し、下流はeventIdで重複を除去する。
+MCP Events and CLI watch follow the [event contract](mcp-events.md). D1 triggers commit state and events together. Cursors are encrypted and scoped by inbox, token, and event type. Consumers must tolerate redelivery and deduplicate by `eventId`.
 
-`GET /v1/health`はD1/R2へのアクセス、送信認証情報の有無、未解決の送信失敗・結果不明、受信解析失敗、原文の索引修復失敗、15分を超えるpendingを検査する。問題があれば503。送信認証情報の有効性、Cronの実行、キュー配信、DNSやメール到達そのものは、このAPIだけでは確認できない。
+`GET /v1/health` checks D1/R2 access, presence of sending credentials, unresolved failed/unknown sends, parsing failures, raw-index recovery failures, and pending work older than 15 minutes. Problems return 503. This endpoint does not verify credential validity, Cron execution, queue delivery, DNS, or actual email reachability.
 
-外部監視に管理者認証を設定し、以下もCloudflareのダッシュボードで監視する。
+Configure an authenticated external monitor and also watch Cloudflare dashboards for:
 
-- Workersの例外と`queue_publish_failed`、`job_failed`、`outbound_attention_required`、`raw_index_attention_required`。
-- Queueの最古メッセージの滞留時間とDLQの件数。
-- Cron Triggerが5分おきに成功していること。
-- Email Serviceのバウンス・抑止・送信上限。
-- R2容量、D1容量と使用量。
+- Worker exceptions and `queue_publish_failed`, `job_failed`, `outbound_attention_required`, `raw_index_attention_required`.
+- Queue oldest-message age and DLQ count.
+- Successful Cron execution every five minutes.
+- Email Service bounces, suppressions, and sending limits.
+- R2/D1 capacity and usage.
 
-ログには本文・添付・トークンを出さず、処理IDと状態を記録する。通知先や外部監視は別途設定が必要。
+Log operation IDs and states without bodies, attachments, or tokens. Notification destinations and external monitoring require operator setup.
 
-## 結果不明の送信
+## Unknown send outcomes
 
-1. `/v1/inboxes/:id/outbox/:send`で要求・時刻・プロバイダー応答を確認する。
-2. Cloudflare Email Serviceの記録と必要なら宛先側の受信を確認する。「受信箱に見当たらない」だけで未送信と断定しない。
-3. 管理者トークンで次のAPIを呼び、確認した根拠を記録する。
+1. Inspect request, timestamp, and provider response at `/v1/inboxes/:id/outbox/:send`.
+2. Check Cloudflare Email Service records and, when necessary, recipient-side receipt. Absence from a visible inbox alone does not prove non-delivery.
+3. Record the verified outcome and evidence using an admin token:
 
 ```text
 POST /v1/inboxes/:id/outbox/:send/resolve
 Content-Type: application/json
 
-{"outcome":"accepted","note":"Cloudflareの記録で受理を確認。照会した記録ID・確認日時をここに記載"}
+{"outcome":"accepted","note":"Confirmed acceptance in Cloudflare records; include record ID and verification time"}
 ```
 
-未送信と確認できた場合の`outcome`は`failed`。この操作は状態と確認根拠を保存するだけで、メールを送らない。解決済みの失敗はヘルスチェックの要対応件数から除く。
+Use `failed` only when non-sending is confirmed. Reconciliation records state/evidence without sending mail. Resolved failures no longer contribute to health attention counts.
 
-未送信と確認し、再送が必要な場合のみ、元の要求を新しいIdempotency-Keyで送る。エージェントに`unknown`からの自動再送を実装しない。
+Only after confirming non-sending and deciding a retry is needed should an operator submit the original request with a new Idempotency-Key. Never automate a resend from `unknown`.
 
-## 受信の解析失敗
+## Inbound parsing failures
 
-元の`.eml`を取得し、MIMEの不正やサイズを確認する。解析処理を修正後、`POST /v1/inboxes/:id/messages/:message/reprocess`を呼ぶ。原文は上書きしない。
-MIMEの構造・ヘッダー・パート数にも[セキュリティ上の上限](../SECURITY.md#実装している境界)がある。上限を超えた原文も保存するが、変更せずに再処理を繰り返しても解析は成功しない。
+Retrieve the original `.eml` and inspect MIME structure and size. After fixing the cause, call `POST /v1/inboxes/:id/messages/:message/reprocess`. Reprocessing never overwrites the original.
 
-キューの再配信が尽きたメールはDLQにも残る。アプリ側の失敗を直した後に再処理し、DLQの古いメッセージの扱いを確認する。DLQの存在だけを復旧済みの証拠にしない。
+[Security limits](../SECURITY.md#implemented-boundaries) apply to nesting, headers, and part count. Parsed JSON is capped at 16 MiB, counting UTF-8 and escaping before serialization. An original within the 10 MiB raw limit can exceed the parsed limit. It remains retained and is not marked ready; repeating unchanged input cannot fix a permanent limit violation. The cap bounds stored parsed output, not every CPU/memory allocation inside the MIME parser.
 
-## 原文の索引修復失敗
+Exhausted queue retries also leave DLQ messages. Fix the cause before reprocessing and review old DLQ entries. Their presence alone is not evidence of recovery.
 
-`raw_recovery_failures`の`raw_key`と`error_code`を管理者が確認する。`invalid_metadata`は復旧メタデータの欠損・不整合、`missing_inbox`は受信箱の復元待ち、`index_write_failed`はD1書き込み失敗などを示す。ログには件数だけを出す。後続の原文を修復できても、未解決の記録がある間はヘルスチェックを503にする。
+## Raw-index recovery failures
 
-原文とバックアップを照合してメタデータや受信箱を復元し、次の全走査で索引と失敗記録が修復されたことを確認する。原文を消して警告を隠す運用は行わない。失敗のあったCronはページの進捗を保存してからエラーを返すので、Cronの失敗だけで走査が停止しているとは判断しない。
+Inspect `raw_key` and `error_code` in `raw_recovery_failures`. `invalid_metadata` indicates missing/inconsistent recovery metadata; `missing_inbox` indicates an inbox awaiting restoration; `index_write_failed` indicates an indexing failure such as a D1 write error. Logs contain counts only. Health remains 503 while any record is unresolved, even when later originals recover successfully.
 
-## 受信箱・資格情報
+Restore metadata/inboxes from originals and backups, then verify both indexing and attention cleanup on the next full scan. Do not delete originals to suppress warnings. Cron saves page progress before reporting a failure; a failed Cron run does not necessarily mean scanning stopped.
 
-受信箱の無効化は管理者の`PATCH /v1/inboxes/:id`で`{"active":false}`。受信と新たな送信処理を停止し、その受信箱のトークンは使えなくなる。APIの成功は先行する送信処理の終了と無効化の保存後に返るため、先行するI/Oが遅いと待ち時間が生じる。失敗・タイムアウトしたAPI呼び出しは停止完了の証拠にせず、状態を確認する。無効の間は新たなプロバイダー呼び出しを開始しない。既にプロバイダーへ渡ったメールは取り消せない。
+## Inboxes and credentials
 
-受信箱トークンを失った・漏らした場合は、管理者の`POST /v1/inboxes/:id/token`で再発行する。旧トークンは直ちに無効になる。管理者トークンはWorkers Secret、Cloudflare APIトークンはCloudflare側とWorkers Secretの両方を更新する。
+Admins disable with `PATCH /v1/inboxes/:id` and `{"active":false}`. New inbound admissions and provider dispatches stop, and the inbox token loses access. A delivery admitted before disabling can finish retaining its original afterward; disabling is not an inbound cancellation barrier. Successful disable waits for prior outbound processing and persists disabled state. Slow prior I/O can delay the response. A timeout/failure does not prove completion: inspect state. No new provider call starts while disabled; already dispatched mail cannot be recalled.
 
-## バックアップと保持
+Rotate lost/leaked inbox credentials with admin `POST /v1/inboxes/:id/token`. Old credentials immediately stop authorizing new requests; open event streams recheck on their next poll, normally within about five seconds. Update the admin token in Workers Secrets. Rotate a Cloudflare API token both at Cloudflare and in Workers Secrets.
 
-D1とR2は別々のストレージなので、二つをまとめたトランザクションや同時点への復元はない。D1のTime Travelはアカウントのプランと保持期間を確認する。重要な運用では、別の保管先へのエクスポートと復旧訓練を追加する。このリポジトリはバックアップの外部転送や自動削除をまだ行わない。
+## Backups and retention
 
-原文から受信索引と解析結果は再構成できるが、受信箱トークンのハッシュや送信の冪等キーはD1にのみある。D1を過去へ戻すと、復元後に同じ送信を新たに受理してしまう可能性がある。復元前にAPIを停止し、送信履歴とプロバイダー記録を照合してから再開する。
+D1 and R2 have no shared transaction or atomic point-in-time restore. Check the account's D1 Time Travel plan and retention. Important installations need separate exports and recovery exercises. This repository does not implement off-site backups or automatic deletion.
 
-## 運用開始前に残る確認
+Originals can rebuild inbound indexes and parsed content. Inbox token hashes and outbound idempotency keys exist only in D1. Rolling D1 back can allow a previously accepted send to be accepted again. Stop API sending before restoration and reconcile outbox/provider records before resuming.
 
-ドメインの実設定、Cloudflare Email Sendingの有効化、受信・送信・返信の到達性、配信イベントの追跡、外部監視と通知、DLQの扱い、バックアップ復旧訓練。ローカルテストはこれらの代わりにはならない。
+## Remaining production verification
 
-## 同期基盤の前提
+Configure the real domain, enable Email Sending, verify receiving/sending/replies and event tracking, register monitoring/notifications, practice DLQ handling, and test backup restoration. Local tests do not replace these checks.
 
-[Cloudflareの所有権に関する制約](https://developers.cloudflare.com/durable-objects/platform/known-issues/#global-uniqueness)を前提に、外部I/O後に同期ストレージで所有権を確認する。送信開始とはアプリが外部呼び出しを開始した時点であり、既に開始した通信の到着・受理を取り消す保証ではない。
+## Coordinator state assumptions
 
-導入・更新時はD1 migrationsとWranglerのDurable Object migrationを両方適用する。既存の同期前のWorkerが残る段階では、キューと送信受付を止めて処理を排出し、古い`sending`を照合してから更新する。D1の`active_version`とObjectのSQLiteの連番は組なので、片方だけを過去へ戻したりObject名前空間を作り直したりせず、送信を止めて整合性を確認する。
+Following [Cloudflare ownership constraints](https://developers.cloudflare.com/durable-objects/platform/known-issues/#global-uniqueness), synchronous storage checks ownership after external I/O. Dispatch means initiation of an external call; it does not promise cancellation of a call already in flight or its eventual provider acceptance.
+
+Apply both D1 migrations and Wrangler Durable Object migrations. When upgrading an installation that predates coordination, pause sends/queues, drain old Workers, and reconcile stale `sending` first. D1 `active_version` and Object SQLite counters form a pair: do not roll back only one side or recreate the Object namespace independently. Stop sending and verify consistency before resuming.

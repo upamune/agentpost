@@ -1,5 +1,7 @@
 # Agent installation instructions
 
+[English](INSTALL.md) | [日本語](INSTALL.ja.md)
+
 Use this document when a user asks an AI agent to install or configure agentpost. The application provides a Worker API, a Bun CLI, an MCP server, and an optional agent skill.
 
 ## Choose the installation mode
@@ -37,7 +39,7 @@ Raw email and attachment downloads create new files with permissions 0600; choos
 
 ## Connect to an existing Worker
 
-Obtain the API URL and a token through the user's private configuration or secret manager. Keep token values out of chat, shell tracing, logs, and committed configuration. All application environment variables use the `AGENTPOST_` prefix; see [the configuration table](docs/deploy.md#環境変数).
+Obtain the API URL and a token through the user's private configuration or secret manager. Keep token values out of chat, shell tracing, logs, and committed configuration. All application environment variables use the `AGENTPOST_` prefix; see [the configuration table](docs/deploy.md#environment-variables).
 
 Set `AGENTPOST_API_URL` to the Worker's HTTPS base URL and `AGENTPOST_API_TOKEN` to an inbox token for ordinary email access. An admin token is required only for provisioning and inbox administration. Inbox creation and token rotation return secrets; store those responses privately.
 An inbox token allows sending as well as reading. Keep admin credentials outside ordinary agent sessions and use a separate inbox for each task. Follow `Retry-After` on HTTP 429; reuse the same idempotency key when retrying the same send.
@@ -84,7 +86,7 @@ Clients supporting Streamable HTTP with preconfigured Bearer authentication can 
 
 ## Install the agent skill
 
-The distributable skill lives in [`skills/agentpost`](skills/agentpost/SKILL.md). It describes inbox access, safe send retries, delivery states, and resumable event monitoring. Installing the skill does not install the CLI, configure credentials, or deploy a Worker.
+The distributable skill lives in [`skills/agentpost`](skills/agentpost/SKILL.md). It describes inbox access, safe send retries, delivery states, and resumable event monitoring. Installing the skill does not install the CLI, configure credentials, or deploy a Worker. The default instructions are English, with a bundled [Japanese guide](skills/agentpost/references/guide.ja.md).
 
 Run this in the project that should use the skill. The example targets Codex; replace `codex` with `claude-code` for Claude Code, or select the actual client supported by the installer. Use project scope unless the user requests a global installation.
 

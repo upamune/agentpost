@@ -1,44 +1,40 @@
 # HTTP API
 
-`AGENTPOST_API_URL`にはWorkerのHTTPS URLを指定します。
-ローカル開発では`http://localhost:8787`を使えます。
-`/healthz`以外のAPIには`Authorization: Bearer <token>`が必要です。
+[English](http-api.md) | [日本語](http-api.ja.md)
 
-管理者トークンは受信箱の発行と管理、および全受信箱へのアクセスに使います。
-受信箱トークンは、発行された一つの受信箱のメール取得と送受信に使えます。
-トークンの再発行や受信箱の無効化は管理者が行います。
+Set `AGENTPOST_API_URL` to the Worker's HTTPS URL; local development can use `http://localhost:8787`. Every API except `/healthz` requires `Authorization: Bearer <token>`.
 
-## エンドポイント
+An admin token provisions and administers inboxes and can access every inbox. An inbox token can read, send, and reply within one inbox. Only admins rotate tokens and change inbox activity.
 
-`{inbox}`は受信箱ID、`{message}`は受信メールID、`{send}`はoutbox IDです。
+## Endpoints
 
-| Method | Path                                                         | 操作                                             |
-| ------ | ------------------------------------------------------------ | ------------------------------------------------ |
-| GET    | `/healthz`                                                   | 生存確認。認証不要                               |
-| POST   | `/v1/inboxes`                                                | ランダムアドレス発行（管理者）                   |
-| GET    | `/v1/inboxes?limit=25&offset=0`                              | 受信箱一覧（管理者）                             |
-| GET    | `/v1/inboxes/{inbox}`                                        | 受信箱の詳細                                     |
-| PATCH  | `/v1/inboxes/{inbox}`                                        | `{"active":false}`などで有効状態を変更（管理者） |
-| POST   | `/v1/inboxes/{inbox}/token`                                  | 受信箱トークンの再発行（管理者）                 |
-| GET    | `/v1/inboxes/{inbox}/messages?limit=25&cursor=...`           | 受信一覧                                         |
-| GET    | `/v1/inboxes/{inbox}/messages/{message}`                     | 本文と添付情報                                   |
-| GET    | `/v1/inboxes/{inbox}/messages/{message}/raw`                 | 元の`.eml`                                       |
-| GET    | `/v1/inboxes/{inbox}/messages/{message}/attachments/{index}` | 添付ダウンロード（indexは0始まり）               |
-| POST   | `/v1/inboxes/{inbox}/messages/{message}/reprocess`           | 保存済み原文の再解析                             |
-| POST   | `/v1/inboxes/{inbox}/send`                                   | 送信要求の登録                                   |
-| POST   | `/v1/inboxes/{inbox}/messages/{message}/reply`               | Reply-Toとスレッド情報を使った返信               |
-| GET    | `/v1/inboxes/{inbox}/outbox?limit=25&offset=0`               | 送信要求一覧                                     |
-| GET    | `/v1/inboxes/{inbox}/outbox/{send}`                          | 送信状態とプロバイダー応答                       |
-| POST   | `/v1/inboxes/{inbox}/outbox/{send}/resolve`                  | 確認済みの送信結果を記録（管理者）               |
-| GET    | `/v1/events`                                                 | イベント型の一覧                                 |
-| POST   | `/v1/events/poll`                                            | イベントの取得                                   |
-| GET    | `/v1/health`                                                 | ストレージ疎通、滞留、要確認件数（管理者）       |
+`{inbox}` is an inbox UUID, `{message}` an inbound message ID, and `{send}` an outbox ID.
 
-一覧の`limit`は1〜100、既定値は25です。
-受信一覧の続きは応答の`next_cursor`、受信箱と送信要求の一覧の続きは`next_offset`を使って取得します。
-イベントの入力とカーソルの仕様は[MCPとEventsの対応範囲](mcp-events.md)を参照してください。
+| Method | Path                                                         | Operation                                             |
+| ------ | ------------------------------------------------------------ | ----------------------------------------------------- |
+| GET    | `/healthz`                                                   | Unauthenticated liveness check                        |
+| POST   | `/v1/inboxes`                                                | Issue a random address (admin)                        |
+| GET    | `/v1/inboxes?limit=25&offset=0`                              | List inboxes (admin)                                  |
+| GET    | `/v1/inboxes/{inbox}`                                        | Inbox details                                         |
+| PATCH  | `/v1/inboxes/{inbox}`                                        | Set activity, e.g. `{"active":false}` (admin)         |
+| POST   | `/v1/inboxes/{inbox}/token`                                  | Rotate inbox token (admin)                            |
+| GET    | `/v1/inboxes/{inbox}/messages?limit=25&cursor=...`           | List received messages                                |
+| GET    | `/v1/inboxes/{inbox}/messages/{message}`                     | Parsed body and attachment metadata                   |
+| GET    | `/v1/inboxes/{inbox}/messages/{message}/raw`                 | Original `.eml`                                       |
+| GET    | `/v1/inboxes/{inbox}/messages/{message}/attachments/{index}` | Download attachment (zero-based index)                |
+| POST   | `/v1/inboxes/{inbox}/messages/{message}/reprocess`           | Reparse the retained original                         |
+| POST   | `/v1/inboxes/{inbox}/send`                                   | Persist a send request                                |
+| POST   | `/v1/inboxes/{inbox}/messages/{message}/reply`               | Reply using Reply-To and threading headers            |
+| GET    | `/v1/inboxes/{inbox}/outbox?limit=25&offset=0`               | List send requests                                    |
+| GET    | `/v1/inboxes/{inbox}/outbox/{send}`                          | Send status and provider response                     |
+| POST   | `/v1/inboxes/{inbox}/outbox/{send}/resolve`                  | Record a reconciled outcome (admin)                   |
+| GET    | `/v1/events`                                                 | Discover event types                                  |
+| POST   | `/v1/events/poll`                                            | Poll events                                           |
+| GET    | `/v1/health`                                                 | Storage access, backlog, and attention counts (admin) |
 
-## 受信箱を発行する
+List limits range from 1 to 100, default 25. Use `next_cursor` for inbound message pagination and `next_offset` for inbox/outbox pagination. See [MCP and Events](mcp-events.md) for event inputs and cursor behavior. The CLI/stdio MCP client bounds successful JSON responses at 64 MiB; reduce the page limit for unusually large outbox pages.
+
+## Provision an inbox
 
 ```sh
 curl "$AGENTPOST_API_URL/v1/inboxes" \
@@ -47,15 +43,11 @@ curl "$AGENTPOST_API_URL/v1/inboxes" \
   -d '{"label":"research-agent"}'
 ```
 
-応答の`id`、`address`、`token`を保存してください。
-発行要求の応答を受け取れなかった場合は、再発行前に管理者の一覧APIで確認します。
-トークンを紛失した場合は再発行できますが、旧トークンは失効します。
+Save the returned `id`, `address`, and secret `token` privately. If the response is lost, inspect the admin inbox list before allocating another inbox. An admin can rotate a lost token, invalidating the old one.
 
-## 送信と返信
+## Send and reply
 
-送信と返信には`Idempotency-Key`ヘッダーが必須です。
-同じ受信箱で同じメールの要求を再試行する場合は、同じキーを使います。
-別の内容に同じキーを使うと409を返します。
+Both operations require `Idempotency-Key`. Retry the same logical message in the same inbox with the same key and payload. Reusing a key with different content returns 409.
 
 ```sh
 curl "$AGENTPOST_API_URL/v1/inboxes/INBOX_ID/send" \
@@ -65,15 +57,8 @@ curl "$AGENTPOST_API_URL/v1/inboxes/INBOX_ID/send" \
   -d '{"to":["recipient@example.net"],"subject":"Hello","text":"Hello from my agent"}'
 ```
 
-`to`は1〜50件の宛先配列です。
-送信本文は`text`が必須で、`html`を追加できます。
-差出人は受信箱のアドレスを使うため、`from`は指定できません。
-返信では`text`と任意の`html`を指定し、宛先と件名とスレッド情報は元のメールから設定します。
+`to` accepts 1–50 recipients. `text` is required; `html` is optional. The sender is always the inbox address; `from` cannot be overridden. Replies accept `text` and optional `html`, deriving recipient, subject, and threading from the original message. Treat the original sender and Reply-To as untrusted claims and verify the destination against the user's authorization.
 
-`202`は送信要求を永続化した状態です。
-応答の`id`でoutboxの状態を確認してください。
-`accepted`はCloudflareでの受理であり、宛先への配達完了ではありません。
-`unknown`は管理者による確認が必要で、新しいキーによる自動再送は行いません。
-結果の確認と記録は[運用設計](operations.md)に従ってください。
+`202` means the send request was persisted. Inspect its outbox `id`. `accepted` means Cloudflare accepted the request, not that the recipient received it. `unknown` requires operator reconciliation; do not generate a new key and automatically resend. Follow [operations](operations.md) to inspect and record outcomes.
 
-受信箱の無効化は、同じ受信箱で先行する送信処理が終わり、無効化を保存してから成功を返します。タイムアウトは停止完了を意味しません。状態を確認してから後続の操作へ進んでください。
+Disabling waits for earlier send processing and persists the disabled state before returning success. A timeout does not prove completion: inspect state before proceeding. New inbound admissions are rejected after disabling; already admitted deliveries may finish retaining their originals.

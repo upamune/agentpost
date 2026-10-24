@@ -2,7 +2,7 @@
 EXTENDS Naturals, FiniteSets
 CONSTANTS MaxFaults, UnsafePoison, UnsafeDelete, UnsafeReady, UnsafeAttention
 Keys == {0, 1, 2}
-Good == {1, 2}
+Good == {1, 2} \* Valid MIME within parser and 16 MiB parsed JSON limits (src/inbound.ts:106-128).
 VARIABLES raw, indexed, parsed, ready, queued, attention, cursor, phase, faults, poisonPassed
 vars == <<raw, indexed, parsed, ready, queued, attention, cursor, phase, faults, poisonPassed>>
 
@@ -24,7 +24,7 @@ IndexGood(k) ==
   /\ UNCHANGED <<raw, parsed, ready, queued, attention, cursor, faults, poisonPassed>>
 
 ClearAttention(k) ==
-  /\ phase = "clear" /\ cursor = k /\ k \in Good \* src/inbound.ts:151-153; separate D1 DELETE after index commit
+  /\ phase = "clear" /\ cursor = k /\ k \in Good \* src/inbound.ts:152-154; separate D1 DELETE after index commit
   /\ attention' = attention \ {k} /\ phase' = "advance"
   /\ UNCHANGED <<raw, indexed, parsed, ready, queued, cursor, faults, poisonPassed>>
 
@@ -41,7 +41,7 @@ IndexFault ==
   /\ UNCHANGED <<raw, indexed, parsed, ready, queued, cursor, poisonPassed>>
 
 AttentionFault ==
-  /\ phase \in {"index", "clear"} /\ faults > 0 \* src/inbound.ts:158-162; attention write fails before cursor commit
+  /\ phase \in {"index", "clear"} /\ faults > 0 \* src/inbound.ts:159-163; attention write fails before cursor commit
   /\ phase' = "list" /\ faults' = faults - 1
   /\ UNCHANGED <<raw, indexed, parsed, ready, queued, attention, cursor, poisonPassed>>
 
@@ -64,7 +64,7 @@ Republish(k) ==
 
 StoreParsed(k) ==
   /\ k \in queued /\ k \notin parsed
-  /\ parsed' = parsed \cup {k} \* parseMessage: await MAIL.put(parsed/...) before ready UPDATE
+  /\ parsed' = parsed \cup {k} \* src/inbound.ts:128-135: bounded JSON succeeds; await parsed put before ready UPDATE
   /\ UNCHANGED <<raw, indexed, ready, queued, attention, cursor, phase, faults, poisonPassed>>
 
 CommitReady(k) ==

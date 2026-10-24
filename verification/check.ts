@@ -34,6 +34,7 @@ const sourceFiles =
       ]
     : [
         "src/inbound.ts",
+        "src/bounded-json.ts",
         "src/maintenance.ts",
         "src/index.ts",
         "src/api.ts",
@@ -117,7 +118,8 @@ const mutations: Mutation[] =
           constant: "UnsafeReady",
           checks: ["ReadyHasParsed"],
           file: "inbound",
-          needle: "await env.MAIL.put(`parsed/${id}.json`, JSON.stringify(document), {",
+          needle:
+            "await env.MAIL.put(`parsed/${id}.json`, stringifyBoundedJson(document, 16 * 1024 * 1024), {",
           replacement: "await Promise.resolve({",
           pattern: "failures before parsed storage",
         },
@@ -355,7 +357,7 @@ try {
               "finite stable corpus",
               "at most two transient faults",
               "weakly fair successful Cron, queue and parse actions",
-              "two valid originals parse successfully; one poisoned metadata object",
+              "two valid originals fit MIME and 16 MiB parsed-output limits and parse successfully; one poisoned metadata object",
             ],
       sourceFiles: hashes,
       checks,

@@ -1,5 +1,5 @@
 {
-  "verifiedProductCommit": "7800ab3f588d4357185b497332d790d56145ce96",
+  "verifiedProductCommit": "54b677e5f77962db60e3da0ce9a88b3fafdf9cf1",
   "bounds": {
     "originals": 3,
     "valid": 2,
@@ -12,12 +12,16 @@
     "finite stable corpus",
     "at most two transient faults",
     "weakly fair successful Cron, queue and parse actions",
-    "two valid originals parse successfully; one poisoned metadata object"
+    "two valid originals fit MIME and 16 MiB parsed-output limits and parse successfully; one poisoned metadata object"
   ],
   "sourceFiles": [
     {
       "path": "src/inbound.ts",
-      "sha256": "630ff6b7c5cbba32bb8dfe3903a2d3571eb25e38ac31b3613b3be23438776def"
+      "sha256": "73065cc6568f5d183e8c512812f49ce34c9373fee9761b2aa9b19756fa74295e"
+    },
+    {
+      "path": "src/bounded-json.ts",
+      "sha256": "85d9c2a60503560737e283f05af7b3672ed02e754dc7f6d542bf49e2a3526500"
     },
     {
       "path": "src/maintenance.ts",
@@ -78,7 +82,7 @@
         "fullName": "a D1 failure after raw persistence is repaired from the original metadata",
         "status": "passed",
         "title": "a D1 failure after raw persistence is repaired from the original metadata",
-        "duration": 32,
+        "duration": 30,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -89,7 +93,7 @@
         "fullName": "queue outage and duplicate recovery preserve one message and one received event",
         "status": "passed",
         "title": "queue outage and duplicate recovery preserve one message and one received event",
-        "duration": 25,
+        "duration": 23,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -100,7 +104,7 @@
         "fullName": "failures before parsed storage and before ready commit retain the original and recover",
         "status": "passed",
         "title": "failures before parsed storage and before ready commit retain the original and recover",
-        "duration": 18,
+        "duration": 19,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -122,7 +126,7 @@
         "fullName": "orphaned inbox metadata is reported, retried and cleared after the inbox is restored",
         "status": "passed",
         "title": "orphaned inbox metadata is reported, retried and cleared after the inbox is restored",
-        "duration": 17,
+        "duration": 19,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -133,7 +137,7 @@
         "fullName": "cursor commit failure repeats safe inserts without downgrading ready messages",
         "status": "passed",
         "title": "cursor commit failure repeats safe inserts without downgrading ready messages",
-        "duration": 18,
+        "duration": 17,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -155,7 +159,7 @@
         "fullName": "failed attention persistence keeps the cursor before the poisoned original",
         "status": "passed",
         "title": "failed attention persistence keeps the cursor before the poisoned original",
-        "duration": 11,
+        "duration": 14,
         "failureMessages": [],
         "meta": {},
         "tags": [],

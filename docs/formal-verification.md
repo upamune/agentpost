@@ -1,94 +1,98 @@
-# 送受信と障害復旧の形式検証
+# Formal verification of sending and recovery
 
-2026-10-25に、[pstack](https://github.com/cursor/plugins/tree/9580c23696ac8d7abed0c166f2f9918800afb819/pstack)の手順で送信停止・復旧と受信原文の索引修復を検証した。TLA+ / TLC 2.19で操作順序を検査し、実際のDurable Object・D1・R2を使ったテストで確認している。
+[English](formal-verification.md) | [日本語](formal-verification.ja.md)
 
-製品コードの同期先は`7800ab3f588d4357185b497332d790d56145ce96`。最初の調査対象は`ed15d43123471a7de7c89be7f77f5380da136dc9`で、当時見つかった送信の競合2件は修正済み。受信の修復停止も修正した。現在の検証はすべて成功を要求し、既知の失敗を許容してCIを通す設定はない。
+On 2026-10-25, the [pstack](https://github.com/cursor/plugins/tree/9580c23696ac8d7abed0c166f2f9918800afb819/pstack) workflow checked outbound disabling/recovery and inbound raw-index recovery. TLA+ / TLC 2.19 explores operation orderings; replays use actual local Durable Objects, D1, and R2.
 
-## 結果
+The synchronized product revision is recorded in [`verification/product-revision.txt`](../verification/product-revision.txt). The original investigation targeted `ed15d43123471a7de7c89be7f77f5380da136dc9`. Two outbound races and a poisoned-raw scan blockage found there were fixed. Every current check requires success; no known invariant failure is accepted to make CI pass.
 
-| 対象・性質                                             | モデル検査                           | 実コード                                                    |
-| ------------------------------------------------------ | ------------------------------------ | ----------------------------------------------------------- |
-| 同じoutbox要求が2回受理されない                        | 反例なし                             | 重複ジョブでもプロバイダー呼び出し1回                       |
-| 結果不明後に新しい送信試行を作らない                   | 反例なし                             | unknownにした要求を再配信しても呼び出しは増えない           |
-| 無効化成功後、無効の間は新しい外部呼び出しを開始しない | 旧モデルに反例、修正モデルに反例なし | 無効化は先行処理を待ち、後続の送信を拒否                    |
-| Cronのunknown化後に古い実行が送信を開始しない          | 旧モデルに反例、修正モデルに反例なし | 生きた送信を待ち、終了した処理だけを復旧                    |
-| 古い有効化の書き込みが新しい無効化を巻き戻さない       | 反例なし                             | 同じSQLite状態を使う2つの実インスタンスで遅延書き込みを拒否 |
-| 保存済み原文を修復・解析で失わない                     | 反例なし                             | D1・解析用R2書き込み・Queueの障害後も原文を取得可能         |
-| readyは解析結果の永続化後にだけ確定する                | 反例なし                             | 解析結果保存・ready更新それぞれの失敗から復旧               |
-| 壊れた原文メタデータが後続の正常メールを妨げ続けない   | 条件付きのEventuallyReadyが成立      | 実R2のページをまたいで正常な索引を修復                      |
-| 修復失敗を記録する前にカーソルを進めない               | 反例なし                             | 失敗の保存ができないときは走査位置を保持                    |
+## Results
 
-通常のテスト67件に加えて、検証専用の送信8件・受信8件が成功する。外部メール送信はスタブに置き換えており、実際のメールは送っていない。
+| Property                                                              | Model checking                      | Real-code evidence                                              |
+| --------------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------- |
+| An outbox request is not accepted twice                               | No counterexample                   | Duplicate jobs call provider once                               |
+| Uncertainty does not create a new send attempt                        | No counterexample                   | Replaying unknown work does not dispatch                        |
+| No new external call starts while disabled after successful disabling | Old model fails; fixed model passes | Disable waits for earlier work and rejects later sends          |
+| Old execution cannot dispatch after Cron marks it unknown             | Old model fails; fixed model passes | Recovery waits for live work and recovers interrupted execution |
+| An old enable write cannot undo a newer disable                       | No counterexample                   | Two instances sharing SQLite reject a delayed write             |
+| Repair/parsing retains saved original MIME                            | No counterexample                   | Original survives D1, parsed-R2, and queue failures             |
+| Ready commits only after parsed content persists                      | No counterexample                   | Recovery from parsed-write and ready-write failures             |
+| Poison metadata cannot indefinitely block valid later originals       | Conditional EventuallyReady holds   | Repair crosses real R2 pages                                    |
+| Repair cursor cannot advance before failure attention persists        | No counterexample                   | Failed attention persistence retains scan position              |
 
-## F1・F2: 送信停止と復旧の競合
+Eight outbound and eight inbound verification replays supplement the ordinary tests. External sending is stubbed; no real mail is sent.
 
-旧実装では、送信Workerが有効状態を読んだ後に無効化が完了しても、手元の読み取り結果で外部呼び出しを開始できた。また、2分以上遅延したWorkerをCronがunknownにしても、元のWorkerが再開して初めて外部を呼べた。後者で受理結果を保存しても、DBはunknownのまま残った。
+## F1 and F2: disable/recovery races
 
-送信、管理APIの有効・無効化、Cronの古い送信の復旧を、受信箱IDで決まる同じ`InboxCoordinator`に集めた。Object内の順序制御はD1や外部APIのawaitをまたいで維持する。無効化APIは先行する送信処理が終わり、無効化を保存してから成功を返す。Cronも同じ順序に入り、実行時点の状態と時刻を再確認する。
+Previously, a sender could read active state, pause, and start dispatch after disabling completed. A sender delayed for more than two minutes could also resume its first dispatch after Cron marked it unknown. Its accepted response then left the database unknown.
 
-[Cloudflareの所有権の制約](https://developers.cloudflare.com/durable-objects/platform/known-issues/#global-uniqueness)では、置き換え前のObjectが外部I/Oから復帰し、ストレージに触るまで置き換えを検出しない場合がある。そのため、送信直前にSQLiteへ同期書き込みを行う。所有権確認とプロバイダー呼び出し開始の間にはawaitを置かない。
+Sends, admin activity changes, and stale-send recovery now share the inbox-ID-derived `InboxCoordinator`. Its ordering spans D1/provider awaits. Disable returns success only after earlier send work completes and disabled state persists. Cron uses the same order and rechecks state/time.
 
-![無効化の反例と修正](../verification/outbound/evidence/bug-1.png)
+Under [Cloudflare ownership constraints](https://developers.cloudflare.com/durable-objects/platform/known-issues/#global-uniqueness), a replaced Object may resume from external I/O without detecting replacement until storage access. Synchronous SQLite fencing immediately before dispatch detects that case; no await separates fencing and call initiation.
 
-![unknown化の反例と修正](../verification/outbound/evidence/bug-2.png)
+![Disable counterexample and fix](../verification/outbound/evidence/bug-1.png)
 
-旧モデルと修正モデルの比較は[stories.md](../verification/outbound/evidence/stories.md)。経路3・4は同じ2件が重なる経路で、追加の独立した不具合ではない。元の反例は旧コードを実D1で再現済みで、現在のテストは同じ中断点で無効化・復旧が追い越さないことを確認する。
+![Unknown-recovery counterexample and fix](../verification/outbound/evidence/bug-2.png)
 
-無効化には先行I/Oを待つ時間がかかる。APIのタイムアウトを停止成功と扱わず、状態を確認する。すでに開始した通信の到着や受理を取り消せるという保証ではない。
+The [old/fixed model comparison](../verification/outbound/evidence/stories.md) includes paths 3/4 where the same two issues overlap; those are not additional independent bugs. Original counterexamples were replayed against old code with real D1. Current tests pause at the same boundaries and ensure disable/recovery cannot overtake dispatch.
 
-## Object置き換え時の有効状態の保護
+Disabling can wait for prior I/O. A timeout does not establish success. No guarantee recalls already initiated traffic or prevents its later arrival/acceptance.
 
-順序制御の実装には、D1更新がすでに進行中のままObjectが置き換わる場合もある。古いObjectが発行した有効化の書き込みが、新しいObjectの無効化より後に届いても巻き戻さないよう、SQLiteの単調増加する連番をD1の`active_version`と比較する。古い版の更新は失敗として返す。
+## Protecting activity during Object replacement
 
-[ActiveVersion.tla](../verification/outbound/ActiveVersion.tla)は、版1の有効化と版2の無効化がすでに発行済みという開始状態から、D1へ届く順番を検査する。版の発行とObjectの置き換え自体をこの小モデルが証明するわけではなく、その部分は実コードの再現で確認する。
+An old Object's D1 enable write may still be in progress when a replacement disables the inbox. SQLite's monotonic sequence is compared against D1 `active_version`; delayed older writes fail rather than undo newer state.
 
-![版による遅延書き込みの拒否](../verification/outbound/evidence/active-version/bug-1.png)
+[ActiveVersion.tla](../verification/outbound/ActiveVersion.tla) starts with version-1 enable and version-2 disable already issued, then explores D1 arrival order. This small model does not prove version issuance or replacement itself; real-code replays cover the handover logic.
 
-この図の反例は版の比較を外した変異版で、修正後のコードで起きると報告しているものではない。
+![Versioned writes reject stale updates](../verification/outbound/evidence/active-version/bug-1.png)
 
-## F3: 壊れたメタデータで原文の走査が停止する
+The counterexample in this figure disables version comparison in a mutant. It does not describe a failure in the fixed code.
 
-旧`repairRawIndex`は、一件でも`indexRaw`が失敗するとカーソル保存前に終了していた。同じ原文を毎回読み直すため、後ろのページにある正常な原文が索引登録されない。
+## F3: poison metadata blocks raw scanning
 
-修正後は、メタデータ不正、復元待ちの受信箱、索引書き込みの失敗を`raw_recovery_failures`へ保存して次へ進む。失敗記録も保存できなければカーソルを進めない。問題のある原文は残し、次の周回で再試行する。修復に成功すると失敗記録を消す。未解決の失敗は管理者ヘルスチェックで503になり、Cronは進捗を保存したうえでエラーを返す。
+Previously, any `indexRaw` failure exited `repairRawIndex` before cursor persistence. Each run retried the same original, indefinitely delaying valid originals on later pages.
 
-原文の索引修復・古い送信の復旧・受信の再投入・送信の再投入は独立に試す。一方の失敗がもう一方の再投入を止めないことも確認した。
+The fix durably records invalid metadata, missing inboxes, and index-write failures in `raw_recovery_failures` before advancing. Failed attention persistence still prevents advancement. Originals remain for retry on the next cycle; successful repair clears attention. Unresolved attention yields admin health 503. Cron saves progress before reporting failure.
 
-![原文から正常メールを復旧する状態遷移](../verification/inbound/evidence/chart.png)
+Raw repair, interrupted-send recovery, inbound republishing, and outbound republishing are attempted independently. A failed stage does not prevent other republishing attempts.
 
-解析用R2オブジェクトの保存とD1のready更新は別の操作として検査する。重複した解析や索引修復でreadyをpendingに戻さず、受信イベントを重複作成しないことは実コードでも確認している。
+![Recovery from retained originals](../verification/inbound/evidence/chart.png)
 
-## 検証範囲と仮定
+Parsed R2 put and D1 ready commit are separate modeled steps. Real-code tests also check that duplicate parsing/index repair cannot demote ready to pending or duplicate received events.
 
-- **送信:** 一つの受信箱・一つのoutbox・実行主体2つ・最大8 claim。mutex取得、D1のclaim、有効状態の読み取り、同期fenceと送信開始、結果保存、実行停止、Object置き換えを分ける。429と明確な拒否は未受理、unknownは受理済みの場合も含む。バックオフは実行可能になる順序を抽象化し、数値や時刻同期を証明しない。公平性・送信の可用性・待ち時間は検査しない。
-- **版付き更新:** 古い有効化と新しい無効化の2要求・版2つ。任意の有効化・無効化の履歴を証明していない。
-- **受信:** 保存済み原文3件（正常2・メタデータ不正1）、1ページ1件、一時障害は最大2回。索引作成、失敗記録の削除、カーソル保存、キュー投入、解析結果保存、ready更新、ackを分ける。EventuallyReadyには有限で安定した原文集合、有限回の障害、正常なCron・キュー配信・解析が実行可能なまま放置されない弱公平性を仮定する。原文保存前のSMTP配送や、不正なメタデータ・MIMEそのものの自動修復を保証しない。
-- D1の各SQLと同期SQLite操作は原子的とする。D1/DOの片方だけの復元、管理SQLでの状態変更、暗号・認証、パーサーの正しさ、実環境のメール到達性、システム全体のバグ不在は証明していない。
+## Bounds and assumptions
 
-実コードの検査は元のAPI・クラス・D1・R2・復旧処理を呼ぶ。時計の代わりにclaim時刻を古くしたり、awaitの前後を止めたりして順序を制御する。所有権喪失のテストはfenceの失敗を注入するもので、Cloudflareの実ネットワーク分断を作ってはいない。版付き更新は同じSQLite上に2つのクラス実体を作って引き継ぎを再現しており、プラットフォームの置き換えそのものの再現ではない。
+- **Outbound:** one inbox, one outbox, two actors, at most eight claims. Separate mutex acquisition, D1 claim, activity read, synchronous fence/dispatch, result save, interruption, and replacement. Provider 429/explicit rejection mean not accepted; unknown may include acceptance. Backoff abstracts runnable order, not numeric timing or clock synchronization. No fairness, send availability, or latency proof.
+- **Versioned updates:** two requests and two versions, not arbitrary activity histories.
+- **Inbound:** three retained originals (two valid, one poison), one object per page, at most two transient faults. Separate index insertion, attention deletion, cursor commit, queue publish, parsed put, ready commit, and ack. EventuallyReady assumes a finite stable corpus, finitely many faults, and weak fairness of successful Cron/queue/parse actions. Valid MIME must also fit the parser/output limits; permanently over-limit originals are retained for attention, not promised ready.
+- SQL statements and synchronous SQLite operations are atomic. The checks do not prove independent D1/DO rollback safety, direct admin SQL, cryptography, authentication, parser correctness, real delivery, or whole-program absence of bugs.
 
-## 再実行とCI
+Replays call product APIs/classes and real local D1/R2. Tests age claim timestamps and pause around awaits. Ownership-loss tests inject a failed fence; they do not create real Cloudflare network partitions. Version tests instantiate two classes on shared SQLite, rather than reproducing platform replacement itself.
+
+The security hardening adds a 16 MiB parsed-JSON preflight before parsed put. It introduces no new persistence step: rejection retains raw and never commits ready. The model's successful-parse action describes inputs within limits; a permanent size violation is outside EventuallyReady's valid-input assumption. The dedicated regression checks raw retention, absent parsed output, pending state, and no event. See the [security audit](security-audit.md).
+
+## Rerun and CI
 
 ```sh
 mise install
 mise exec -- bun install --frozen-lockfile
 mise run verify
-# 通常の検査・ビルド・秘密情報検査と合わせる場合
+# Include ordinary checks, build, and secret scanning:
 mise run ci
 ```
 
-個別には`verify:outbound`、`verify:inbound`、それぞれの`:selftest`を使う。通常検査は成功で終了コード0、性質・assertionの失敗は1、ツールやテスト起動の失敗は2。検証専用テストの欠落やランタイム異常を成功として扱わない。
+Individual tasks are `verify:outbound`, `verify:inbound`, and each area's `:selftest`. Normal checks return 0 on success, 1 on property/assertion failure, and 2 on tool/harness failure. Missing cases and runtime startup failures never count as success.
 
-selftestは、条件付きclaim、直列化、所有権fence、版の比較、メタデータ不正時の継続、原文保持、解析結果の永続化、失敗記録の保存を壊した一時コピーを検査する。各変異はモデルと実コードの両方で失敗を検出した場合だけ成功する。元の製品ファイルは変更しない。
+Selftests inspect scratch copies with conditional claims, serialization, fencing, version checks, poison continuation, original retention, parsed persistence, or attention persistence broken. A mutation passes only when both the model and real-code check detect it. Product files stay intact.
 
-GitHub Actionsでは送信・受信の2ジョブで、モデル検査・実コードの再現・変異検査を実行する。TLCのjarはSHA-256を確認し、ActionsもSHA固定。結果とログは`.verification/outbound/`・`.verification/inbound/`へ出力し、CIのartifactとして14日保持する。証拠のスナップショットは各`verification/*/evidence/results.json`に保存した。
+GitHub Actions has separate outbound/inbound jobs for models, replays, and mutations. TLC's jar is SHA-256 checked, and Actions are SHA pinned. `.verification/outbound/` and `.verification/inbound/` results/logs are retained as CI artifacts for 14 days. Snapshots live in `verification/*/evidence/results.json`.
 
-送信の再現はケースごとに別のテストisolateで実行する。テストで注入したObject内のクロージャーを残したまま同一isolateをresetすると、ローカルworkerdがクラッシュしたため分離した。製品の例外や失敗を無視する設定ではない。
+Outbound replays run in separate isolates: leaving injected Object closures across reset crashed local workerd. Isolation does not ignore product exceptions or failures.
 
-## 図とコードの同期
+## Diagrams and code synchronization
 
-図はpstack `/statechart`で生成し、PNGを目視確認する。送信図は旧モデルと現在のモデルを最大2 claimで比較する。受信図は一時障害0回の小さな設定で、全検査の最大2回より小さい。版付き更新の図は比較ガードを外したモデルと現在のモデルの比較。図の状態数から本検査の範囲を推定しない。
+Generate diagrams with pstack `/statechart` and visually inspect PNGs. Outbound diagrams compare old/current models with at most two claims. The inbound diagram uses zero transient faults, smaller than the full two-fault check. The activity diagram compares the current guard to a mutant without it. Diagram state counts do not describe full-check bounds.
 
-再生成は同梱のstatechartスキルの現行手順を読み、各モデル・`*.chart.cfg`・`*.map.mjs`をリポジトリ外にコピーして行う。送信の比較元は`b50dd4b`の`Outbound.tla`と`Outbound.chart.cfg`。生成した`summary.json`、`stories.md`、MermaidとPNGを対応するevidenceディレクトリへ戻す。
+Read the bundled statechart skill's current instructions before regenerating. Copy models, `*.chart.cfg`, and `*.map.mjs` outside the repository. The outbound baseline is `Outbound.tla` / `Outbound.chart.cfg` at `b50dd4b`. Return generated `summary.json`, `stories.md`, Mermaid, and PNG files to the relevant evidence directory.
 
-送信変更時は[verify-outbound-safety](../.agents/skills/verify-outbound-safety/SKILL.md)、受信変更時は[verify-inbound-recovery](../.agents/skills/verify-inbound-recovery/SKILL.md)に従う。コード変更後の同期が不明ならpstack `/maintain-formal-verification-skill`で照合する。今回は、旧コードの失敗は実際の不具合、mutexと所有権・版を加えたモデル更新はコードの形の変更に対応したものと判断した。性質を弱めて反例を消す変更はしていない。
+Follow [verify-outbound-safety](../.agents/skills/verify-outbound-safety/SKILL.md) for outbound changes and [verify-inbound-recovery](../.agents/skills/verify-inbound-recovery/SKILL.md) for inbound changes. Use pstack `/maintain-formal-verification-skill` for drift. Earlier counterexamples were product bugs; mutex/fencing/version model changes reflected the fix. No invariant was weakened to remove a counterexample.

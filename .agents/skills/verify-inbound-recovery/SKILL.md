@@ -5,11 +5,11 @@ description: Check agentpost raw MIME retention, R2-to-D1 index repair, poison m
 
 # Verify inbound recovery
 
-Run in the source checkout. Last synchronized with product commit `7800ab3f588d4357185b497332d790d56145ce96`.
+Run in the source checkout. Last synchronized with product commit `54b677e5f77962db60e3da0ce9a88b3fafdf9cf1`.
 
 ## Covered code
 
-`src/inbound.ts` persists original MIME in `receive` before indexing/publishing; `indexRaw` validates metadata and inserts without replacing message state; `repairRawIndex` records attention before moving its cursor; `parseMessage` persists parsed R2 content before committing ready state. `src/maintenance.ts` independently republishes inbound/outbound work. `src/index.ts` acknowledges after parsing; `src/api.ts` exposes unresolved raw recovery failures in admin health. The message/event schema and `migrations/0003_raw_recovery.sql` preserve observable state and attention.
+`src/inbound.ts` persists original MIME in `receive` before indexing/publishing; `indexRaw` validates metadata and inserts without replacing message state; `repairRawIndex` records attention before moving its cursor; `parseMessage` uses `src/bounded-json.ts` to enforce a 16 MiB escaped UTF-8 JSON limit before persisting parsed R2 content and committing ready state. Over-limit input retains raw without a ready event. `src/maintenance.ts` independently republishes inbound/outbound work. `src/index.ts` acknowledges after parsing; `src/api.ts` exposes unresolved raw recovery failures in admin health. The message/event schema and `migrations/0003_raw_recovery.sql` preserve observable state and attention.
 
 Inspect covered-code changes since the sync commit, including uncommitted changes. `verification/inbound/Inbound.tla` starts after successful raw persistence: it models separately the index write, attention deletion, cursor commit, queue publication, parsed put, ready commit and acknowledgement. Faults can interrupt index/attention/cursor/parse work. Invalid metadata records attention and permits later pages to progress.
 
@@ -23,6 +23,8 @@ Inspect covered-code changes since the sync commit, including uncommitted change
 
 ## Bounds and assumptions
 
-Three originals, two with valid metadata/MIME and one poisoned metadata object; one object per page; at most two transient faults. The liveness property assumes a finite stable corpus, finitely many failures, and weak fairness of successful Cron, queue and parse operations. Chart scope uses zero transient faults. Real replays also check orphaned inbox restoration, queue failure, duplicate events and failed attention persistence.
+Three originals, two with valid metadata/MIME within parser and parsed-output limits and one poisoned metadata object; one object per page; at most two transient faults. The liveness property assumes a finite stable corpus, finitely many failures, and weak fairness of successful Cron, queue and parse operations. Chart scope uses zero transient faults. Real replays also check orphaned inbox restoration, queue failure, duplicate events and failed attention persistence.
 
 The model starts after R2 put succeeds; it does not promise SMTP delivery before that point or recovery of invalid metadata. It abstracts bounded queue duplicates as membership and does not prove parser correctness, cryptography, malformed MIME recovery, arbitrary concurrent cursor writers, D1 rollback, backups, deployment or whole-program correctness. Real-code tests cover the receive/index persistence boundary and parsed-write/ready-write failures with actual R2/D1, not copies of product code. For verification drift use pstack `/maintain-formal-verification-skill`.
+
+The 2026-10-25 size preflight changes no persistence ordering. Permanent size rejection is outside the successful-parse liveness assumption; `test/adversarial-mail.test.ts` separately checks raw retention, missing parsed output, pending state and no event. The ready mutation tracks the bounded serializer call.

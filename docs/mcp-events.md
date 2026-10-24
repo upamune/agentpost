@@ -1,25 +1,26 @@
-# MCPとEventsの対応範囲
+# MCP and Events contract
 
-## 参照した仕様
+[English](mcp-events.md) | [日本語](mcp-events.ja.md)
 
-- MCP本体: [2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28)。2026-10-24に`specification/latest`の指す版を確認した。
-- TypeScript SDK: `@modelcontextprotocol/server` / `@modelcontextprotocol/client`の2.4.0を固定。
-- MCP Events: [Triggers & Events WGのDesign Sketch](https://github.com/modelcontextprotocol/experimental-ext-triggers-events/blob/d5316be214be2e76e51462069c1d67e00a5a7619/docs/design-sketch-proposal.md)、参照コミット`d5316be214be2e76e51462069c1d67e00a5a7619`。
+## Referenced specifications
 
-**EventsはMCP本体の確定仕様ではなく、作業部会のドラフト。** 本体の仕様番号とは分けて追跡する。ドラフト変更時に差分を確認して互換テストを更新する。対応クライアントで利用し、任意のMCPホストがイベント購読を扱えるとは想定しない。
+- MCP core: [2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28), verified as the `specification/latest` target on 2026-10-24.
+- TypeScript SDK: `@modelcontextprotocol/server` / `@modelcontextprotocol/client`, pinned to 2.4.0.
+- MCP Events: the [Triggers & Events WG design sketch](https://github.com/modelcontextprotocol/experimental-ext-triggers-events/blob/d5316be214be2e76e51462069c1d67e00a5a7619/docs/design-sketch-proposal.md), commit `d5316be214be2e76e51462069c1d67e00a5a7619`.
 
-## トランスポート
+**Events is a working-group draft, separate from the finalized MCP core specification.** Track changes and compatibility tests separately. Use a compatible client; ordinary MCP tool support does not imply event subscription support.
 
-- stdio: `mise exec -- bun run cli mcp`。SDKの`serveStdio`を使い、最新プロトコルの要求と、従来の初期化ハンドシェイクの両方を受ける。
-- Streamable HTTP: Workerの`https://<worker>/mcp`。SDKの`createMcpHandler`を使い、要求ごとに状態を完結させる。2025系クライアントにはSDKのstateless fallbackを使う。
-- イベント履歴・権限はD1に保持し、Workerプロセス内のメモリやMCPセッションには依存しない。
+## Transports
 
-HTTPは各要求に`Authorization: Bearer <admin-or-inbox-token>`を付ける。Originがある場合はWorker自身のoriginと一致する要求のみ受け入れる。APIトークンをクエリに入れない。
-HTTPS・Origin・キャッシュ禁止・HTTPレート制限はAPIとMCP共通のWorker入口で適用する。認証失敗や制限超過の応答もキャッシュさせない。レート制限の429では`Retry-After`に従う。MCPから呼ぶ新規送信・返信にも受信箱単位の送信制限が適用される。
+- stdio: `mise exec -- bun run cli mcp`, using SDK `serveStdio`; accepts the current protocol and the legacy initialization handshake.
+- Streamable HTTP: `https://<worker>/mcp`, using SDK `createMcpHandler` with request-local state and stateless fallback for 2025 clients.
+- Event history and permissions reside in D1, independently of Worker memory and MCP sessions.
 
-現在の認証は事前発行したBearerトークン方式。OAuthの認可画面や動的クライアント登録は実装していない。OAuthを必須にするホストとの接続は別途対応が必要で、ChatGPTなど特定ホストへの接続はまだ実証していない。
+HTTP requests need `Authorization: Bearer <admin-or-inbox-token>`. If Origin is present, it must match the Worker's request origin. Never put tokens in query parameters. HTTPS, Origin checks, no-store caching, and HTTP rate limits apply at the shared API/MCP entrypoint, including errors. Honor `Retry-After` on 429. MCP sends/replies also use the per-inbox send limiter.
 
-SDK v2のクライアントは既定では従来プロトコルを使う。最新版を使う場合は明示的にネゴシエーションする:
+Authentication uses pre-issued Bearer tokens. OAuth authorization and dynamic client registration are not implemented. Hosts requiring OAuth need additional integration; connections to specific hosts such as ChatGPT have not been demonstrated.
+
+SDK v2 clients default to the legacy protocol. Explicitly negotiate the current version:
 
 ```ts
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
@@ -37,20 +38,20 @@ await client.connect(
 
 ## Events
 
-| 名前                          | 内容                                                                                     |
-| ----------------------------- | ---------------------------------------------------------------------------------------- |
-| `message.received`            | 原文の保存と解析が完了した。`inbox_id`と`message_id`を通知する                           |
-| `message.send_status_changed` | 送信が`accepted`・`failed`・`unknown`になった。`inbox_id`、`send_id`、`status`を通知する |
+| Name                          | Meaning                                                                                      |
+| ----------------------------- | -------------------------------------------------------------------------------------------- |
+| `message.received`            | Original retained and parsing complete; includes `inbox_id` and `message_id`                 |
+| `message.send_status_changed` | Send became `accepted`, `failed`, or `unknown`; includes `inbox_id`, `send_id`, and `status` |
 
-通知には本文・添付・トークンを入れない。内容は`get_message`や`get_send_status`で必要に応じて取得する。`accepted`はCloudflareでの受理であり、配達完了ではない。
+Notifications contain no body, attachments, or tokens. Fetch content through `get_message` / `get_send_status` when needed. `accepted` is provider acceptance, not recipient delivery.
 
-状態変更とイベントのINSERTはD1のトリガーで同じトランザクションに含める。解析の再実行は同じ`eventId`を再発行しない。イベントは現在は無期限保存で、安易な削除・保持期間の短縮はリプレイ保証を変える。
+D1 triggers commit state changes and event inserts in the same transaction. Reprocessing does not emit a second `eventId` for the same received message. Events currently have indefinite retention; deleting history or shortening retention changes replay guarantees.
 
-### Discoveryとpoll
+### Discovery and poll
 
-`events/list`は名前、入力・ペイロードのJSON Schema、`delivery: ["poll", "push"]`を返す。イベント型の一覧は静的なので`listChanged`はfalse。Webhookは広告も実装もしていない。
+`events/list` returns names, argument/payload JSON Schemas, and `delivery: ["poll", "push"]`. The type catalog is static (`listChanged: false`). Webhooks are neither advertised nor implemented.
 
-`events/poll`のparams:
+Example `events/poll` params:
 
 ```json
 {
@@ -62,33 +63,37 @@ await client.connect(
 }
 ```
 
-これはparams部分の例。最新版のJSON-RPC `_meta`エンベロープはSDKが付与する。`cursor`の省略またはnullは「今から」で、既存履歴を全件返さない。応答の`cursor`を次回に渡すと、以後のイベントを順序通りに取得できる。
+The SDK supplies the current JSON-RPC `_meta` envelope. An omitted/null cursor starts **now**, without returning all historical events. Supply the returned cursor to fetch subsequent events in order.
 
-- `maxEvents`: 1〜100。`hasMore: true`なら、返されたカーソルで直ちに次のページを取得する。
-- `maxAgeMs`: 再取得する履歴の時間範囲。古い履歴を省いた場合は`truncated: true`。受信箱の一覧・本文を再取得して必要な状態を補う。
-- `nextPollMs`: 通常は5000。モデルにツールを繰り返し呼ばせず、クライアント側のイベントループで処理する。
-- カーソルは署名付きで、権限・イベント名・受信箱に紐づく。別の購読や別のトークンに使うと拒否される。
+- `maxEvents`: 1–100. When `hasMore: true`, immediately request the next page with its returned cursor.
+- `maxAgeMs`: replay age bound. Skipping older events sets `truncated: true`; reconcile through message/outbox APIs.
+- `nextPollMs`: normally 5000. Use a client event loop instead of repeatedly asking the model to call a tool.
+- Cursors use authenticated encryption with fresh randomness and a fixed-length payload. Internal global sequence numbers cannot be decoded or inferred by comparing cursor values or lengths. Cursors are bound to the token, event type, and inbox and rejected outside that scope.
 
-イベント名や受信箱を変える場合、トークンを変更した場合、管理者署名キーを更新した場合は、新しい購読としてカーソルを取り直す。勝手にnullへ戻して継続せず、購読をやり直す理由と履歴の空白を確認する。
+A new token, event type, inbox, or admin encryption key requires a new subscription. Investigate the cause and reconcile history rather than silently resetting to null.
+
+### Cursor migration
+
+The `v2` encrypted format rejects legacy signed plaintext cursors with 400. Old checkpoint files cannot resume automatically. Preserve them for diagnosis, reconcile existing messages/outbox state, and deliberately start a new subscription/checkpoint. Token or admin-secret rotation also invalidates cursors. Never implement silent reset on rejection.
 
 ### Push
 
-`events/stream`はpollと同じparamsを受け、要求を開いたまま以下を送る。
+`events/stream` accepts the same params and keeps the request open:
 
-- `notifications/events/active`: 購読開始位置と`truncated`。
-- `notifications/events/event`: `eventId`、名前、時刻、メタデータ、イベント直後のカーソル。
-- `notifications/events/heartbeat`: 通常15秒ごと。カーソルも更新する。
-- `notifications/events/error`: 一時的な上流障害。位置を進めず、バックオフ後に再試行する。
-- 内部のイベント取得が429を返した場合は`Retry-After`を尊重して待つ。待機中もキャンセルで停止でき、保存したカーソルを進めない。
-- `notifications/events/terminated`: トークンの無効化などで権限が失われた。購読を終了する。
+- `notifications/events/active`: subscription start position and `truncated`.
+- `notifications/events/event`: `eventId`, name, timestamp, metadata, and cursor immediately after the event.
+- `notifications/events/heartbeat`: normally every 15 seconds, also updates the cursor.
+- `notifications/events/error`: transient upstream failure; retain position and retry with backoff.
+- Internal 429 responses honor `Retry-After`; waiting remains cancelable and does not advance the checkpoint.
+- `notifications/events/terminated`: authorization revoked, ending the subscription.
 
-通知の`params._meta["io.modelcontextprotocol/subscriptionId"]`で元のJSON-RPC要求IDに紐付ける。HTTPでは要求のSSEストリーム、stdioでは標準出力を使う。HTTPの切断・stdioのキャンセルではSDKのAbortSignalからループと待機を止める。
+`params._meta["io.modelcontextprotocol/subscriptionId"]` links notifications to the original JSON-RPC request ID. HTTP uses that request's SSE stream; stdio uses stdout. The SDK AbortSignal stops loops and waits on disconnect/cancel.
 
-アプリケーションの履歴を読む内部処理は最大約5秒おきのpollで、MCPクライアントへの配送はpush通知。完全な即時配送ではない。接続中のDB/API負荷を見ながら間隔を調整する。
+Internal history retrieval polls approximately every five seconds; delivery to the MCP client uses push notifications. Delivery is not instantaneous. Monitor active subscription DB/API load before adjusting intervals.
 
-切断後は最後に処理済みのカーソルから再開する。SSEの`Last-Event-ID`に依存しない。配信はat-least-onceで、受信側は`eventId`で重複を除去する。保存済みデータを復元してカーソルがDBの先に進んでいた場合は`truncated`を返す。ストレージ復元・イベント履歴の手動削除後は、受信箱の状態とも照合する。
+Resume from the last processed cursor after disconnect, independently of SSE `Last-Event-ID`. Delivery is at least once: deduplicate by `eventId`. A cursor ahead of a restored/reset database returns `truncated`. Reconcile inbox state after storage restoration or manual history deletion.
 
-## CLIで監視
+## CLI monitoring
 
 ```sh
 mise exec -- bun run cli events list
@@ -97,6 +102,6 @@ mise exec -- bun run cli events watch --inbox YOUR_INBOX_UUID \
   --cursor-file .agentpost/received.cursor.json
 ```
 
-watchは通知をNDJSONで標準出力に書き、書き出し完了後にカーソルファイルを一時ファイルからrenameして保存する。再起動時はその位置から再開する。出力直後・保存前のクラッシュでは同じイベントが再出力され得るので、下流でも`eventId`で重複を除去する。
+Watch emits NDJSON to stdout and atomically renames a temporary checkpoint after output is flushed. Restart resumes from that position. A crash between output and checkpoint can replay an event; downstream consumers must deduplicate by `eventId`.
 
-エラーは標準エラーに出し、401/403や壊れたカーソルは自動的に読み飛ばさない。SIGINT/SIGTERMで終了する。カーソルファイルは同じ購読の一つのプロセスで管理し、複数のwatchプロセスから同じファイルへ書かない。
+Errors go to stderr. Authorization failures and invalid cursors are not skipped automatically. SIGINT/SIGTERM stop monitoring. Use one process per subscription/checkpoint file; never let multiple watchers write the same file.

@@ -1,15 +1,18 @@
 # agentpost
 
-AIエージェントに独自ドメインのランダムなメールアドレスを発行し、Cloudflareで送受信するAPI・CLI・MCPサーバー。
+[English](CLAUDE.md) | [日本語](CLAUDE.ja.md)
 
-- ツールはmiseで管理する。`mise run format|lint|typecheck|test|build|ci`。依存取得は`mise exec -- bun install --frozen-lockfile`。
-- ActionsはpinactでSHA固定する。タスクは`mise exec -- backlog task add|list|show|move <id> done`で管理する。
-- 今回はWorkersのAPI/MCPであり、Web UIやTanStack Startを導入する前提ではない。
-- CLIは`mise exec -- bun run cli --help`。MCPや通知を変更するときは[MCPとEventsの契約](docs/mcp-events.md)を読み、MCP本体の確定仕様とEventsドラフトの参照版を分けて検証する。
-- エージェント向けの導入や配布を変更するときは[INSTALL.md](INSTALL.md)と`skills/agentpost/`を更新する。配布用スキルは、インストール先からソースcheckoutの相対パスを前提にしない。
-- メール処理・送信状態・障害復旧を変更する場合は[運用設計](docs/operations.md)を読む。原文の永続化と送信の条件付きclaimを維持する。
-- Cloudflare Email SendingはBeta。結果不明の送信を自動再送しない。キュー投入やAPI受理を配達完了として扱わない。
-- [導入手順](docs/deploy.md)に従って設定する。ドメイン、認証、実送受信が揃うまでは本番稼働済みと報告しない。
-- ローカルテスト、dry-runビルド、Wranglerローカル環境への疎通は実行してよい。実メールを送るテストは宛先の指定を受けてから行う。
+Issue random email addresses on the operator's own domain and let AI agents send and receive through a Cloudflare API, CLI, and MCP server.
 
-送信・無効化・復旧を変更したら`.agents/skills/verify-outbound-safety/SKILL.md`、受信原文・索引修復・解析の永続化順序を変更したら`.agents/skills/verify-inbound-recovery/SKILL.md`に従う。検証は`mise run verify`、通常検査と合わせる場合は`mise run ci`。
+- Manage tools with mise. Use `mise run format|lint|typecheck|test|build|ci`; install dependencies with `mise exec -- bun install --frozen-lockfile`.
+- Pin Actions to SHAs with pinact. Manage tasks with `mise exec -- backlog task add|list|show|move <id> done`.
+- This project is a Workers API/MCP service. Do not assume a Web UI or introduce TanStack Start.
+- CLI entry: `mise exec -- bun run cli --help`. Before changing MCP or notifications, read [MCP and Events](docs/mcp-events.md). Verify the finalized MCP core specification separately from the pinned Events draft.
+- For agent installation/distribution changes, update [INSTALL.md](INSTALL.md) and `skills/agentpost/`. Installed skills must work without source-checkout-relative paths.
+- Before changing mail processing, send state, or recovery, read [operations](docs/operations.md). Preserve raw-first persistence and conditional send claims.
+- Cloudflare Email Sending is Beta. Never automatically resend an unknown outcome. Queue publication and provider acceptance do not prove delivery.
+- Follow [deployment](docs/deploy.md). Do not report production readiness until domain configuration, authentication, and real send/receive checks pass.
+- Local tests, dry-run builds, and local Wrangler checks are allowed. Real email tests require a user-specified recipient first.
+- Write maintained documentation in English by default and provide Japanese `*.ja.md` counterparts. Update both when behavior, examples, or limits change; preserve upstream and generated artifact languages.
+
+For send, disable, or recovery changes, follow `.agents/skills/verify-outbound-safety/SKILL.md`. For raw persistence, index repair, parsing order, or republishing changes, follow `.agents/skills/verify-inbound-recovery/SKILL.md`. Run `mise run verify`, or `mise run ci` for verification plus the regular checks.
