@@ -2,7 +2,7 @@
 
 不具合や提案は[Issues](https://github.com/upamune/agentpost/issues)へ。脆弱性の報告は[SECURITY.md](SECURITY.md)に従ってください。
 
-リポジトリをcloneし、[READMEのローカル起動](README.md#ローカル起動)で依存と開発用Secretsを用意します。PRを送る前に次を実行してください。
+リポジトリをcloneし、[READMEのローカル手順](README.md#ローカルで試す)で依存と開発用Secretsを用意します。PRを送る前に次を実行してください。
 
 ```sh
 mise run format

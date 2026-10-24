@@ -1,16 +1,29 @@
 # agentpost
 
-AIエージェントに独自ドメインのランダムなメールアドレスを発行し、Cloudflareで送受信するAPI・CLI・MCPサーバー。
+AIエージェントのための、独自ドメインのメール受信箱。
 
-自分のCloudflareアカウントに配置して使う。ランダムアドレスの発行、本文・原文・添付の取得、送信・返信、切断後に再開できるイベント監視を提供する。Web UIは含まない。
+agentpostは、エージェントやタスクごとにランダムなメールアドレスを発行し、メールの送受信をAPI、CLI、MCPから操作できるセルフホスト型のサービスです。
+自分のCloudflareアカウントで動かし、メールと認証情報を管理できます。
 
-TypeScript / Bun、Workers、D1、R2、Queuesで構成する。HTTPルーティングはHono、外部入力とMCPツールのスキーマはZod、MIME解析はpostal-mimeを使う。
+## できること
 
-**現時点はローカルで検証できる実装。購入ドメインでの送受信は未検証。** Cloudflare Email SendingはBetaで、タイムアウトなどの結果不明時は自動再送を止めて確認を求める。
+- **アドレスの発行**：独自ドメインにランダムな受信箱を作成。有効化、無効化、トークンの再発行にも対応。
+- **メールの取得**：本文、HTML、添付ファイル、原文の`.eml`を取得。
+- **送信と返信**：発行したアドレスから送信し、Reply-Toとスレッド情報を引き継いで返信。
+- **エージェントとの接続**：JSONを返すCLI、HTTP API、stdioとStreamable HTTPのMCPサーバーを提供。
+- **イベント監視**：受信と送信状態の変化を監視し、保存したカーソルから再開。
+- **受信箱ごとの権限**：受信箱トークンで、エージェントが操作できるメールを分離。
 
-## ローカル起動
+現在は初期開発段階です。
+ローカル環境での検証を行っていますが、独自ドメインでの実送受信は未検証です。
+送信に使う[Cloudflare Email Sending](https://developers.cloudflare.com/email-service/get-started/send-emails/)はBetaです。
+本番導入前に、利用する環境で送受信と復旧手順を確認してください。
 
-前提は[mise](https://mise.jdx.dev/getting-started.html)。BunとNode.jsを含むツールは`mise install`で揃う。WranglerはBunランタイム非対応のため、Cloudflareが対応するNode.jsで実行し、依存管理とMCPにはBunを使う。
+## ローカルで試す
+
+[mise](https://mise.jdx.dev/getting-started.html)をインストールして、次のコマンドを実行します。
+必要なBunとNode.jsのバージョンはリポジトリで固定しています。
+ローカルの受信テストには、独自ドメインやCloudflareの認証情報は不要です。
 
 ```sh
 git clone https://github.com/upamune/agentpost.git
@@ -23,99 +36,99 @@ mise exec -- bun run db:migrate:local
 mise run dev
 ```
 
-`setup:local`はランダムな管理者トークンを`.dev.vars`に保存する。既存ファイルは上書きしない。CLIを試すときはこのファイルの`ADMIN_TOKEN`を使う。手動設定の場合は32〜256文字の英数字・`_`・`-`を使い、`openssl rand -hex 32`などで生成する。空のサンプルや旧サンプルの固定値では認証を受け付けない。
+`setup:local`は、ランダムな管理者トークンを含む`.dev.vars`を作成します。
+既存のファイルは上書きしません。
+このファイルはGitの管理対象外です。
 
-ローカルの受信・取得はCloudflareの認証情報なしで動く。`CF_ACCOUNT_ID`と`CF_EMAIL_API_TOKEN`を入れると送信キューが実際のCloudflare APIを呼ぶので、実送信を検証するときだけ設定する。
-
-別のターミナルで疎通:
-
-```sh
-curl http://localhost:8787/healthz
-export MAIL_API_URL=http://localhost:8787
-export MAIL_API_TOKEN='YOUR_ADMIN_TOKEN'
-curl "$MAIL_API_URL/v1/inboxes" \
-  -H "Authorization: Bearer $MAIL_API_TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d '{"label":"research-agent"}'
-```
-
-返却される`id`、`address`、`token`を保存する。受信箱トークンでその受信箱の送受信だけを操作できる。管理者トークンは全受信箱の操作と新規発行に使う。発行の応答を受け取れなかった場合は、再発行前に管理者の一覧APIで確認する。
-
-ローカルのメール入力例:
+サーバーを起動したまま、別のターミナルから受信テストを実行できます。
 
 ```sh
-curl -X POST 'http://localhost:8787/cdn-cgi/local/email' \
-  --url-query 'from=sender@example.net' \
-  --url-query 'to=GENERATED_ADDRESS@example.com' \
-  --data-binary @test/fixtures/hello.eml
+mise exec -- bun run smoke:local
 ```
 
-## API
+このテストは、受信箱の発行、テストメールの投入、キューによる解析、本文と原文の取得を確認します。
+外部へのメール送信は行いません。
 
-ローカル起動中は`mise exec -- bun run smoke:local`で、アドレス発行・受信・キュー処理・本文と原文の取得をまとめて検証できる。外部へのメール送信は行わない。別ポートの場合は`LOCAL_MAIL_URL=http://127.0.0.1:8791`などを指定する。
+### CLIで受信箱を作る
 
-`/healthz`以外は`Authorization: Bearer <token>`が必要。
-
-| Method      | Path                                                   | 操作                                        |
-| ----------- | ------------------------------------------------------ | ------------------------------------------- |
-| POST        | `/v1/inboxes`                                          | ランダムアドレス発行（管理者）              |
-| GET         | `/v1/inboxes?limit=25&offset=0`                        | 受信箱一覧（管理者）                        |
-| GET / PATCH | `/v1/inboxes/:id`                                      | 詳細 / 有効・無効の切り替え（変更は管理者） |
-| GET         | `/v1/inboxes/:id/messages?limit=25&cursor=...`         | 受信一覧                                    |
-| GET         | `/v1/inboxes/:id/messages/:message`                    | 本文・添付情報                              |
-| GET         | `/v1/inboxes/:id/messages/:message/raw`                | 元の`.eml`                                  |
-| GET         | `/v1/inboxes/:id/messages/:message/attachments/:index` | 添付ダウンロード                            |
-| POST        | `/v1/inboxes/:id/messages/:message/reprocess`          | 保存済み原文を再解析                        |
-| POST        | `/v1/inboxes/:id/send`                                 | 送信キューへ登録                            |
-| POST        | `/v1/inboxes/:id/messages/:message/reply`              | Reply-Toとスレッド情報を使って返信          |
-| GET         | `/v1/inboxes/:id/outbox?limit=25&offset=0`             | 送信要求一覧                                |
-| GET         | `/v1/inboxes/:id/outbox/:send`                         | 送信状態・プロバイダー応答                  |
-| GET         | `/v1/health`                                           | ストレージ疎通・滞留・要確認件数（管理者）  |
-
-管理者用に、受信箱トークンを再発行する`POST /v1/inboxes/:id/token`と、確認済みの送信結果を記録する`POST /v1/inboxes/:id/outbox/:send/resolve`もある。
-
-送信・返信は`Idempotency-Key`ヘッダーが必須。同じメールのリトライでは同じキーを使う。別の内容に同じキーを使うと409を返す。
-
-```sh
-curl "$MAIL_API_URL/v1/inboxes/INBOX_ID/send" \
-  -H "Authorization: Bearer $MAIL_API_TOKEN" \
-  -H 'Content-Type: application/json' \
-  -H 'Idempotency-Key: task-123-message-1' \
-  -d '{"to":["recipient@example.net"],"subject":"Hello","text":"Hello from my agent"}'
-```
-
-`202`は永続化・キュー処理待ち。`accepted`はCloudflareが受理した状態で、宛先への到達を保証しない。`unknown`は管理者による確認が必要。新しいキーでの自動再送は行わない。
-
-## CLI
+リポジトリのルートで、接続先とトークンを設定します。
+`MAIL_API_TOKEN`には`.dev.vars`の`ADMIN_TOKEN`の値を指定してください。
 
 ```sh
 export MAIL_API_URL=http://localhost:8787
-export MAIL_API_TOKEN='YOUR_ADMIN_OR_INBOX_TOKEN'
-mise exec -- bun run cli --help
+export MAIL_API_TOKEN='YOUR_ADMIN_TOKEN'
+
 mise exec -- bun run cli inbox create --label research-agent
-mise exec -- bun run cli inbox list
+```
+
+応答に含まれる`id`、`address`、`token`を保存します。
+受信箱トークンは作成時と再発行時にだけ返されます。
+以後、その受信箱だけを扱うエージェントには`token`を渡してください。
+
+```sh
+export MAIL_API_TOKEN='YOUR_INBOX_TOKEN'
+
+mise exec -- bun run cli inbox get YOUR_INBOX_UUID
 mise exec -- bun run cli message list YOUR_INBOX_UUID
-mise exec -- bun run cli send YOUR_INBOX_UUID --to recipient@example.net \
-  --subject 'Hello' --text 'Hello from my agent' --idempotency-key task-123-message-1
 mise exec -- bun run cli events watch --inbox YOUR_INBOX_UUID \
   --cursor-file .agentpost/received.cursor.json
 ```
 
-返り値はJSON、イベント監視はNDJSON、エラーは標準エラー。トークンは環境変数から読む。rawメールや添付の保存、送信状態の取得、トークンの再発行なども`--help`に記載している。`src/cli.ts`は`agentpost`の実行エントリーとしてpackage.jsonの`bin`にも登録している。
+CLIはJSONを標準出力に返し、イベント監視では1行に1件のJSON（NDJSON）を返します。
+コマンドの一覧は`mise exec -- bun run cli --help`で確認できます。
 
-## MCP
+## Cloudflareに導入する
 
-MCP **2026-07-28**と公式SDK v2.4.0に対応する。ローカルのstdioと、Workerの`/mcp`で提供するStreamable HTTPを使える。[MCP Eventsの参照版・配送方式・カーソルの契約](docs/mcp-events.md)も参照する。Eventsは作業部会のドラフトへの対応で、確定したMCP本体の機能とは区別している。
+実際のメールを送受信するには、次の準備が必要です。
 
-このディレクトリで次のコマンドを実行する。標準入出力のMCPサーバーとして動く。
+- Cloudflare DNSで管理する独自ドメイン
+- Cloudflare Workers Paidと、D1、R2、Queuesを利用できるアカウント
+- 対象ドメインのEmail RoutingとEmail Sendingの有効化
+- Email SendingのAPIトークンと、管理者トークン
+
+[導入手順](docs/deploy.md)に沿って、ストレージとキューの作成、DNS、Secrets、デプロイ、catch-allの設定を行ってください。
+アドレスごとのルーティング設定は不要です。
+agentpostが発行した有効なアドレスだけでメールを受け入れます。
+
+導入後は`MAIL_API_URL`をWorkerのHTTPS URLに変更すると、同じCLIとMCPを使えます。
+ローカルの`.dev.vars`に`CF_ACCOUNT_ID`と`CF_EMAIL_API_TOKEN`を設定した場合も実際の送信APIを呼ぶため、送信テストには自分で管理する宛先を指定してください。
+
+### メールを送る
+
+送信には、同じ要求を識別する**冪等キー**を必ず指定します。
+同じメールの要求を再試行するときは、同じキーを使ってください。
 
 ```sh
-MAIL_API_URL=https://YOUR_WORKER.workers.dev \
-MAIL_API_TOKEN=YOUR_INBOX_OR_ADMIN_TOKEN \
-mise exec -- bun run mcp
+mise exec -- bun run cli send YOUR_INBOX_UUID \
+  --to recipient@example.net \
+  --subject 'Hello' \
+  --text 'Hello from my agent' \
+  --idempotency-key task-123-message-1
+
+mise exec -- bun run cli outbox get YOUR_INBOX_UUID YOUR_SEND_UUID
 ```
 
-MCPクライアントには次を設定する。`args`のパスを実際の配置に置き換える。
+送信要求には、状態を確認するためのoutbox IDが返されます。
+`accepted`はCloudflareが要求を受理した状態で、宛先への配達完了を意味しません。
+タイムアウトなどで結果が`unknown`になった場合は、自動再送せず、管理者が送信結果を確認します。
+
+## MCPから使う
+
+MCPクライアントから、受信箱の発行、受信メールの取得、送信、返信、送信状態の確認を行えます。
+対応するプロトコルはMCP **2026-07-28**、公式TypeScript SDKはv2.4.0です。
+
+| 操作       | ツール                                      |
+| ---------- | ------------------------------------------- |
+| 受信箱     | `create_inbox`、`list_inboxes`、`get_inbox` |
+| 受信メール | `list_messages`、`get_message`              |
+| 送信と返信 | `send_email`、`reply_email`                 |
+| 送信状態   | `get_send_status`、`list_outbox`            |
+
+### stdio
+
+クライアントの設定例です。
+`/absolute/path/to/agentpost`をcloneしたディレクトリに置き換えてください。
+ローカルサーバーに接続する場合は`MAIL_API_URL`を`http://localhost:8787`に変更します。
 
 ```json
 {
@@ -134,40 +147,82 @@ MCPクライアントには次を設定する。`args`のパスを実際の配�
       ],
       "env": {
         "MAIL_API_URL": "https://YOUR_WORKER.workers.dev",
-        "MAIL_API_TOKEN": "YOUR_INBOX_OR_ADMIN_TOKEN"
+        "MAIL_API_TOKEN": "YOUR_INBOX_TOKEN"
       }
     }
   }
 }
 ```
 
-アドレスを自由に発行するエージェントには管理者トークンを渡す。発行後の受信箱を分離したい場合は、各エージェントに個別の受信箱トークンを渡す。ツールは`create_inbox`、`list_inboxes`、`get_inbox`、`list_messages`、`get_message`、`send_email`、`reply_email`、`get_send_status`、`list_outbox`。
+受信箱の新規発行と一覧取得には管理者トークンが必要です。
+管理者トークンは全受信箱を操作できるため、必要なエージェントにだけ渡してください。
 
-HTTPでは`https://YOUR_WORKER.workers.dev/mcp`に、各要求の`Authorization: Bearer <token>`を付けて接続する。OAuthを必須とするホストへの認証連携は未対応。
+### Streamable HTTP
 
-MCP Eventsは`events/list`・`events/poll`・`events/stream`を実装し、`message.received`と`message.send_status_changed`を通知する。履歴をD1に保存し、署名付きカーソルで切断後に再開できる。pushは相関ID・heartbeat・キャンセルに対応する。Webhookモードは提供していない。
+Workerの`https://YOUR_WORKER.workers.dev/mcp`に接続し、各要求に`Authorization: Bearer <token>`を付けます。
+OAuth認証は未対応のため、接続先URLとBearerトークンを設定できるクライアントが必要です。
 
-## 本番設定・運用
+### MCP Events
 
-- [ドメイン購入後の設定と実送受信の検証](docs/deploy.md)
-- [障害時の動作、監視、復旧、残る制約](docs/operations.md)
-- [最新MCPとEventsの対応範囲](docs/mcp-events.md)
+受信通知の`message.received`と、送信状態通知の`message.send_status_changed`を提供します。
+`events/list`、`events/poll`、`events/stream`に対応し、pollとpushで購読できます。
 
-受信は10 MiBまで。JSONリクエストは512 KiBまで。送信はテキストと任意のHTMLに対応し、送信添付は未対応。HTMLや添付を自動実行する機能はない。現在の保存期間は無期限で、自動削除は行わない。
+**MCP Eventsへの対応は、作業部会のドラフトに基づく実験的な機能です。**
+MCP本体の確定仕様とは別に扱い、対応クライアントで利用してください。
+参照したドラフト、購読とカーソルの扱いは[MCPとEventsの対応範囲](docs/mcp-events.md)を参照してください。
 
-## 開発
+## HTTP API
+
+受信箱の発行から送受信、イベント監視まで、Bearerトークン付きのHTTP APIで操作できます。
 
 ```sh
-mise run ci
-mise exec -- backlog task list
-mise exec -- backlog task show task_001
-mise exec -- backlog task add --title '次の作業' --priority P2
+curl "$MAIL_API_URL/v1/inboxes" \
+  -H "Authorization: Bearer $MAIL_API_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"label":"research-agent"}'
 ```
 
-CIはformat、lint（Oxlint / knip / pinact / actionlint）、typecheck、test、build、pinact、secrets（GitleaksによるGit履歴検査）の独立ジョブ。依存は`bun.lock`、ツールは`mise.toml`、GitHub ActionsはSHAで固定する。テストは実際のWorkersランタイム上のD1/R2と、Bun上のMCPクライアントで実行する。ビルドはWranglerのdry-runで、本番への配備は行わない。
+上の発行例には管理者トークンが必要です。
+エンドポイントと送信例は[HTTP APIリファレンス](docs/http-api.md)に記載しています。
 
-開発環境は`upamune/skills`の`init-project`を参照して構成した。API/MCPプロジェクトのためReact/TanStack Startは導入していない。参加方法は[CONTRIBUTING.md](CONTRIBUTING.md)、権限と脆弱性報告は[SECURITY.md](SECURITY.md)を参照する。
+## 保存と障害対応
+
+メールの原文と本文はR2、受信箱と処理状態とイベント履歴はD1に保存します。
+Cloudflare WorkersがAPIとMCPを提供し、Queuesでメールを処理します。
+
+受信時は原文を保存してから解析します。
+キューへの投入や解析が失敗した場合は、保存済みの原文から復旧を試みます。
+送信時は要求を永続化し、条件付きの状態更新で重複したキュー処理による二重送信を防ぎます。
+
+監視項目、再試行の条件、障害時の復旧手順は[運用設計](docs/operations.md)を参照してください。
+
+## 制約
+
+| 項目                | 対応範囲                                                          |
+| ------------------- | ----------------------------------------------------------------- |
+| 受信サイズ          | 1通あたり10 MiBまで                                               |
+| APIのJSONリクエスト | 512 KiBまで                                                       |
+| 送信形式            | テキストと任意のHTML。送信添付は未対応                            |
+| 保存期間            | メールとイベントを無期限に保存。自動削除は未対応                  |
+| イベント配信        | at-least-once。受信側で`eventId`による重複除去が必要              |
+| 認証                | 管理者トークンと受信箱トークン。OAuthは未対応                     |
+| インターフェース    | API、CLI、MCP。Web UI、IMAP、クライアント向けSMTPサーバーは未提供 |
+
+メール本文や添付は信頼できない外部入力です。
+エージェントに渡す際の権限設定と、脆弱性の報告方法は[SECURITY.md](SECURITY.md)を参照してください。
+
+## 開発とコントリビューション
+
+```sh
+mise run format
+mise run ci
+```
+
+CIでは整形、静的解析、型検査、テスト、dry-runビルド、秘密情報チェックを実行します。
+実メールの送信と本番への自動デプロイは行いません。
+不具合や提案は[Issues](https://github.com/upamune/agentpost/issues)、開発手順は[CONTRIBUTING.md](CONTRIBUTING.md)を参照してください。
 
 ## ライセンス
 
-[MIT](LICENSE)。同梱スキルの出典とライセンスは[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)に記載している。`package.json`の`private: true`はnpmへの誤公開を防ぐ設定で、ソースコードの利用を制限するものではない。
+[MIT](LICENSE)。
+同梱スキルの出典とライセンスは[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)に記載しています。
