@@ -1,21 +1,27 @@
 {
   "view": "customer",
+  "second": {
+    "role": "fix",
+    "label": "the fix",
+    "lacks": []
+  },
   "modelStates": 1251,
   "modelTransitions": 2355,
   "chartStates": 29,
-  "chartTransitions": 29,
+  "chartTransitions": 32,
   "chartStatus": {
     "works": 36,
-    "wrong": 2,
-    "fixed": 0,
+    "wrong": 0,
+    "fixed": 2,
     "mixed": 0,
-    "after": 0
+    "after": 0,
+    "worse": 0
   },
   "mixedStatus": [],
   "cover": {
     "drawn": true,
     "states": 38,
-    "transitions": 88,
+    "transitions": 91,
     "leftOutStates": [
       "Inbox disabled; Earlier check said inbox disabled; unknown; accepted 0",
       "Inbox disabled; No provider call running; sending; accepted 0",
@@ -112,9 +118,9 @@
       "readerSteps": 4,
       "modelSteps": 5,
       "counterexamples": 8,
-      "lastSteps": ["Call email provider using the earlier read"],
+      "lastSteps": ["Start a request to the email provider"],
       "startsHere": false,
-      "fix": null
+      "fix": "Inbox disabled; Earlier check said inbox enabled; sending; accepted 0"
     },
     {
       "n": 2,
@@ -125,9 +131,9 @@
       "readerSteps": 4,
       "modelSteps": 5,
       "counterexamples": 8,
-      "lastSteps": ["Call email provider using the earlier read"],
+      "lastSteps": ["Start a request to the email provider"],
       "startsHere": false,
-      "fix": null
+      "fix": "Inbox enabled; Earlier check said inbox enabled; unknown; accepted 0"
     },
     {
       "n": 3,
@@ -138,9 +144,9 @@
       "readerSteps": 5,
       "modelSteps": 6,
       "counterexamples": 8,
-      "lastSteps": ["Call email provider using the earlier read"],
+      "lastSteps": ["Start a request to the email provider"],
       "startsHere": false,
-      "fix": null
+      "fix": "Inbox disabled; Earlier check said inbox enabled; unknown; accepted 0"
     },
     {
       "n": 4,
@@ -151,11 +157,15 @@
       "readerSteps": 5,
       "modelSteps": 6,
       "counterexamples": 8,
-      "lastSteps": ["Call email provider using the earlier read"],
+      "lastSteps": ["Start a request to the email provider"],
       "startsHere": false,
-      "fix": null
+      "fix": "Inbox disabled; Earlier check said inbox enabled; unknown; accepted 0"
     }
   ],
   "codeLike": [],
+  "uncited": {
+    "/tmp/agentpost-verification-c61b674/outbound-old/Outbound.tla": [],
+    "/tmp/agentpost-verification-c61b674/outbound-fixed/Outbound.tla": []
+  },
   "brokenProperties": []
 }

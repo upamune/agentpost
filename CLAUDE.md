@@ -11,3 +11,5 @@ AIエージェントに独自ドメインのランダムなメールアドレス
 - Cloudflare Email SendingはBeta。結果不明の送信を自動再送しない。キュー投入やAPI受理を配達完了として扱わない。
 - [導入手順](docs/deploy.md)に従って設定する。ドメイン、認証、実送受信が揃うまでは本番稼働済みと報告しない。
 - ローカルテスト、dry-runビルド、Wranglerローカル環境への疎通は実行してよい。実メールを送るテストは宛先の指定を受けてから行う。
+
+送信・無効化・復旧を変更したら`.agents/skills/verify-outbound-safety/SKILL.md`、受信原文・索引修復・解析の永続化順序を変更したら`.agents/skills/verify-inbound-recovery/SKILL.md`に従う。検証は`mise run verify`、通常検査と合わせる場合は`mise run ci`。

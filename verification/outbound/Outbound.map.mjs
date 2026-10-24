@@ -22,9 +22,13 @@ export function state(v) {
   return `${v.active ? "Inbox enabled" : "Inbox disabled"}; ${stage}; ${v.status}; accepted ${v.acceptances}`;
 }
 const labels = {
+  Acquire: "Wait for earlier inbox operations to finish",
+  NoClaim: "Ignore a request already claimed or finished",
+  Replace: "Cloudflare replaces the inbox actor",
+  FenceRejected: "Stop the old actor before it can send",
   Claim: "Worker claims queued request",
   ReadActive: "Read whether inbox is enabled",
-  Dispatch: "Call email provider using the earlier read",
+  Dispatch: "Start a request to the email provider",
   RejectDisabled: "Reject a disabled inbox",
   ProviderReply: "Provider replies",
   Persist: "Save provider outcome conditionally",

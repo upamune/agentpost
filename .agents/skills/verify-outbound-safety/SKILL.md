@@ -1,39 +1,33 @@
 ---
 name: verify-outbound-safety
-description: Check agentpost outbound claims, provider calls, inbox disabling, and stale-send recovery with TLA+ and real D1 replay tests. Use when changing deliver, queue dispatch, inbox disabling, provider outcome handling, or Cron recovery.
+description: Check agentpost outbound claims, actor ownership, inbox disabling, stale-send recovery and active-state versions with TLA+ and real Durable Object/D1 replays. Use when changing dispatch, provider outcomes, InboxCoordinator, inbox active state, Cron recovery or the coordinator binding.
 ---
 
 # Verify outbound safety
 
-Run from the agentpost source checkout. This is development verification, not the installed email-operation skill.
+Run in the source checkout. Last synchronized with product commit `7800ab3f588d4357185b497332d790d56145ce96`, following the original findings at `ed15d43123471a7de7c89be7f77f5380da136dc9`.
 
-## Coverage and synchronization
+## Covered code
 
-Last confirmed against product commit `ed15d43123471a7de7c89be7f77f5380da136dc9`.
+- `src/coordinator.ts`: `serialize` holds a per-inbox operation across awaits; `fence` synchronously checks ownership immediately before dispatch; `setActive` versions its D1 projection; `recover` rechecks stale state inside serialization.
+- `src/outbound.ts`: `processOutbound` conditionally claims a matching inbox/outbox, reads active state, fences and starts the provider in the same JavaScript turn, then conditionally saves the outcome. `cloudflareSend` classifies ambiguous acceptance and explicit rejection.
+- `src/api.ts` inbox PATCH, `src/index.ts` queue and `src/maintenance.ts` stale recovery all route through the same named coordinator. `wrangler.jsonc` binds the class and SQLite migration.
+- `migrations/0001_mail.sql` preserves idempotency and claim state; `0004_inbox_active_version.sql` rejects old active-state projections.
 
-| Code | What the model covers |
-| --- | --- |
-| `src/outbound.ts:82` `deliver` | Conditional claim, separate inbox read, provider call, conditional outcome write |
-| `src/outbound.ts:17` `cloudflareSend` | Outcome classes; ambiguous responses may already have accepted mail |
-| `src/maintenance.ts:20` `recoverStaleSends` | Independent stale `sending` to `unknown` update |
-| `src/api.ts:177` inbox PATCH | Independent inbox disable update |
-| `src/index.ts:27` queue handler | Duplicate jobs and worker interruption |
-| `migrations/0001_mail.sql` | One durable outbox row; unique inbox/idempotency key |
+Inspect covered-code changes since the sync commit, including uncommitted changes. `Outbound.tla` separates mutex acquisition, D1 claim, active read, dispatch, outcome persistence, crash and ownership replacement. A replaced event may resume until the storage fence rejects it. `ActiveVersion.tla` independently checks an old enable write arriving after a newer disable. Each D1 statement and each synchronous SQLite operation is atomic; external awaits remain separate.
 
-Inspect changes since that commit, including uncommitted changes, before trusting a pass. Each SQL statement is atomic in the model; reads, network calls, and writes are separate actions. Update `verification/outbound/Outbound.tla` when the implementation's guards or ordering change. Advance the sync commit here and in `check.ts` only after checking every covered action against the new code.
+## Run
 
-## Run and interpret
+1. Install pinned tools and dependencies with `mise install` and `mise exec -- bun install --frozen-lockfile`.
+2. Run `mise run verify:outbound`. All checks and eight real-code replays must pass. `.verification/outbound/result.json` records the sync commit, current source hashes, bounds and results; per-check logs and raw replay reports are beside it. Exit 1 is a violated property/assertion; exit 2 is a tool/harness failure. Missing tests and runtime errors are failures.
+3. Read each TLA+ result with pstack `/statechart`, using copies outside the repo. Use `Outbound.chart.cfg` for the smaller chart bound and `ActiveVersion.cfg` for the projection model. Read the current statechart instructions/help, render and inspect every PNG. Keep previous counterexamples available when comparing a fix.
+4. Run `mise run verify:outbound:selftest`. It removes the conditional claim, operation serialization, ownership fence and active-version guard in scratch copies of the actual code and matching models. Every variant must fail its designated checks. The original product files stay untouched.
+5. Rerun the baseline after changes. Update `docs/formal-verification.md`, checked evidence, `verification/product-revision.txt` and this coverage record only after checking every modeled action against the product commit. Keep verification updates separate from product fixes.
 
-1. Install the pinned tools: `mise install java github:tlaplus/tlaplus`. Install application dependencies with `mise exec -- bun install --frozen-lockfile`.
-2. Run `mise run verify:outbound`. It checks each invariant separately and runs the real-code replays. Evidence is under `.verification/outbound/`, including `result.json`, per-property TLC logs, and replay results. Exit 1 means a violated property or failed replay; a tool error is reported separately and is not evidence of a product bug.
-3. Read every model result with pstack `/statechart`. Follow that skill's current instructions, work on a copy outside the repo, and use `Outbound.chart.cfg` for the small chart scope. Inspect each PNG and its numbered path. `Outbound.map.mjs` supplies labels. Do not infer the full check's bound from the chart's smaller scope.
-4. Replay every finding through `replay.test.ts`. Its D1 and APIs are real local implementations. Only the scheduling gate, clock, and provider are controlled. The provider is a stub; never substitute live email sending.
-5. Run `mise run verify:outbound:selftest`. It must catch a removed conditional-claim guard both in the model and in a scratch copy of the real `deliver` code. The scratch copy is deleted automatically. Return to the baseline and rerun the main check.
+## Scope
 
-The current baseline has two failing stop-related properties and two corresponding failed replays. Do not weaken them, classify them as tool failures, or fix product code during an investigation-only request. A future change that resolves a finding should make its property and replay pass; update the report after observing that result.
+The main model has one outbox, one inbox, two executions, and at most eight claims. Charts use two claims. The projection model has one old enable and one new disable with two monotonically increasing versions. The real-code replays use actual SQLite Durable Objects, D1 and API/maintenance paths; only scheduling and the external provider are controlled. Each outbound replay runs in its own test isolate: retaining injected actor closures across a reset crashed the local workerd test runtime.
 
-## Bounds and evidence
+429/explicit rejection are assumed not to accept mail; unknown outcomes may have accepted it. Ownership rejection relies on Cloudflare's documented synchronous storage access guarantee. The fence-failure replay injects that failure; it does not create a real network partition. The projection replay creates two class instances over the same real SQLite state to simulate handoff, rather than forcing a platform replacement. Stale age is injected into the timestamp; real maintenance performs the transition.
 
-One outbox request, one inbox, two possible queue consumers, and at most eight claims. Charts use at most two claims. 429 and explicit provider rejections are assumed not to accept a message. A stalled worker may resume after Cron's two-minute threshold; that assumption is necessary only for the stale-worker finding. No fairness, delivery/liveness, global exactly-once, D1 rollback, cryptographic, MIME, authorization, or whole-program proof is claimed.
-
-See `docs/formal-verification.md` for the properties, counterexamples, qualifications, and checked evidence. For accumulated drift from changes that skipped this skill, use pstack `/maintain-formal-verification-skill`.
+No fairness, send availability/latency, delivery, global exactly-once, multi-inbox proof, arbitrary re-enable histories, D1 rollback, credential security or whole-program proof is claimed. Active-state writes outside the coordinator and restoring only one of D1/DO state are outside the contract. Keep findings as findings; use pstack `/maintain-formal-verification-skill` after changes that skipped this workflow.

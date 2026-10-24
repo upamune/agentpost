@@ -37,10 +37,24 @@ run = "gitleaks git --redact --no-banner --log-opts=--all"
 run = "bun audit"
 
 [tasks."verify:outbound"]
-run = "bun run verification/outbound/check.ts"
+run = "bun run verification/check.ts outbound"
 
 [tasks."verify:outbound:selftest"]
-run = "bun run verification/outbound/check.ts --selftest"
+run = "bun run verification/check.ts outbound --selftest"
+
+[tasks."verify:inbound"]
+run = "bun run verification/check.ts inbound"
+
+[tasks."verify:inbound:selftest"]
+run = "bun run verification/check.ts inbound --selftest"
+
+[tasks.verify]
+depends = [
+  "verify:outbound",
+  "verify:inbound",
+  "verify:outbound:selftest",
+  "verify:inbound:selftest",
+]
 
 [tasks.ci]
-depends = ["format:check", "lint", "typecheck", "test", "build", "secrets", "audit"]
+depends = ["format:check", "lint", "typecheck", "test", "build", "secrets", "audit", "verify"]

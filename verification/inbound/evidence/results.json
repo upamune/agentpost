@@ -1,0 +1,166 @@
+{
+  "verifiedProductCommit": "7800ab3f588d4357185b497332d790d56145ce96",
+  "bounds": {
+    "originals": 3,
+    "valid": 2,
+    "poisoned": 1,
+    "pageSize": 1,
+    "transientFaults": 2
+  },
+  "assumptions": [
+    "originals already successfully persisted",
+    "finite stable corpus",
+    "at most two transient faults",
+    "weakly fair successful Cron, queue and parse actions",
+    "two valid originals parse successfully; one poisoned metadata object"
+  ],
+  "sourceFiles": [
+    {
+      "path": "src/inbound.ts",
+      "sha256": "630ff6b7c5cbba32bb8dfe3903a2d3571eb25e38ac31b3613b3be23438776def"
+    },
+    {
+      "path": "src/maintenance.ts",
+      "sha256": "df3a48ec4da2930acab6ad6ebb16eb452f581c289915ad48e6e46112602949d9"
+    },
+    {
+      "path": "src/index.ts",
+      "sha256": "4f3021b945a3cd63ce20eda24ad244fd9c23fef61d831b24a1e8dea6bbc4c7a5"
+    },
+    {
+      "path": "src/api.ts",
+      "sha256": "0364a750c0f2ff70698234c9eac63534a90446de55215ec9ec08c8827ad062a4"
+    },
+    {
+      "path": "migrations/0001_mail.sql",
+      "sha256": "19e4db34a1f7703fea52aff0af80511d09f2f14c32a3d919f4d04cbfb9b19953"
+    },
+    {
+      "path": "migrations/0002_events.sql",
+      "sha256": "1f1beb2e59e4aec125c0f82009a5abc8a2e0e1183f844ce862748c43718df820"
+    },
+    {
+      "path": "migrations/0003_raw_recovery.sql",
+      "sha256": "657488eada56313dd675661fe39e300c187e766f31f0ac298f5d7a16449aede5"
+    }
+  ],
+  "checks": [
+    {
+      "check": "TypeOK",
+      "outcome": "passed"
+    },
+    {
+      "check": "OriginalRetained",
+      "outcome": "passed"
+    },
+    {
+      "check": "IndexHasOriginal",
+      "outcome": "passed"
+    },
+    {
+      "check": "ReadyHasParsed",
+      "outcome": "passed"
+    },
+    {
+      "check": "PoisonVisible",
+      "outcome": "passed"
+    },
+    {
+      "check": "EventuallyReady",
+      "outcome": "passed"
+    }
+  ],
+  "replay": {
+    "exitCode": 0,
+    "cases": [
+      {
+        "ancestorTitles": [],
+        "fullName": "a D1 failure after raw persistence is repaired from the original metadata",
+        "status": "passed",
+        "title": "a D1 failure after raw persistence is repaired from the original metadata",
+        "duration": 32,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "queue outage and duplicate recovery preserve one message and one received event",
+        "status": "passed",
+        "title": "queue outage and duplicate recovery preserve one message and one received event",
+        "duration": 25,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "failures before parsed storage and before ready commit retain the original and recover",
+        "status": "passed",
+        "title": "failures before parsed storage and before ready commit retain the original and recover",
+        "duration": 18,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "poisoned first page cannot starve healthy later raw objects and stays visible in health",
+        "status": "passed",
+        "title": "poisoned first page cannot starve healthy later raw objects and stays visible in health",
+        "duration": 21,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "orphaned inbox metadata is reported, retried and cleared after the inbox is restored",
+        "status": "passed",
+        "title": "orphaned inbox metadata is reported, retried and cleared after the inbox is restored",
+        "duration": 17,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "cursor commit failure repeats safe inserts without downgrading ready messages",
+        "status": "passed",
+        "title": "cursor commit failure repeats safe inserts without downgrading ready messages",
+        "duration": 18,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "failed inbound republishing does not prevent outbound republishing",
+        "status": "passed",
+        "title": "failed inbound republishing does not prevent outbound republishing",
+        "duration": 14,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "failed attention persistence keeps the cursor before the poisoned original",
+        "status": "passed",
+        "title": "failed attention persistence keeps the cursor before the poisoned original",
+        "duration": 11,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      }
+    ]
+  }
+}

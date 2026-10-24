@@ -6,8 +6,19 @@ export default defineConfig({
   ...base,
   resolve: {
     alias: process.env.AGENTPOST_FORMAL_MUTANT
-      ? { "../../src/outbound": resolve(process.env.AGENTPOST_FORMAL_MUTANT) }
-      : {},
+      ? [
+          {
+            find: new RegExp(
+              `^(?:\\.\\.?/)+(?:src/)?${process.env.AGENTPOST_FORMAL_MUTANT_MODULE}$`,
+            ),
+            replacement: resolve(process.env.AGENTPOST_FORMAL_MUTANT),
+          },
+          {
+            find: resolve(`src/${process.env.AGENTPOST_FORMAL_MUTANT_MODULE}.ts`),
+            replacement: resolve(process.env.AGENTPOST_FORMAL_MUTANT),
+          },
+        ]
+      : [],
   },
-  test: { ...base.test, include: ["verification/outbound/replay.test.ts"] },
+  test: { ...base.test, include: ["verification/outbound/*.test.ts"] },
 });

@@ -1,5 +1,5 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": { "allowImportingTsExtensions": true },
-  "include": ["./*.ts", "../../test/env.d.ts"]
+  "include": ["./*.ts", "../check.ts", "../../test/env.d.ts"]
 }
