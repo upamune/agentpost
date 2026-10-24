@@ -9,15 +9,24 @@ Cloudflare DNSで管理する独自ドメインを使う。ローカル検証と
 利用者が設定する環境変数には`AGENTPOST_`プレフィックスを付ける。
 CLIとstdioのMCPはプロセスの環境変数を読み、Workerは`wrangler.jsonc`の`vars`とWorkers Secretsを読む。ローカルのWorker Secretsは`.dev.vars`に設定する。
 
-| 名前                           | 設定先                   | 用途                                                                    |
-| ------------------------------ | ------------------------ | ----------------------------------------------------------------------- |
-| `AGENTPOST_API_URL`            | CLI / stdio MCP          | APIの接続先。ローカルは`http://localhost:8787`、本番はWorkerのHTTPS URL |
-| `AGENTPOST_API_TOKEN`          | CLI / stdio MCP          | 操作に使う管理者トークンまたは受信箱トークン                            |
-| `AGENTPOST_ADMIN_TOKEN`        | Worker Secret            | 全受信箱を管理するトークン                                              |
-| `AGENTPOST_EMAIL_DOMAIN`       | `wrangler.jsonc`の`vars` | メールアドレスを発行するドメイン                                        |
-| `AGENTPOST_CF_ACCOUNT_ID`      | Worker Secret            | Email Sendingを利用するCloudflareアカウントID                           |
-| `AGENTPOST_CF_EMAIL_API_TOKEN` | Worker Secret            | Email Sending権限を持つCloudflare APIトークン                           |
-| `AGENTPOST_LOCAL_URL`          | ローカル受信テスト       | `smoke:local`の接続先。既定値は`http://127.0.0.1:8787`                  |
+| 名前                                   | 設定先                   | 用途                                                                    |
+| -------------------------------------- | ------------------------ | ----------------------------------------------------------------------- |
+| `AGENTPOST_API_URL`                    | CLI / stdio MCP          | APIの接続先。ローカルは`http://localhost:8787`、本番はWorkerのHTTPS URL |
+| `AGENTPOST_API_TOKEN`                  | CLI / stdio MCP          | 操作に使う管理者トークンまたは受信箱トークン                            |
+| `AGENTPOST_ADMIN_TOKEN`                | Worker Secret            | 全受信箱を管理するトークン                                              |
+| `AGENTPOST_EMAIL_DOMAIN`               | `wrangler.jsonc`の`vars` | メールアドレスを発行するドメイン                                        |
+| `AGENTPOST_CF_ACCOUNT_ID`              | Worker Secret            | Email Sendingを利用するCloudflareアカウントID                           |
+| `AGENTPOST_CF_EMAIL_API_TOKEN`         | Worker Secret            | Email Sending権限を持つCloudflare APIトークン                           |
+| `AGENTPOST_AUTH_MODE`                  | Worker vars              | `token`（既定）・`oauth`・`both`                                        |
+| `AGENTPOST_CURSOR_KEY`                 | Worker Secret            | 独立したイベントカーソル暗号化鍵。OAuth/bothでは必須                    |
+| `AGENTPOST_ACCESS_TEAM_DOMAIN`         | Worker vars              | 信頼するAccess teamのHTTPS origin                                       |
+| `AGENTPOST_ACCESS_AUD`                 | Worker vars              | Accessアプリの対象AUD                                                   |
+| `AGENTPOST_ACCESS_PRINCIPALS`          | Worker vars              | 本人IDとロールのJSON対応表                                              |
+| `AGENTPOST_OAUTH_RESOURCE_URL`         | Worker vars              | `/mcp`で終わる正規のHTTPS URL                                           |
+| `AGENTPOST_OAUTH_AUTHORIZATION_SERVER` | Worker vars              | Accessメタデータにある正確なAS issuer                                   |
+| `AGENTPOST_LOCAL_URL`                  | ローカル受信テスト       | `smoke:local`の接続先。既定値は`http://127.0.0.1:8787`                  |
+
+OAuthまたはbothでは、デプロイ前に[認証設定](authentication.ja.md)を行います。既定のtoken専用ではAccessアプリは不要です。
 
 旧名から移行する場合は、次の対応で名前だけを変更し、値は保持する。旧名は読み取らない。
 
@@ -32,7 +41,7 @@ CLIとstdioのMCPはプロセスの環境変数を読み、Workerは`wrangler.js
 | `LOCAL_MAIL_URL`     | `AGENTPOST_LOCAL_URL`          |
 
 既存のWorkerを更新する場合は、新しい名前のSecretsを同じ値で登録してからデプロイする。CLIの環境変数、MCPの接続設定、`.dev.vars`も更新する。
-管理者トークンの値はイベントカーソルの暗号化にも使うため、名前の変更と同時に値を変えると既存カーソルは無効になる。
+token専用で`AGENTPOST_CURSOR_KEY`を省略した場合は管理者トークンから暗号化鍵も導くため、値を変えるとカーソルも無効になる。OAuth/bothでは独立したカーソル鍵が必須。
 
 旧署名形式のカーソルも拒否されます。[カーソルの移行](mcp-events.ja.md#カーソルの移行)に従って状態を照合してください。
 
@@ -84,7 +93,9 @@ HTTPはlocalhost・ループバック以外では拒否する。TLSを別のプ�
 
 ## 3. Secretsとデプロイ
 
-`AGENTPOST_ADMIN_TOKEN`には32〜256文字の英数字・`_`・`-`からなるランダム文字列を使用する。生成例は`openssl rand -hex 32`。ローカル開発用とは別の値を生成する。秘密情報をREADME・チャット・Gitに貼らない。
+token/bothでは`AGENTPOST_ADMIN_TOKEN`に32〜256文字の英数字・`_`・`-`からなるランダム文字列を使用する。生成例は`openssl rand -hex 32`。ローカル開発用とは別の値を生成する。秘密情報をREADME・チャット・Gitに貼らない。
+
+OAuth専用では下の管理者トークン登録を省略し、Accessの本人にadminを付与します。OAuth/bothでは`wrangler secret put AGENTPOST_CURSOR_KEY`も実行します。
 
 ```sh
 mise exec -- bun run wrangler secret put AGENTPOST_ADMIN_TOKEN
@@ -110,7 +121,7 @@ Email Routingの対象ドメインで、catch-allの宛先を**Worker `agentpost
 
 外部のテスト用メールアドレスを用意し、次を順に行う。送信はその宛先を明示して実施する。
 
-1. 管理者トークンでランダム受信箱を発行する。
+1. 選択した資格情報（管理者トークンまたは権限を付与したOAuth本人）で受信箱を発行する。
 2. 外部メールから発行アドレスに送る。APIで本文・添付・元の`.eml`を取得できることを確認する。
 3. 発行アドレスから外部メールに送る。outboxの`accepted`に加え、外部メールの受信・SPF/DKIM/DMARC結果を確認する。
 4. 外部からのメールにreply APIで返信する。Reply-To、差出人、件名、スレッドを確認する。
@@ -121,7 +132,7 @@ Email Routingの対象ドメインで、catch-allの宛先を**Worker `agentpost
 
 ## 6. 監視と復旧確認
 
-`GET /healthz`はWorkerの生存だけを見る。**`GET /v1/health`を管理者認証付きの外部監視に登録**し、503を通知対象にする。このリポジトリには外部監視サービスへの登録や通知先の設定は含まれていない。
+`GET /healthz`はWorkerの生存だけを見る。**`GET /v1/health`を管理者認証付きの外部監視に登録**し、503を通知対象にする。管理者権限が必要。OAuth専用の無人監視は、Access Service Authと明示的にadminを付与したサービスIDで構成する。このリポジトリには外部監視サービスへの登録や通知先の設定は含まれていない。
 
 受信・送信の外部テストを定期的に行う場合は、専用の宛先と実行間隔を決めてから設定する。単なるHTTPヘルスチェックではDNS、メール受信、到達性の障害を検出できない。
 

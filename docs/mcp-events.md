@@ -16,9 +16,9 @@
 - Streamable HTTP: `https://<worker>/mcp`, using SDK `createMcpHandler` with request-local state and stateless fallback for 2025 clients.
 - Event history and permissions reside in D1, independently of Worker memory and MCP sessions.
 
-HTTP requests need `Authorization: Bearer <admin-or-inbox-token>`. If Origin is present, it must match the Worker's request origin. Never put tokens in query parameters. HTTPS, Origin checks, no-store caching, and HTTP rate limits apply at the shared API/MCP entrypoint, including errors. Honor `Retry-After` on 429. MCP sends/replies also use the per-inbox send limiter.
+HTTP requests authenticate with a configured Bearer token or Cloudflare Access Managed OAuth, according to `AGENTPOST_AUTH_MODE` (`token`, `oauth`, or `both`). See [authentication](authentication.md). If Origin is present, it must match the Worker's request origin. Never put tokens in query parameters. HTTPS, Origin checks, no-store caching, and HTTP rate limits apply at the shared API/MCP entrypoint, including errors. Honor `Retry-After` on 429. MCP sends/replies also use the per-inbox send limiter.
 
-Authentication uses pre-issued Bearer tokens. OAuth authorization and dynamic client registration are not implemented. Hosts requiring OAuth need additional integration; connections to specific hosts such as ChatGPT have not been demonstrated.
+Remote HTTP MCP supports the core specification's OAuth discovery contract through Cloudflare Access Managed OAuth. The Worker validates signed Access assertions; Cloudflare handles authorization, client registration, and token exchange. Token-only deployment remains the default. stdio uses environment credentials. Connections to specific production hosts such as ChatGPT have not been demonstrated; the SDK OAuth flow is tested locally.
 
 SDK v2 clients default to the legacy protocol. Explicitly negotiate the current version:
 
@@ -70,11 +70,11 @@ The SDK supplies the current JSON-RPC `_meta` envelope. An omitted/null cursor s
 - `nextPollMs`: normally 5000. Use a client event loop instead of repeatedly asking the model to call a tool.
 - Cursors use authenticated encryption with fresh randomness and a fixed-length payload. Internal global sequence numbers cannot be decoded or inferred by comparing cursor values or lengths. Cursors are bound to the token, event type, and inbox and rejected outside that scope.
 
-A new token, event type, inbox, or admin encryption key requires a new subscription. Investigate the cause and reconcile history rather than silently resetting to null.
+Changing a static token, event type, inbox, cursor encryption key, or OAuth role invalidates old subscription cursors. An OAuth JWT refresh preserves its stable issuer/identity/role binding. OAuth agents must specify an owned `inbox_id`. Investigate the cause and reconcile history rather than silently resetting to null.
 
 ### Cursor migration
 
-The `v2` encrypted format rejects legacy signed plaintext cursors with 400. Old checkpoint files cannot resume automatically. Preserve them for diagnosis, reconcile existing messages/outbox state, and deliberately start a new subscription/checkpoint. Token or admin-secret rotation also invalidates cursors. Never implement silent reset on rejection.
+The `v2` encrypted format rejects legacy signed plaintext cursors with 400. Old checkpoint files cannot resume automatically. Preserve them for diagnosis, reconcile existing messages/outbox state, and deliberately start a new subscription/checkpoint. Static-token or cursor-key rotation also invalidates cursors. Token-only mode without an independent cursor key still derives it from the admin secret. Never implement silent reset on rejection.
 
 ### Push
 

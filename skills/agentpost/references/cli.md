@@ -2,6 +2,8 @@
 
 [English](cli.md) | [日本語](cli.ja.md)
 
+This CLI/stdio workflow uses preconfigured tokens in token/both mode. For native remote MCP OAuth, let the MCP client manage login/refresh instead; this CLI has no browser-login manager. OAuth provisioning returns no token even in both mode, and OAuth agents cannot use administrative rotation.
+
 Run the CLI from its source checkout. The installed skill directory is not the application checkout. Use the checkout path recorded during installation:
 
 ```sh

@@ -6,6 +6,8 @@
 
 ## 導入方法を選ぶ
 
+- **OAuthでリモートMCPへ接続:** 対応クライアントにAccessで保護した`/mcp` URLを登録し、クライアントのログイン・更新機能を使います。ほかの用途で必要でなければソースcheckout・CLI・`AGENTPOST_API_TOKEN`は不要です。[認証設定](docs/authentication.ja.md)を参照してください。
+
 - **既存Workerへの接続:** ソースを取得し、`AGENTPOST_API_URL`と`AGENTPOST_API_TOKEN`を設定します。必要ならMCPとスキルも設定します。Cloudflare管理用の資格情報は不要です。
 - **ローカルWorkerを試す:** ソースの導入後、ローカル検証へ進みます。ドメインやCloudflareの資格情報は不要です。
 - **自分のWorkerをホスト:** 利用者自身のCloudflareアカウントとドメインで[導入手順](docs/deploy.ja.md)を実施します。D1、R2、Queues、受信箱ごとのSQLite-backed Durable Objectを使います。Wranglerがデプロイ時にObjectのバインディングとmigrationを作成します。ローカルのインストールだけではデプロイしません。
@@ -40,7 +42,7 @@ mise exec --cd /absolute/path/to/agentpost -- bun run src/cli.ts --help
 
 利用者の非公開設定やシークレット管理からAPI URLとトークンを取得します。値をチャット・シェルのトレース・ログ・コミット対象へ出さないでください。アプリの環境変数はすべて`AGENTPOST_`で始まります。[設定一覧](docs/deploy.ja.md#環境変数)を参照してください。
 
-`AGENTPOST_API_URL`はWorkerのHTTPSベースURL、`AGENTPOST_API_TOKEN`は通常のメール操作用の受信箱トークンです。管理者トークンは発行・管理に限って使います。発行・トークン再発行の応答は秘密情報なので非公開に保存します。
+`AGENTPOST_API_URL`はWorkerのHTTPSベースURL、`AGENTPOST_API_TOKEN`は通常のメール操作用の受信箱トークンです。トークン方式では管理者トークンを発行・管理に限って使います。OAuth agentはネイティブのリモートMCPから自分の受信箱を発行・一覧できます。発行・トークン再発行の応答は秘密情報なので非公開に保存します。
 受信箱トークンは閲覧と送信の両方ができます。通常のエージェントに管理者資格情報を渡さず、タスクごとに受信箱を分けます。429では`Retry-After`を守り、同じメールの再要求には同じ冪等キーを使います。
 
 指定された受信箱UUIDで、送信を伴わない疎通確認を行います。
@@ -55,7 +57,9 @@ mise exec --cd /absolute/path/to/agentpost -- bun run src/cli.ts inbox get INBOX
 
 ## MCPを設定する
 
-利用者がMCPを使う場合、既存設定に`agentpost`を追加し、ほかのサーバーを保持します。以下は設定内容の例で、クライアントごとの設定ファイルの保存先を指定するものではありません。
+ネイティブのリモートMCP OAuthでは、保護したURLを登録し、クライアントの認可フローを使います。ほかのサーバーを保持し、discovery・ログイン・ツール操作を確認してから成功と報告します。[OAuthの設定と権限](docs/authentication.ja.md)を参照してください。
+
+トークン方式のstdio MCPでは、既存設定に`agentpost`を追加し、ほかのサーバーを保持します。以下は設定内容の例で、クライアントごとの設定ファイルの保存先を指定するものではありません。
 
 ```json
 {
@@ -83,7 +87,7 @@ mise exec --cd /absolute/path/to/agentpost -- bun run src/cli.ts inbox get INBOX
 
 パスを置き換え、資格情報はクライアントの非公開設定から渡します。stdioの標準出力はMCP専用です。実際のクライアントで接続・ツール検出を確認してから接続済みと報告します。設定ファイルを書くだけでは接続確認になりません。
 
-Bearer認証付きStreamable HTTP対応クライアントは`https://YOUR_WORKER.workers.dev/mcp`に直接接続できます。OAuthは未実装です。[MCPとEvents](docs/mcp-events.ja.md)で本体仕様と実験的Eventsドラフトを確認してください。
+Bearer認証付きStreamable HTTP対応クライアントは`https://YOUR_WORKER.workers.dev/mcp`に直接接続できます。また、対応するリモートMCPクライアントはoauth/bothでCloudflare Access Managed OAuthを使い、APIトークンをコピーせずに接続できます。[MCPとEvents](docs/mcp-events.ja.md)で本体仕様と実験的Eventsドラフトを確認してください。
 
 ## エージェント用スキルを導入する
 

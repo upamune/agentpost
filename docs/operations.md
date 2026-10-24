@@ -83,13 +83,15 @@ Restore metadata/inboxes from originals and backups, then verify both indexing a
 
 Admins disable with `PATCH /v1/inboxes/:id` and `{"active":false}`. New inbound admissions and provider dispatches stop, and the inbox token loses access. A delivery admitted before disabling can finish retaining its original afterward; disabling is not an inbound cancellation barrier. Successful disable waits for prior outbound processing and persists disabled state. Slow prior I/O can delay the response. A timeout/failure does not prove completion: inspect state. No new provider call starts while disabled; already dispatched mail cannot be recalled.
 
+See [authentication](authentication.md) for token/oauth/both selection, explicit OAuth grants, assertion expiry, and old-stream handling during policy deployment.
+
 Rotate lost/leaked inbox credentials with admin `POST /v1/inboxes/:id/token`. Old credentials immediately stop authorizing new requests; open event streams recheck on their next poll, normally within about five seconds. Update the admin token in Workers Secrets. Rotate a Cloudflare API token both at Cloudflare and in Workers Secrets.
 
 ## Backups and retention
 
 D1 and R2 have no shared transaction or atomic point-in-time restore. Check the account's D1 Time Travel plan and retention. Important installations need separate exports and recovery exercises. This repository does not implement off-site backups or automatic deletion.
 
-Originals can rebuild inbound indexes and parsed content. Inbox token hashes and outbound idempotency keys exist only in D1. Rolling D1 back can allow a previously accepted send to be accepted again. Stop API sending before restoration and reconcile outbox/provider records before resuming.
+Originals can rebuild inbound indexes and parsed content. Inbox token hashes, OAuth inbox-owner hashes, and outbound idempotency keys exist only in D1. Raw MIME cannot reconstruct OAuth ownership; unowned legacy inboxes are not assigned to a login automatically. Rolling D1 back can allow a previously accepted send to be accepted again. Stop API sending before restoration and reconcile outbox/provider records before resuming.
 
 ## Remaining production verification
 

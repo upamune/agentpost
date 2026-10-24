@@ -8,15 +8,22 @@ Each operator deploys agentpost to their own Cloudflare account and domain manag
 
 All application environment variables use the `AGENTPOST_` prefix. The CLI and stdio MCP read process environment variables. The Worker reads `vars` in `wrangler.jsonc` and Workers Secrets; local Worker secrets belong in `.dev.vars`.
 
-| Name                           | Configure in          | Purpose                                                   |
-| ------------------------------ | --------------------- | --------------------------------------------------------- |
-| `AGENTPOST_API_URL`            | CLI / stdio MCP       | Worker HTTPS base URL; locally `http://localhost:8787`    |
-| `AGENTPOST_API_TOKEN`          | CLI / stdio MCP       | Admin or inbox token for the operation                    |
-| `AGENTPOST_ADMIN_TOKEN`        | Worker Secret         | Administration and access to every inbox                  |
-| `AGENTPOST_EMAIL_DOMAIN`       | `wrangler.jsonc` vars | Domain for generated addresses                            |
-| `AGENTPOST_CF_ACCOUNT_ID`      | Worker Secret         | Cloudflare account with Email Sending enabled             |
-| `AGENTPOST_CF_EMAIL_API_TOKEN` | Worker Secret         | API token authorized for Email Sending                    |
-| `AGENTPOST_LOCAL_URL`          | Local smoke test      | `smoke:local` target; defaults to `http://127.0.0.1:8787` |
+| Name                                   | Configure in          | Purpose                                                          |
+| -------------------------------------- | --------------------- | ---------------------------------------------------------------- |
+| `AGENTPOST_API_URL`                    | CLI / stdio MCP       | Worker HTTPS base URL; locally `http://localhost:8787`           |
+| `AGENTPOST_API_TOKEN`                  | CLI / stdio MCP       | Admin or inbox token for the operation                           |
+| `AGENTPOST_ADMIN_TOKEN`                | Worker Secret         | Administration in token/both mode                                |
+| `AGENTPOST_EMAIL_DOMAIN`               | `wrangler.jsonc` vars | Domain for generated addresses                                   |
+| `AGENTPOST_CF_ACCOUNT_ID`              | Worker Secret         | Cloudflare account with Email Sending enabled                    |
+| `AGENTPOST_CF_EMAIL_API_TOKEN`         | Worker Secret         | API token authorized for Email Sending                           |
+| `AGENTPOST_AUTH_MODE`                  | Worker vars           | `token` (default), `oauth`, or `both`                            |
+| `AGENTPOST_CURSOR_KEY`                 | Worker Secret         | Independent event-cursor encryption key; required for OAuth/both |
+| `AGENTPOST_ACCESS_TEAM_DOMAIN`         | Worker vars           | Trusted Access team HTTPS origin                                 |
+| `AGENTPOST_ACCESS_AUD`                 | Worker vars           | Access application audience                                      |
+| `AGENTPOST_ACCESS_PRINCIPALS`          | Worker vars           | JSON identity-to-role allowlist                                  |
+| `AGENTPOST_OAUTH_RESOURCE_URL`         | Worker vars           | Canonical HTTPS URL ending in `/mcp`                             |
+| `AGENTPOST_OAUTH_AUTHORIZATION_SERVER` | Worker vars           | Exact AS issuer from Access metadata                             |
+| `AGENTPOST_LOCAL_URL`                  | Local smoke test      | `smoke:local` target; defaults to `http://127.0.0.1:8787`        |
 
 When migrating old configuration, rename these variables while preserving their values. Old names are no longer read.
 
@@ -30,7 +37,9 @@ When migrating old configuration, rename these variables while preserving their 
 | `CF_EMAIL_API_TOKEN` | `AGENTPOST_CF_EMAIL_API_TOKEN` |
 | `LOCAL_MAIL_URL`     | `AGENTPOST_LOCAL_URL`          |
 
-Register the renamed Worker secrets before deployment, and update CLI/MCP configuration and `.dev.vars`. The admin secret also protects event cursors; changing its value invalidates existing cursors. The encrypted cursor format also rejects legacy signed cursors; see [cursor migration](mcp-events.md#cursor-migration).
+For OAuth or both mode, complete [authentication setup](authentication.md) before deployment. Token-only remains the default and needs no Access application.
+
+Register the renamed Worker secrets before deployment, and update CLI/MCP configuration and `.dev.vars`. Without `AGENTPOST_CURSOR_KEY`, token-only mode derives the cursor key from the admin secret; changing it invalidates cursors. OAuth/both require an independent cursor secret. The encrypted cursor format also rejects legacy signed cursors; see [cursor migration](mcp-events.md#cursor-migration).
 
 ## 1. Account and domain
 
@@ -80,7 +89,9 @@ HTTP is accepted only on localhost/loopback. Even behind a TLS-terminating proxy
 
 ## 3. Secrets and deployment
 
-Generate a separate production `AGENTPOST_ADMIN_TOKEN`: 32–256 random characters from letters, digits, `_`, and `-`. For example, use `openssl rand -hex 32`. Keep secrets out of chat, documentation, and Git.
+For token/both mode, generate a separate production `AGENTPOST_ADMIN_TOKEN`: 32–256 random characters from letters, digits, `_`, and `-`. For example, use `openssl rand -hex 32`. Keep secrets out of chat, documentation, and Git.
+
+For OAuth-only, omit the admin-token command and configure the Access grant for your administrator instead. OAuth/both also require `wrangler secret put AGENTPOST_CURSOR_KEY`.
 
 ```sh
 mise exec -- bun run wrangler secret put AGENTPOST_ADMIN_TOKEN
@@ -106,7 +117,7 @@ Official reference: [routing addresses](https://developers.cloudflare.com/email-
 
 Use an explicitly designated external test recipient.
 
-1. Provision an inbox using the admin token.
+1. Provision an inbox using your selected credentials: an admin token or an appropriately granted OAuth identity.
 2. Send from an external mailbox to that address. Verify body, attachments, and original `.eml` retrieval.
 3. Send from the generated address to the designated recipient. Check outbox `accepted`, actual receipt, and SPF/DKIM/DMARC results.
 4. Reply through the API; verify Reply-To, sender, subject, and threading.
@@ -117,7 +128,7 @@ Use an explicitly designated external test recipient.
 
 ## 6. Monitoring and recovery
 
-`GET /healthz` checks only Worker liveness. **Register authenticated `GET /v1/health` with external monitoring and alert on 503.** This repository does not register a monitoring service or notification destination.
+`GET /healthz` checks only Worker liveness. **Register authenticated `GET /v1/health` with external monitoring and alert on 503.** Use admin credentials; OAuth-only deployments require an Access service identity explicitly granted `admin` and matching Service Auth policy for unattended monitoring. This repository does not register a monitoring service or notification destination.
 
 For recurring external mail checks, first choose a dedicated recipient and interval. An HTTP health check cannot detect every DNS, inbound delivery, or recipient reachability problem.
 

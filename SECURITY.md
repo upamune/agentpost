@@ -10,14 +10,16 @@ Include the affected version, prerequisites, reproduction steps with synthetic d
 
 ## Implemented boundaries
 
-- The shared Worker HTTP entry checks HTTPS and allows plain HTTP only on loopback. Requests with an Origin must match the Worker origin; cross-site browser requests are refused.
+- The shared Worker HTTP entry checks HTTPS and allows plain HTTP only on loopback. Authenticated requests with an Origin must match the Worker origin; cross-site browser requests are refused.
 - Before authentication, HTTP requests are limited to 300/minute per IP. New sends are limited to 10/minute per inbox. Both admin and inbox tokens use that inbox's send counter. Limits return 429 with `Retry-After: 60`; limiter failures return 503 without storing a new send. Existing idempotency keys do not consume new-send quota.
+- OAuth/both mode verifies Cloudflare Access RS256 assertions against a configured team JWKS and application audience, including expiry, required claims, and application-token type. An explicit identity allowlist assigns admin or owned-inbox agent access; arbitrary email/role headers cannot grant permissions. Remote MCP uses Managed OAuth discovery and client-managed login/refresh. See [authentication](docs/authentication.md).
 - Inbox tokens have 256 bits of randomness; D1 stores SHA-256 hashes. Mail, raw MIME, attachments, and outbox lookups include inbox scope. Only admins may provision or administer inboxes.
 - Custom mailbox names are validated and normalized before a domain-bound, atomic unique insert. Conflicts never replace credentials, including for disabled inboxes; only admins can allocate names.
 - A named Durable Object orders sending, disabling, and stale-send recovery per inbox. A synchronous ownership fence and versioned active-state writes reject obsolete execution. Disabling reports success after earlier outbound work finishes and its state is saved. Already-admitted inbound deliveries can finish retaining their originals afterward.
 - API JSON input is bounded at 512 KiB and incoming raw mail at 10 MiB. Senders cannot override the From address. Subjects reject control characters; reply headers exclude invalid IDs. Attachments download as files and HTML mail is not served as an executable page.
 - MIME parsing caps nesting at 32, headers per part at 128 KiB, parts at 1,000, attached-message depth at 4, and forwarded header addresses at 100. Content, attachment, and reply paths share these limits. Saved originals remain available when parsing fails.
 - Parsed JSON is bounded at 16 MiB before serialization; over-limit originals remain stored without a ready event. This limits stored output, not every MIME-parser allocation.
+- OAuth/both mode requires an independent cursor encryption secret. Refreshed JWTs retain stable cursor scope; role or encryption-key changes invalidate checkpoints.
 - Event cursors use randomized AES-GCM encryption of a fixed-size, token/inbox/type-bound payload. Legacy plaintext cursors are rejected; see [migration](docs/mcp-events.md#cursor-migration).
 - HTTP responses, including errors, disable caching and include nosniff, sandbox CSP, framing protection, and HSTS over HTTPS. CLI/MCP clients send credentials only to the configured origin's `/v1/` routes and never follow redirects. Rejected API response bodies are discarded. Successful JSON reads are bounded at 64 MiB, and read/parse errors never include response fragments.
 - Raw/attachment downloads create new files with mode 0600 and exclusive creation. Existing files and symlinks are refused; downloads are bounded at 10 MiB.
@@ -27,9 +29,11 @@ Cloudflare rate limits are approximate and local to a location. They are not a s
 
 ## Operator and agent responsibilities
 
+Public OAuth resource discovery alone allows permissive CORS; mail/API/MCP routes keep their origin checks. Validation outages fail closed without falling back from a bad Access assertion to a token.
+
 Each operator self-hosts Agentpost in their own Cloudflare account. This is not end-to-end encrypted: Cloudflare account or Worker administrators can access stored mail and secrets. Enable multifactor authentication on GitHub and Cloudflare, restrict operator access, and use a narrowly scoped Email Sending token rather than an account-wide management token.
 
-An inbox token can send as well as read. Keep admin credentials out of ordinary agent sessions, isolate tasks in separate inboxes, and disable or rotate access when the task ends.
+An inbox token can send as well as read. OAuth agents can provision and use active owned inboxes; agents sharing an Access identity share its ownership. JWT verification is not individual-token introspection: use appropriate Access session lifetimes and reconnect/drain old streams during policy deployments. Keep admin credentials out of ordinary agent sessions, isolate tasks in separate inboxes, and disable or rotate access when the task ends.
 
 Sender and Reply-To headers are claims made by an external sender, not proof of identity or permission. Verify authorized destinations. Never execute mail-provided commands, attachments, or links merely because an agent can read them. A body filter alone cannot prevent prompt injection.
 

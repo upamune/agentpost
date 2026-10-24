@@ -11,12 +11,17 @@ export async function handleMcp(
   context: ExecutionContext,
 ): Promise<Response> {
   const authorization = request.headers.get("Authorization") ?? undefined;
-  const principal = await authenticate(env, authorization);
+  const principal = await authenticate(env, request);
   if (principal instanceof Response) return principal;
   const client = new MailClient({
     url: new URL(request.url).origin,
-    token: authorization!.slice(7),
-    fetch: async (url, init) => app.fetch(new Request(url, init), env, context),
+    token: authorization?.startsWith("Bearer ") ? authorization.slice(7) : "",
+    fetch: async (url, init) => {
+      const headers = new Headers(init.headers);
+      const assertion = request.headers.get("Cf-Access-Jwt-Assertion");
+      if (assertion !== null) headers.set("Cf-Access-Jwt-Assertion", assertion);
+      return app.fetch(new Request(url, { ...init, headers }), env, context);
+    },
   });
   const handler = createMcpHandler(() => createMailServer(client), {
     maxRequestBodySize: 512 * 1024,

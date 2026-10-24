@@ -6,6 +6,8 @@ Use this document when a user asks an AI agent to install or configure agentpost
 
 ## Choose the installation mode
 
+- **Connect remote MCP with OAuth:** use a compatible client and an Access-protected `/mcp` URL. The client performs login and refresh. A source checkout, CLI, and `AGENTPOST_API_TOKEN` are unnecessary unless other workflows need them. See [authentication](docs/authentication.md).
+
 - **Connect to an existing Worker:** install the source checkout, configure `AGENTPOST_API_URL` and `AGENTPOST_API_TOKEN`, and optionally configure MCP and the skill. Cloudflare management credentials are not needed.
 - **Try a local Worker:** follow the source installation, then the local verification section. No domain or Cloudflare credentials are needed.
 - **Host a Worker:** follow [the deployment guide](docs/deploy.md) for the user's Cloudflare account and domain. Hosting uses D1, R2, Queues and a SQLite-backed Durable Object per inbox. Wrangler creates the Durable Object binding and migration during deployment. Local installation does not deploy the service.
@@ -41,7 +43,7 @@ Raw email and attachment downloads create new files with permissions 0600; choos
 
 Obtain the API URL and a token through the user's private configuration or secret manager. Keep token values out of chat, shell tracing, logs, and committed configuration. All application environment variables use the `AGENTPOST_` prefix; see [the configuration table](docs/deploy.md#environment-variables).
 
-Set `AGENTPOST_API_URL` to the Worker's HTTPS base URL and `AGENTPOST_API_TOKEN` to an inbox token for ordinary email access. An admin token is required only for provisioning and inbox administration. Inbox creation and token rotation return secrets; store those responses privately.
+Set `AGENTPOST_API_URL` to the Worker's HTTPS base URL and `AGENTPOST_API_TOKEN` to an inbox token for ordinary email access. In token mode, an admin token is required for provisioning and inbox administration. OAuth agents can provision/list their owned inboxes through native remote MCP. Inbox creation and token rotation return secrets; store those responses privately.
 An inbox token allows sending as well as reading. Keep admin credentials outside ordinary agent sessions and use a separate inbox for each task. Follow `Retry-After` on HTTP 429; reuse the same idempotency key when retrying the same send.
 
 Verify access without sending a message. With a supplied inbox UUID, use:
@@ -56,7 +58,9 @@ An admin token can instead use `inbox list --limit 1`. `health` also requires ad
 
 ## Configure MCP
 
-If the user wants MCP, merge an `agentpost` entry into the client's existing configuration. Preserve other servers. This is a configuration example, not a universal client config file location:
+For native remote MCP OAuth, register the protected server URL and use the client's authorization flow; preserve other servers. Validate discovery, login, and tool access before reporting success. See [OAuth setup and roles](docs/authentication.md).
+
+For token-based stdio MCP, merge an `agentpost` entry into the client's existing configuration. Preserve other servers. This is a configuration example, not a universal client config file location:
 
 ```json
 {
@@ -84,7 +88,7 @@ If the user wants MCP, merge an `agentpost` entry into the client's existing con
 
 Replace the path and inject credentials using the client's private configuration. Keep stdio stdout reserved for MCP messages. Validate connection and tool discovery through the actual client before reporting MCP as connected; writing configuration alone is not a connection test.
 
-Clients supporting Streamable HTTP with preconfigured Bearer authentication can connect directly to `https://YOUR_WORKER.workers.dev/mcp`. OAuth is not implemented. Protocol compatibility and the experimental MCP Events draft are documented in [MCP and Events](docs/mcp-events.md).
+Clients supporting Streamable HTTP with preconfigured Bearer authentication can connect directly to `https://YOUR_WORKER.workers.dev/mcp`. Alternatively, compatible remote MCP clients can use Cloudflare Access Managed OAuth in oauth/both mode, without copying an API token. Protocol compatibility and the experimental MCP Events draft are documented in [MCP and Events](docs/mcp-events.md).
 
 ## Install the agent skill
 

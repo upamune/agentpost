@@ -4,6 +4,7 @@
 
 AIエージェントに独自ドメインのランダムまたは指定名のメールアドレスを発行し、Cloudflareで送受信するAPI・CLI・MCPサーバー。
 
+- 認証を変更する前に[認証と認可](docs/authentication.ja.md)を読む。token/oauth/bothを明示し、Access署名を検証し、トークン更新をまたいで本人ごとの受信箱所有権を保持する。
 - 文書・コメント・エージェント向けの指示は英語を既定にし、保守する文書には日本語版の`*.ja.md`と相互リンクを用意する。
 - ツールはmiseで管理する。`mise run format|lint|typecheck|test|build|ci`。依存取得は`mise exec -- bun install --frozen-lockfile`。
 - ActionsはpinactでSHA固定する。タスクは`mise exec -- backlog task add|list|show|move <id> done`で管理する。

@@ -122,7 +122,7 @@ Worker、CLI、MCPそれぞれの設定先は[環境変数の一覧](docs/deploy
 - Cloudflare DNSで管理する独自ドメイン
 - Cloudflare Workers Paidと、D1、R2、Queues、Durable Objectsを利用できるアカウント
 - 対象ドメインのEmail RoutingとEmail Sendingの有効化
-- Email SendingのAPIトークンと、管理者トークン
+- Email SendingのAPIトークンと、選択した[認証方式の設定](docs/authentication.ja.md)
 
 [導入手順](docs/deploy.ja.md)に沿って、ストレージとキューの作成、DNS、Secrets、デプロイ、catch-allの設定を行ってください。
 アドレスごとのルーティング設定は不要です。
@@ -198,8 +198,9 @@ MCPクライアントから、受信箱の発行、受信メールの取得、�
 
 ### Streamable HTTP
 
-Workerの`https://YOUR_WORKER.workers.dev/mcp`に接続し、各要求に`Authorization: Bearer <token>`を付けます。
-OAuth認証は未対応のため、接続先URLとBearerトークンを設定できるクライアントが必要です。
+`AGENTPOST_AUTH_MODE`で`token`（既定）・`oauth`・`both`を選べます。トークン接続は`Authorization: Bearer <token>`を送ります。MCP標準OAuthはCloudflare Access Managed OAuthを設定し、保護したHTTPSの`/mcp` URLを対応クライアントへ登録します。ブラウザログインとトークン更新はクライアントが処理します。
+
+OAuthの`agent`はadmin APIトークンなしで自分の受信箱を発行・操作でき、明示的に`admin`を与えた本人が全体を管理します。ロール、Access設定、bothでの入口は[認証と認可](docs/authentication.ja.md)を参照してください。OAuthでの発行はbothでも受信箱トークンを含めません。上記CLI・stdio手順はトークン方式のままです。
 
 ### MCP Events
 
@@ -247,7 +248,7 @@ Cloudflare WorkersがAPIとMCPを提供し、Queuesでメールを処理しま�
 | 送信形式            | テキストと任意のHTML。送信添付は未対応                            |
 | 保存期間            | メールとイベントを無期限に保存。自動削除は未対応                  |
 | イベント配信        | at-least-once。受信側で`eventId`による重複除去が必要              |
-| 認証                | 管理者トークンと受信箱トークン。OAuthは未対応                     |
+| 認証                | トークン、Cloudflare AccessのMCP OAuth、または両方                |
 | インターフェース    | API、CLI、MCP。Web UI、IMAP、クライアント向けSMTPサーバーは未提供 |
 
 直近の敵対的調査と修正は[セキュリティ調査](docs/security-audit.ja.md)にまとめています。

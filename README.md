@@ -100,7 +100,7 @@ You need:
 - A domain managed with Cloudflare DNS.
 - A Workers Paid account with D1, R2, Queues, and SQLite-backed Durable Objects.
 - Email Routing and Email Sending enabled for that domain.
-- An Email Sending API token and a separate Agentpost admin token.
+- An Email Sending API token and your chosen [authentication configuration](docs/authentication.md).
 
 Follow the [deployment guide](docs/deploy.md) to create resources, configure DNS and secrets, deploy the Worker, and route catch-all mail to it. You do not need a routing rule for every address: the Worker accepts only issued, active recipients.
 
@@ -161,11 +161,13 @@ Replace the checkout path and supply private credentials in your client's config
 }
 ```
 
-For a local Worker, use `http://localhost:8787`. Creating and listing inboxes requires an admin token, which controls every inbox; keep it outside ordinary agent sessions. An inbox token permits both reading and sending for that inbox.
+For a local Worker, use `http://localhost:8787`. With token authentication, creating and listing inboxes requires an admin token, which controls every inbox; keep it outside ordinary agent sessions. An inbox token permits both reading and sending for that inbox.
 
 ### Streamable HTTP
 
-Connect to `https://YOUR_WORKER.workers.dev/mcp` with `Authorization: Bearer <token>` on each request. OAuth is not implemented; your client must support a configured URL and Bearer token.
+Choose `token` (default), `oauth`, or `both` using `AGENTPOST_AUTH_MODE`. Token connections send `Authorization: Bearer <token>`. For native MCP OAuth, configure Cloudflare Access Managed OAuth and register the protected HTTPS `/mcp` URL with a compatible client; the client handles browser login and token refresh.
+
+OAuth `agent` identities can create and use their own inboxes without an admin API token. Explicitly granted `admin` identities manage the deployment. See [authentication and authorization](docs/authentication.md) for roles, required Access settings, and both-mode host routing. OAuth provisioning returns no inbox token, even in both mode. The CLI/stdio workflow above remains token-based.
 
 ### MCP Events
 
@@ -204,7 +206,7 @@ See [operations](docs/operations.md) for retry rules, monitoring, backups, and r
 | Sending           | Required plain text, optional HTML; no outbound attachments  |
 | Retention         | Mail and events retained indefinitely; no automatic deletion |
 | Events            | At-least-once; consumers deduplicate by `eventId`            |
-| Authentication    | Admin and inbox tokens; no OAuth                             |
+| Authentication    | Token, Cloudflare Access MCP OAuth, or both                  |
 | Interfaces        | API, CLI, MCP; no Web UI, IMAP, or client-facing SMTP server |
 
 See the [adversarial security audit](docs/security-audit.md) for demonstrated findings, fixes, and remaining verification scope.

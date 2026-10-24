@@ -1,4 +1,5 @@
 import { sha256 } from "./common";
+import { isOAuthMetadataPath } from "./oauth-metadata";
 import type { Env } from "./types";
 
 export function secureResponse(request: Request, response: Response): Response {
@@ -39,9 +40,12 @@ export async function guardHttpRequest(request: Request, env: Env): Promise<Resp
   )
     return Response.json({ error: "HTTPS required" }, { status: 403 });
   const origin = request.headers.get("Origin");
+  const publicDiscovery =
+    isOAuthMetadataPath(url.pathname) && ["GET", "HEAD", "OPTIONS"].includes(request.method);
   if (
-    (origin !== null && origin !== url.origin) ||
-    request.headers.get("Sec-Fetch-Site") === "cross-site"
+    !publicDiscovery &&
+    ((origin !== null && origin !== url.origin) ||
+      request.headers.get("Sec-Fetch-Site") === "cross-site")
   )
     return Response.json({ error: "Origin not allowed" }, { status: 403 });
   // Cloudflare supplies this header at the edge. Keep raw IPs out of limiter keys/logs.

@@ -1,8 +1,10 @@
+import { canAccessInbox } from "./auth";
 import type { Principal } from "./auth";
+import { authConfiguration } from "./auth-config";
 import { equalHash, sha256 } from "./common";
 import { EVENT_NAMES } from "./event-schema";
 import type { EventPollPage, EventQuery } from "./event-schema";
-import type { Env } from "./types";
+import type { Env, Inbox } from "./types";
 
 interface StoredEvent {
   seq: number;
@@ -51,7 +53,7 @@ async function makeCursor(env: Env, scope: string, seq: number): Promise<string>
   const iv = crypto.getRandomValues(new Uint8Array(CURSOR_IV_BYTES));
   const ciphertext = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv, additionalData: CURSOR_CONTEXT, tagLength: 128 },
-    await cursorKey(env.AGENTPOST_ADMIN_TOKEN),
+    await cursorKey(authConfiguration(env).cursorKey),
     plaintext,
   );
   const value = new Uint8Array(CURSOR_BYTES);
@@ -78,7 +80,7 @@ async function readCursor(env: Env, scope: string, value: string): Promise<numbe
         additionalData: CURSOR_CONTEXT,
         tagLength: 128,
       },
-      await cursorKey(env.AGENTPOST_ADMIN_TOKEN),
+      await cursorKey(authConfiguration(env).cursorKey),
       bytes.slice(CURSOR_IV_BYTES),
     );
     if (plaintext.byteLength !== CURSOR_PLAINTEXT_BYTES) throw new Error("Invalid cursor length");
@@ -106,17 +108,21 @@ export async function pollEvents(
     throw new EventQueryError(404, "Event type not found");
   if (
     !principal.admin &&
+    principal.credential === "token" &&
     query.arguments.inbox_id &&
     query.arguments.inbox_id !== principal.inboxId
   ) {
     throw new EventQueryError(403, "Subscription is outside the token's inbox scope");
   }
   const inboxId = query.arguments.inbox_id ?? principal.inboxId;
+  if (!principal.admin && principal.credential === "oauth" && !inboxId)
+    throw new EventQueryError(403, "OAuth agents must select an owned inbox");
   if (inboxId) {
-    const inbox = await env.DB.prepare("SELECT id FROM inboxes WHERE id = ? AND active = 1")
+    const inbox = await env.DB.prepare("SELECT * FROM inboxes WHERE id = ? AND active = 1")
       .bind(inboxId)
-      .first();
-    if (!inbox) throw new EventQueryError(403, "Inbox is disabled or unavailable");
+      .first<Inbox>();
+    if (!inbox || !canAccessInbox(principal, inbox))
+      throw new EventQueryError(403, "Inbox is disabled or unavailable");
   }
   const scope = await sha256(
     JSON.stringify({ principal: principal.tokenHash, name: query.name, inboxId }),

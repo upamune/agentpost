@@ -2,3 +2,8 @@ AGENTPOST_ADMIN_TOKEN=
 # Set both after enabling Email Sending for your purchased domain.
 AGENTPOST_CF_ACCOUNT_ID=
 AGENTPOST_CF_EMAIL_API_TOKEN=
+
+# AUTH_MODE is token by default in wrangler.jsonc. OAuth/both also require:
+# AGENTPOST_CURSOR_KEY: independently generated with openssl rand -hex 32
+# Access team domain, AUD, role allowlist, resource URL, and AS issuer in vars.
+# See docs/authentication.md before enabling OAuth.

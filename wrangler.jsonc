@@ -6,7 +6,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "observability": { "enabled": true, "redact_query_string": true },
-  "vars": { "AGENTPOST_EMAIL_DOMAIN": "example.com" },
+  "vars": { "AGENTPOST_EMAIL_DOMAIN": "example.com", "AGENTPOST_AUTH_MODE": "token" },
   "durable_objects": {
     "bindings": [{ "name": "AGENTPOST_INBOX_COORDINATOR", "class_name": "InboxCoordinator" }],
   },

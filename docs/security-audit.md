@@ -2,6 +2,8 @@
 
 [English](security-audit.md) | [日本語](security-audit.ja.md)
 
+This is the pre-OAuth audit snapshot. Later OAuth support is documented in [authentication](authentication.md) and covered by `test/oauth.test.ts`; the findings/counts below describe the original audit baseline.
+
 Baseline: `1e28ed43c7b5155e7b923f9af098442f46143672`. Three parallel agents examined authentication/data isolation, client/MCP boundaries, and inbound/outbound processing. Two completed their initial audits; the mail audit produced local measurements before stopping. A replacement agent completed inbound hardening and the remaining send/reply, coordinator, queue, and recovery review; the parent reviewed the collected evidence. Another agent independently reviewed the cursor and parsed-output fixes. All probes used synthetic data and local runtimes; no production system or real mailbox was tested.
 
 ## Findings and remediation

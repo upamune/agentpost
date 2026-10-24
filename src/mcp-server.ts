@@ -44,7 +44,7 @@ export function createMailServer(client: MailClient): McpServer {
     "create_inbox",
     {
       description:
-        "Create an email address on the configured domain. Omit local_part for a random address or provide a mailbox name. Existing names conflict, including disabled inboxes. Requires admin token. Save the returned inbox ID and inbox token; the token is returned only on creation. Do not automatically retry creation after a timeout.",
+        "Create an email address on the configured domain. Omit local_part for a random address or provide a mailbox name. Existing names conflict, including disabled inboxes. Requires administrator or OAuth agent access. OAuth agents own the inboxes they create. Save the returned inbox ID and any token privately; OAuth creation returns no inbox token, including in both mode. Do not automatically retry creation after a timeout.",
       inputSchema: inboxInputSchema,
     },
     (input) => output(() => client.call("POST", "/v1/inboxes", input)),
@@ -52,7 +52,8 @@ export function createMailServer(client: MailClient): McpServer {
   server.registerTool(
     "list_inboxes",
     {
-      description: "List provisioned inboxes. Requires admin token.",
+      description:
+        "List inboxes: administrators see all; OAuth agents see their own. Inbox tokens cannot list inboxes.",
       inputSchema: z.object({
         limit: z.number().int().min(1).max(100).default(25),
         offset: z.number().int().min(0).default(0),

@@ -1,4 +1,5 @@
 import app from "./api";
+import { oauthMetadata } from "./oauth-metadata";
 import { parseMessage, receive } from "./inbound";
 import { maintain } from "./maintenance";
 import { deliver } from "./coordinator";
@@ -14,6 +15,7 @@ export default {
       const rejected = await guardHttpRequest(request, env);
       const response =
         rejected ??
+        oauthMetadata(request, env) ??
         (await (new URL(request.url).pathname === "/mcp"
           ? handleMcp(request, env, context)
           : app.fetch(request, env, context)));

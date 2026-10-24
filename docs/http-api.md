@@ -2,9 +2,9 @@
 
 [English](http-api.md) | [日本語](http-api.ja.md)
 
-Set `AGENTPOST_API_URL` to the Worker's HTTPS URL; local development can use `http://localhost:8787`. Every API except `/healthz` requires `Authorization: Bearer <token>`.
+Set `AGENTPOST_API_URL` to the Worker's HTTPS URL; local development can use `http://localhost:8787`. API access requires the selected [authentication mode](authentication.md). Token requests use `Authorization: Bearer <token>`; OAuth requests arrive through Access with a verified application assertion. `/healthz` and OAuth protected-resource discovery are public.
 
-An admin token provisions and administers inboxes and can access every inbox. An inbox token can read, send, and reply within one inbox. Only admins rotate tokens and change inbox activity.
+An admin token provisions and administers inboxes and can access every inbox. An inbox token can read, send, and reply within one inbox. Only admins rotate tokens (when enabled) and change inbox activity. OAuth agents can provision/list owned inboxes and read/send/reply within active owned inboxes; they cannot administer other inboxes.
 
 ## Endpoints
 
@@ -13,8 +13,8 @@ An admin token provisions and administers inboxes and can access every inbox. An
 | Method | Path                                                         | Operation                                             |
 | ------ | ------------------------------------------------------------ | ----------------------------------------------------- |
 | GET    | `/healthz`                                                   | Unauthenticated liveness check                        |
-| POST   | `/v1/inboxes`                                                | Issue a random or named address (admin)               |
-| GET    | `/v1/inboxes?limit=25&offset=0`                              | List inboxes (admin)                                  |
+| POST   | `/v1/inboxes`                                                | Issue a random or named address (admin / OAuth agent) |
+| GET    | `/v1/inboxes?limit=25&offset=0`                              | List inboxes (all for admin; own for OAuth agent)     |
 | GET    | `/v1/inboxes/{inbox}`                                        | Inbox details                                         |
 | PATCH  | `/v1/inboxes/{inbox}`                                        | Set activity, e.g. `{"active":false}` (admin)         |
 | POST   | `/v1/inboxes/{inbox}/token`                                  | Rotate inbox token (admin)                            |
@@ -43,7 +43,7 @@ curl "$AGENTPOST_API_URL/v1/inboxes" \
   -d '{"label":"research-agent"}'
 ```
 
-Save the returned `id`, `address`, and secret `token` privately. If the response is lost, inspect the admin inbox list before allocating another inbox. An admin can rotate a lost token, invalidating the old one.
+Save the returned `id` and `address`, and any secret `token` privately. OAuth-authenticated creation omits the token even in both mode; OAuth-only mode also disables rotation; OAuth grants authorize inbox access instead. If the response is lost, inspect the admin inbox list before allocating another inbox. An admin can rotate a lost token, invalidating the old one.
 
 ### Mailbox names
 
@@ -55,7 +55,7 @@ Omit `local_part` for a random address, or choose the part before `@`:
 
 The result uses the configured domain, e.g. `research.team+1@example.com`. Names accept 1–64 ASCII letters/digits, `_`, `+`, `-`, and internal single dots. Leading/trailing dots, adjacent dots, whitespace, Unicode, and complete addresses are rejected with 400. The complete address must fit 254 characters. ASCII uppercase is normalized to lowercase; dots and plus suffixes remain distinct names, not aliases.
 
-Allocation remains admin-only. A single atomic D1 insert claims the address: duplicates, concurrent claims, and names belonging to disabled inboxes return 409 without changing the original inbox or revealing its token. Names cannot be reassigned through provisioning. Inspect or administer the existing inbox instead; never treat a conflict as permission to rotate its credentials. No migration is required for existing random inboxes.
+Allocation requires admin access or an OAuth `agent` grant; OAuth creations record the issuer-bound owner. A single atomic D1 insert claims the address: duplicates, concurrent claims, and names belonging to disabled inboxes return 409 without changing the original inbox or revealing its token. Names cannot be reassigned through provisioning. Inspect or administer the existing inbox instead; never treat a conflict as permission to rotate its credentials. No migration is required for existing random inboxes.
 
 CLI: `inbox create --local-part research.team+1`. MCP: `create_inbox` with `local_part`. Both support omission for random allocation.
 

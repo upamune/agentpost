@@ -2,16 +2,18 @@ import { coordinator } from "./coordinator";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { z } from "zod";
-import { authenticate } from "./auth";
+import { authenticate, canAccessInbox } from "./auth";
+import type { Principal } from "./auth";
+import { authConfiguration } from "./auth-config";
 import { inboxInputSchema } from "./inbox-schema";
-import { equalHash, MAX_REQUEST_BYTES, randomToken, readBounded, sha256 } from "./common";
+import { MAX_REQUEST_BYTES, randomToken, readBounded, sha256 } from "./common";
 import { enqueue, parseMime } from "./inbound";
 import { eventDescriptors, eventQuerySchema } from "./event-schema";
 import { EventQueryError, pollEvents } from "./events";
 import { enforceRateLimit } from "./http-security";
 import type { Env, Inbox, Message, Outbox, SendPayload } from "./types";
 
-type Bindings = { Bindings: Env; Variables: { admin: boolean; tokenHash: string; inbox: Inbox } };
+type Bindings = { Bindings: Env; Variables: { principal: Principal; inbox: Inbox } };
 const app = new Hono<Bindings>();
 const headerText = z.string().refine((value) => !/\p{Cc}/u.test(value));
 const address = z.email().max(254);
@@ -36,10 +38,9 @@ app.use("*", async (context, next) => {
 app.get("/healthz", (context) => context.json({ status: "ok" }));
 
 app.use("/v1/*", async (context, next) => {
-  const principal = await authenticate(context.env, context.req.header("Authorization"));
+  const principal = await authenticate(context.env, context.req.raw);
   if (principal instanceof Response) return principal;
-  context.set("admin", principal.admin);
-  context.set("tokenHash", principal.tokenHash);
+  context.set("principal", principal);
   await next();
 });
 
@@ -74,20 +75,20 @@ class ApiError extends Error {
 }
 
 function requireAdmin(context: Context<Bindings>): void {
-  if (!context.get("admin")) throw new ApiError(403, "Admin token required");
+  if (!context.get("principal").admin) throw new ApiError(403, "Administrator access required");
 }
 
 app.get("/v1/events", (context) => context.json({ events: eventDescriptors }));
 
 app.post("/v1/events/poll", async (context) => {
   const query = await readJson(context, eventQuerySchema);
-  const principal = await authenticate(context.env, context.req.header("Authorization"));
-  if (principal instanceof Response) return principal;
-  return context.json(await pollEvents(context.env, principal, query));
+  return context.json(await pollEvents(context.env, context.get("principal"), query));
 });
 
 app.post("/v1/inboxes", async (context) => {
-  requireAdmin(context);
+  const principal = context.get("principal");
+  if (!principal.admin && !principal.ownerId)
+    throw new ApiError(403, "Inbox provisioning forbidden");
   const input = await readJson(context, inboxInputSchema);
   const domain = context.env.AGENTPOST_EMAIL_DOMAIN.toLowerCase();
   if (!z.hostname().safeParse(domain).success || !domain.includes("."))
@@ -103,16 +104,27 @@ app.post("/v1/inboxes", async (context) => {
   const token = randomToken();
   const now = Date.now();
   const created = await context.env.DB.prepare(
-    "INSERT INTO inboxes (id, address, label, token_hash, created_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(address) DO NOTHING RETURNING id",
+    "INSERT INTO inboxes (id, address, label, token_hash, created_at, owner_id) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(address) DO NOTHING RETURNING id",
   )
-    .bind(id, email, input.label, await sha256(token), now)
+    .bind(id, email, input.label, await sha256(token), now, principal.ownerId ?? null)
     .first<{ id: string }>();
   if (!created) throw new ApiError(409, "Email address already exists");
-  return context.json({ id, address: email, label: input.label, token, created_at: now }, 201);
+  return context.json(
+    {
+      id,
+      address: email,
+      label: input.label,
+      ...(principal.credential === "token" ? { token } : {}),
+      created_at: now,
+    },
+    201,
+  );
 });
 
 app.get("/v1/inboxes", async (context) => {
-  requireAdmin(context);
+  const principal = context.get("principal");
+  if (!principal.admin && !principal.ownerId) throw new ApiError(403, "Inbox listing forbidden");
+  const owner = principal.admin ? null : principal.ownerId!;
   const limit = Number(context.req.query("limit") ?? 25);
   const offset = Number(context.req.query("offset") ?? 0);
   if (
@@ -124,9 +136,9 @@ app.get("/v1/inboxes", async (context) => {
   )
     throw new ApiError(400, "Invalid pagination");
   const rows = await context.env.DB.prepare(
-    "SELECT id, address, label, active, created_at FROM inboxes ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?",
+    "SELECT id, address, label, active, created_at FROM inboxes WHERE (? IS NULL OR owner_id = ?) ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?",
   )
-    .bind(limit, offset)
+    .bind(owner, owner, limit, offset)
     .all();
   return context.json({
     items: rows.results,
@@ -173,14 +185,19 @@ async function inboxAuth(context: Context<Bindings>, next: () => Promise<void>) 
   const inbox = await context.env.DB.prepare("SELECT * FROM inboxes WHERE id = ?")
     .bind(context.req.param("inbox"))
     .first<Inbox>();
-  if (!inbox || (!context.get("admin") && !equalHash(inbox.token_hash, context.get("tokenHash"))))
+  if (!inbox || !canAccessInbox(context.get("principal"), inbox))
     throw new ApiError(404, "Inbox not found");
   context.set("inbox", inbox);
   await next();
 }
 
 app.get("/v1/inboxes/:inbox", (context) => {
-  const { token_hash: _secret, active_version: _version, ...inbox } = context.get("inbox");
+  const {
+    token_hash: _secret,
+    active_version: _version,
+    owner_id: _owner,
+    ...inbox
+  } = context.get("inbox");
   return context.json(inbox);
 });
 
@@ -196,6 +213,8 @@ app.patch("/v1/inboxes/:inbox", async (context) => {
 
 app.post("/v1/inboxes/:inbox/token", async (context) => {
   requireAdmin(context);
+  if (authConfiguration(context.env).mode === "oauth")
+    throw new ApiError(409, "Token authentication is disabled");
   const token = randomToken();
   await context.env.DB.prepare("UPDATE inboxes SET token_hash = ? WHERE id = ?")
     .bind(await sha256(token), context.get("inbox").id)
