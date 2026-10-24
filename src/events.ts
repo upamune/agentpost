@@ -1,4 +1,3 @@
-import { z } from "zod";
 import type { Principal } from "./auth";
 import { equalHash, sha256 } from "./common";
 import { EVENT_NAMES } from "./event-schema";
@@ -12,9 +11,10 @@ interface StoredEvent {
   data: string;
   created_at: number;
 }
-const cursorSchema = z
-  .object({ v: z.literal(1), seq: z.number().int().nonnegative().safe(), scope: z.string() })
-  .strict();
+const CURSOR_CONTEXT = new TextEncoder().encode("agentpost:events:cursor:v2");
+const CURSOR_PLAINTEXT_BYTES = 8 + 32;
+const CURSOR_IV_BYTES = 12;
+const CURSOR_BYTES = CURSOR_IV_BYTES + CURSOR_PLAINTEXT_BYTES + 16;
 
 export class EventQueryError extends Error {
   constructor(
@@ -25,42 +25,70 @@ export class EventQueryError extends Error {
   }
 }
 
-function encode(value: string): string {
-  return btoa(value).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+function encode(value: Uint8Array): string {
+  return btoa(String.fromCharCode(...value))
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/, "");
 }
 
-async function signature(secret: string, value: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
+async function cursorKey(secret: string): Promise<CryptoKey> {
+  const material = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(`agentpost:events:cursor:v2:key\0${secret}`),
   );
-  const result = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(value));
-  return Array.from(new Uint8Array(result), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return crypto.subtle.importKey("raw", material, "AES-GCM", false, ["encrypt", "decrypt"]);
 }
 
 async function makeCursor(env: Env, scope: string, seq: number): Promise<string> {
-  const value = encode(JSON.stringify({ v: 1, seq, scope }));
-  return `${value}.${await signature(env.AGENTPOST_ADMIN_TOKEN, value)}`;
+  if (!Number.isSafeInteger(seq) || seq < 0 || !/^[a-f0-9]{64}$/.test(scope))
+    throw new Error("Invalid event cursor state");
+  // Fixed-size plaintext conceals global sequence values, including their digit count.
+  const plaintext = new Uint8Array(CURSOR_PLAINTEXT_BYTES);
+  new DataView(plaintext.buffer).setBigUint64(0, BigInt(seq));
+  for (let index = 0; index < 32; index++)
+    plaintext[8 + index] = Number.parseInt(scope.slice(index * 2, index * 2 + 2), 16);
+  const iv = crypto.getRandomValues(new Uint8Array(CURSOR_IV_BYTES));
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv, additionalData: CURSOR_CONTEXT, tagLength: 128 },
+    await cursorKey(env.AGENTPOST_ADMIN_TOKEN),
+    plaintext,
+  );
+  const value = new Uint8Array(CURSOR_BYTES);
+  value.set(iv);
+  value.set(new Uint8Array(ciphertext), CURSOR_IV_BYTES);
+  return `v2.${encode(value)}`;
 }
 
 async function readCursor(env: Env, scope: string, value: string): Promise<number> {
   try {
-    const [encoded, mac, extra] = value.split(".");
-    if (
-      extra ||
-      !encoded ||
-      !/^[a-f0-9]{64}$/.test(mac) ||
-      !equalHash(mac, await signature(env.AGENTPOST_ADMIN_TOKEN, encoded))
-    )
-      throw new Error("Invalid signature");
-    const parsed = cursorSchema.parse(
-      JSON.parse(atob(encoded.replaceAll("-", "+").replaceAll("_", "/"))),
+    // Legacy readable cursors and noncanonical encodings require an explicit restart.
+    const encoded = /^v2\.([a-zA-Z0-9_-]{91})$/.exec(value)?.[1];
+    if (!encoded) throw new Error("Invalid cursor encoding");
+    const bytes = Uint8Array.from(
+      atob(`${encoded.replaceAll("-", "+").replaceAll("_", "/")}=`),
+      (character) => character.charCodeAt(0),
     );
-    if (parsed.scope !== scope) throw new Error("Wrong scope");
-    return parsed.seq;
+    if (bytes.length !== CURSOR_BYTES || encode(bytes) !== encoded)
+      throw new Error("Noncanonical cursor encoding");
+    const plaintext = await crypto.subtle.decrypt(
+      {
+        name: "AES-GCM",
+        iv: bytes.slice(0, CURSOR_IV_BYTES),
+        additionalData: CURSOR_CONTEXT,
+        tagLength: 128,
+      },
+      await cursorKey(env.AGENTPOST_ADMIN_TOKEN),
+      bytes.slice(CURSOR_IV_BYTES),
+    );
+    if (plaintext.byteLength !== CURSOR_PLAINTEXT_BYTES) throw new Error("Invalid cursor length");
+    const seq = new DataView(plaintext).getBigUint64(0);
+    const actualScope = Array.from(new Uint8Array(plaintext, 8), (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("");
+    if (seq > BigInt(Number.MAX_SAFE_INTEGER) || !equalHash(actualScope, scope))
+      throw new Error("Invalid cursor scope or position");
+    return Number(seq);
   } catch {
     throw new EventQueryError(
       400,

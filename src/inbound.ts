@@ -1,4 +1,5 @@
 import PostalMime from "postal-mime";
+import { stringifyBoundedJson } from "./bounded-json";
 import { MAX_MAIL_BYTES, readBounded, sha256 } from "./common";
 import type { Env, Inbox, Message } from "./types";
 
@@ -124,7 +125,7 @@ export async function parseMessage(env: Env, id: string): Promise<void> {
           : attachment.content.byteLength,
     })),
   };
-  await env.MAIL.put(`parsed/${id}.json`, JSON.stringify(document), {
+  await env.MAIL.put(`parsed/${id}.json`, stringifyBoundedJson(document, 16 * 1024 * 1024), {
     httpMetadata: { contentType: "application/json" },
   });
   await env.DB.prepare(

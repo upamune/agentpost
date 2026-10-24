@@ -168,7 +168,7 @@ describe("durable event history", () => {
     expect(rest.hasMore).toBe(false);
     expect(new Set([...first.events, ...rest.events].map((event) => event.eventId)).size).toBe(3);
     expect((await poll(first.eventCursors[0])).events).toHaveLength(2);
-    expect(first.startCursor).toBe(start.cursor);
+    expect((await poll(first.startCursor)).events).toEqual((await poll(start.cursor)).events);
   });
 
   test("inbox tokens cannot see another inbox or reuse another principal's cursor", async () => {
@@ -375,7 +375,13 @@ describe("modern remote MCP", () => {
           throw new Error("Stream ended before heartbeat");
         }),
       ]);
-      expect(keepalive.cursor).toBe(notification.cursor);
+      const eventCursor = z.string().parse(notification.cursor);
+      const heartbeatCursor = z.string().parse(keepalive.cursor);
+      const nextId = await incoming(box);
+      for (const checkpoint of [eventCursor, heartbeatCursor]) {
+        const resumed = await poll(checkpoint, { inbox: box.id });
+        expect(resumed.events.map((item) => item.eventId)).toEqual([`message.received:${nextId}`]);
+      }
       controller.abort();
       await expect(stream).rejects.toThrow();
     } finally {

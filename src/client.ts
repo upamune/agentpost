@@ -1,3 +1,7 @@
+import { readBounded } from "./common";
+
+// A paged outbox can contain 100 request bodies of up to 512 KiB each.
+const MAX_JSON_RESPONSE_BYTES = 64 * 1024 * 1024;
 export interface MailClientOptions {
   url: string;
   token: string;
@@ -96,6 +100,20 @@ export class MailClient {
     key?: string,
     signal?: AbortSignal,
   ): Promise<unknown> {
-    return (await this.response(method, path, body, key, signal)).json();
+    const response = await this.response(method, path, body, key, signal);
+    try {
+      const declared = response.headers.get("Content-Length");
+      if (declared && /^\d+$/.test(declared) && Number(declared) > MAX_JSON_RESPONSE_BYTES) {
+        void response.body?.cancel().catch(() => {});
+        throw new Error("Oversized response");
+      }
+      const bytes = response.body
+        ? await readBounded(response.body, MAX_JSON_RESPONSE_BYTES)
+        : new ArrayBuffer(0);
+      return JSON.parse(new TextDecoder().decode(bytes));
+    } catch {
+      // Parse and stream failures may include reflected credentials or hostile response text.
+      throw new Error("Mail API returned an invalid or oversized JSON response");
+    }
   }
 }
