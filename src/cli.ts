@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { parseArgs } from "node:util";
+import { version } from "../package.json";
 import { MailClient } from "./client";
 import { watchEvents } from "./watch";
 import { z } from "zod";
@@ -68,7 +69,7 @@ async function main(): Promise<void> {
     },
   });
   if (values.version || positionals[0] === "version") {
-    console.log("agentpost 0.1.0");
+    console.log(`agentpost ${version}`);
     return;
   }
   if (values.help || positionals.length === 0) {

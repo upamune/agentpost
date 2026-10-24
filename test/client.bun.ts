@@ -8,6 +8,7 @@ import { z } from "zod";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { version } from "../package.json";
 
 const servers: ReturnType<typeof Bun.serve>[] = [];
 afterEach(async () => {
@@ -15,6 +16,16 @@ afterEach(async () => {
 });
 
 describe("agent client and MCP", () => {
+  test("the CLI reports the release version without API configuration", async () => {
+    const child = Bun.spawn([process.execPath, "run", "src/cli.ts", "--version"], {
+      env: { ...process.env, AGENTPOST_API_URL: "", AGENTPOST_API_TOKEN: "" },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(await child.exited).toBe(0);
+    expect((await new Response(child.stdout).text()).trim()).toBe(`agentpost ${version}`);
+  });
+
   test("stdio push notifications stop polling when the client cancels", async () => {
     let published = false;
     let polls = 0;
@@ -203,6 +214,7 @@ describe("agent client and MCP", () => {
     try {
       expect(client.getProtocolEra()).toBe("modern");
       expect(client.getServerVersion()?.name).toBe("agentpost");
+      expect(client.getServerVersion()?.version).toBe(version);
       const result = await client.request(
         { method: "events/list", params: {} },
         z.object({ events: z.array(z.object({ name: z.string() })) }),

@@ -1,0 +1,8 @@
+[tagpr]
+    releaseBranch = main
+    versionFile = package.json
+    vPrefix = true
+    majorLabels = major,breaking
+    minorLabels = minor,enhancement,feature
+    changelog = true
+    release = true

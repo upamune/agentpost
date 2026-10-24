@@ -249,6 +249,7 @@ mise run ci
 CIではmainへのpushとPRごとに、整形、静的解析、型検査、テスト、Workerのdry-runビルド、秘密情報チェックを自動実行します。
 CLIはBunで実行する構成で、単体バイナリの自動配布は行っていません。
 実メールの送信と本番への自動デプロイは行いません。
+リリースPRとタグ・GitHub Releaseはtagprで管理します。GitHub Appの初期設定とリリースの確認方法は[リリース手順](docs/releases.md)を参照してください。
 不具合や提案は[Issues](https://github.com/upamune/agentpost/issues)、開発手順は[CONTRIBUTING.md](CONTRIBUTING.md)を参照してください。
 
 ## ライセンス
