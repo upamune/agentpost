@@ -2,10 +2,10 @@ export interface Env {
   DB: D1Database;
   MAIL: R2Bucket;
   JOBS: Queue<Job>;
-  EMAIL_DOMAIN: string;
-  ADMIN_TOKEN: string;
-  CF_ACCOUNT_ID?: string;
-  CF_EMAIL_API_TOKEN?: string;
+  AGENTPOST_EMAIL_DOMAIN: string;
+  AGENTPOST_ADMIN_TOKEN: string;
+  AGENTPOST_CF_ACCOUNT_ID?: string;
+  AGENTPOST_CF_EMAIL_API_TOKEN?: string;
 }
 
 export type Job = { kind: "inbound" | "outbound"; id: string };

@@ -16,18 +16,18 @@ export async function cloudflareSend(
   payload: SendPayload,
   request: (url: string, init: RequestInit) => Promise<Response> = fetch,
 ): Promise<SendResult> {
-  if (!env.CF_ACCOUNT_ID || !env.CF_EMAIL_API_TOKEN) {
+  if (!env.AGENTPOST_CF_ACCOUNT_ID || !env.AGENTPOST_CF_EMAIL_API_TOKEN) {
     return { status: "failed", error: "Email Sending credentials are not configured" };
   }
   let response: Response;
   try {
     response = await request(
-      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(env.CF_ACCOUNT_ID)}/email/sending/send`,
+      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(env.AGENTPOST_CF_ACCOUNT_ID)}/email/sending/send`,
       {
         method: "POST",
         redirect: "manual",
         headers: {
-          Authorization: `Bearer ${env.CF_EMAIL_API_TOKEN}`,
+          Authorization: `Bearer ${env.AGENTPOST_CF_EMAIL_API_TOKEN}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),

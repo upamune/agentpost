@@ -6,7 +6,7 @@ import { z } from "zod";
 
 const help = `agentpost — email for AI agents
 
-Configuration: MAIL_API_URL and MAIL_API_TOKEN (admin or inbox token).
+Configuration: AGENTPOST_API_URL and AGENTPOST_API_TOKEN (admin or inbox token).
 Use --url to override the URL. Credentials are read from the environment.
 
   inbox create [--label NAME]
@@ -76,13 +76,13 @@ async function main(): Promise<void> {
     return;
   }
   if (positionals[0] === "mcp") {
-    if (values.url) process.env.MAIL_API_URL = values.url;
+    if (values.url) process.env.AGENTPOST_API_URL = values.url;
     await import("./mcp");
     return;
   }
   const client = new MailClient({
-    url: values.url ?? required(process.env.MAIL_API_URL, "MAIL_API_URL"),
-    token: required(process.env.MAIL_API_TOKEN, "MAIL_API_TOKEN"),
+    url: values.url ?? required(process.env.AGENTPOST_API_URL, "AGENTPOST_API_URL"),
+    token: required(process.env.AGENTPOST_API_TOKEN, "AGENTPOST_API_TOKEN"),
   });
   const [command, action, id, extra] = positionals;
   const inboxId = (value: string | undefined) => z.uuid().parse(required(value, "INBOX_ID"));

@@ -119,8 +119,13 @@ describe("API and inbox isolation", () => {
   test("requires authentication and refuses to start without a strong admin secret", async () => {
     expect((await app.request("https://mail.test/v1/inboxes", {}, bindings)).status).toBe(401);
     expect(
-      (await app.request("https://mail.test/v1/inboxes", {}, { ...bindings, ADMIN_TOKEN: "" }))
-        .status,
+      (
+        await app.request(
+          "https://mail.test/v1/inboxes",
+          {},
+          { ...bindings, AGENTPOST_ADMIN_TOKEN: "" },
+        )
+      ).status,
     ).toBe(503);
     const exampleToken = "replace-with-a-random-secret-at-least-32-characters";
     expect(
@@ -128,7 +133,7 @@ describe("API and inbox isolation", () => {
         await app.request(
           "https://mail.test/v1/inboxes",
           { headers: { Authorization: `Bearer ${exampleToken}` } },
-          { ...bindings, ADMIN_TOKEN: exampleToken },
+          { ...bindings, AGENTPOST_ADMIN_TOKEN: exampleToken },
         )
       ).status,
     ).toBe(503);
@@ -573,7 +578,7 @@ describe("outbox and failure recovery", () => {
   test("provider is never called if its credentials are missing", async () => {
     expect(
       await cloudflareSend(
-        { ...bindings, CF_EMAIL_API_TOKEN: "" },
+        { ...bindings, AGENTPOST_CF_EMAIL_API_TOKEN: "" },
         { from: "a@example.com", to: ["b@example.net"], subject: "test", text: "body" },
       ),
     ).toEqual({ status: "failed", error: "Email Sending credentials are not configured" });

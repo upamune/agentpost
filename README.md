@@ -53,11 +53,11 @@ mise exec -- bun run smoke:local
 ### CLIで受信箱を作る
 
 リポジトリのルートで、接続先とトークンを設定します。
-`MAIL_API_TOKEN`には`.dev.vars`の`ADMIN_TOKEN`の値を指定してください。
+`AGENTPOST_API_TOKEN`には`.dev.vars`の`AGENTPOST_ADMIN_TOKEN`の値を指定してください。
 
 ```sh
-export MAIL_API_URL=http://localhost:8787
-export MAIL_API_TOKEN='YOUR_ADMIN_TOKEN'
+export AGENTPOST_API_URL=http://localhost:8787
+export AGENTPOST_API_TOKEN='YOUR_ADMIN_TOKEN'
 
 mise exec -- bun run cli inbox create --label research-agent
 ```
@@ -67,7 +67,7 @@ mise exec -- bun run cli inbox create --label research-agent
 以後、その受信箱だけを扱うエージェントには`token`を渡してください。
 
 ```sh
-export MAIL_API_TOKEN='YOUR_INBOX_TOKEN'
+export AGENTPOST_API_TOKEN='YOUR_INBOX_TOKEN'
 
 mise exec -- bun run cli inbox get YOUR_INBOX_UUID
 mise exec -- bun run cli message list YOUR_INBOX_UUID
@@ -77,6 +77,8 @@ mise exec -- bun run cli events watch --inbox YOUR_INBOX_UUID \
 
 CLIはJSONを標準出力に返し、イベント監視では1行に1件のJSON（NDJSON）を返します。
 コマンドの一覧は`mise exec -- bun run cli --help`で確認できます。
+設定に使う環境変数はすべて`AGENTPOST_`で始まります。
+Worker、CLI、MCPそれぞれの設定先は[環境変数の一覧](docs/deploy.md#環境変数)を参照してください。
 
 ## Cloudflareに導入する
 
@@ -91,8 +93,8 @@ CLIはJSONを標準出力に返し、イベント監視では1行に1件のJSON�
 アドレスごとのルーティング設定は不要です。
 agentpostが発行した有効なアドレスだけでメールを受け入れます。
 
-導入後は`MAIL_API_URL`をWorkerのHTTPS URLに変更すると、同じCLIとMCPを使えます。
-ローカルの`.dev.vars`に`CF_ACCOUNT_ID`と`CF_EMAIL_API_TOKEN`を設定した場合も、実際の送信APIを呼びます。
+導入後は`AGENTPOST_API_URL`をWorkerのHTTPS URLに変更すると、同じCLIとMCPを使えます。
+ローカルの`.dev.vars`に`AGENTPOST_CF_ACCOUNT_ID`と`AGENTPOST_CF_EMAIL_API_TOKEN`を設定した場合も、実際の送信APIを呼びます。
 そのため、送信テストには自分で管理する宛先を指定してください。
 
 ### メールを送る
@@ -130,7 +132,7 @@ MCPクライアントから、受信箱の発行、受信メールの取得、�
 
 クライアントの設定例です。
 `/absolute/path/to/agentpost`をcloneしたディレクトリに置き換えてください。
-ローカルサーバーに接続する場合は`MAIL_API_URL`を`http://localhost:8787`に変更します。
+ローカルサーバーに接続する場合は`AGENTPOST_API_URL`を`http://localhost:8787`に変更します。
 
 ```json
 {
@@ -148,8 +150,8 @@ MCPクライアントから、受信箱の発行、受信メールの取得、�
         "mcp"
       ],
       "env": {
-        "MAIL_API_URL": "https://YOUR_WORKER.workers.dev",
-        "MAIL_API_TOKEN": "YOUR_INBOX_TOKEN"
+        "AGENTPOST_API_URL": "https://YOUR_WORKER.workers.dev",
+        "AGENTPOST_API_TOKEN": "YOUR_INBOX_TOKEN"
       }
     }
   }
@@ -178,8 +180,8 @@ MCP本体の確定仕様とは別に扱い、対応クライアントで利用�
 受信箱の発行から送受信、イベント監視まで、Bearerトークン付きのHTTP APIで操作できます。
 
 ```sh
-curl "$MAIL_API_URL/v1/inboxes" \
-  -H "Authorization: Bearer $MAIL_API_TOKEN" \
+curl "$AGENTPOST_API_URL/v1/inboxes" \
+  -H "Authorization: Bearer $AGENTPOST_API_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"label":"research-agent"}'
 ```

@@ -56,7 +56,11 @@ describe("agent client and MCP", () => {
         command: process.execPath,
         args: ["run", "src/cli.ts", "mcp"],
         cwd: process.cwd(),
-        env: { ...process.env, MAIL_API_URL: source.url.href, MAIL_API_TOKEN: "stdio-test-token" },
+        env: {
+          ...process.env,
+          AGENTPOST_API_URL: source.url.href,
+          AGENTPOST_API_TOKEN: "stdio-test-token",
+        },
         stderr: "pipe",
       }),
     );
@@ -141,8 +145,8 @@ describe("agent client and MCP", () => {
         {
           env: {
             ...process.env,
-            MAIL_API_URL: source.url.href,
-            MAIL_API_TOKEN: "watch-test-token",
+            AGENTPOST_API_URL: source.url.href,
+            AGENTPOST_API_TOKEN: "watch-test-token",
           },
           stdout: "pipe",
           stderr: "pipe",
@@ -190,8 +194,8 @@ describe("agent client and MCP", () => {
       cwd: process.cwd(),
       env: {
         ...process.env,
-        MAIL_API_URL: "http://localhost:1",
-        MAIL_API_TOKEN: "test-token-for-stdio-discovery-only",
+        AGENTPOST_API_URL: "http://localhost:1",
+        AGENTPOST_API_TOKEN: "test-token-for-stdio-discovery-only",
       },
       stderr: "pipe",
     });
@@ -237,8 +241,8 @@ describe("agent client and MCP", () => {
     ];
     const environment = {
       ...process.env,
-      MAIL_API_URL: source.url.href,
-      MAIL_API_TOKEN: "test-secret",
+      AGENTPOST_API_URL: source.url.href,
+      AGENTPOST_API_TOKEN: "test-secret",
     };
     const missing = Bun.spawn([process.execPath, ...args], {
       env: environment,

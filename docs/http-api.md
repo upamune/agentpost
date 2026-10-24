@@ -1,6 +1,6 @@
 # HTTP API
 
-`MAIL_API_URL`にはWorkerのHTTPS URLを指定します。
+`AGENTPOST_API_URL`にはWorkerのHTTPS URLを指定します。
 ローカル開発では`http://localhost:8787`を使えます。
 `/healthz`以外のAPIには`Authorization: Bearer <token>`が必要です。
 
@@ -41,8 +41,8 @@
 ## 受信箱を発行する
 
 ```sh
-curl "$MAIL_API_URL/v1/inboxes" \
-  -H "Authorization: Bearer $MAIL_API_TOKEN" \
+curl "$AGENTPOST_API_URL/v1/inboxes" \
+  -H "Authorization: Bearer $AGENTPOST_API_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"label":"research-agent"}'
 ```
@@ -58,8 +58,8 @@ curl "$MAIL_API_URL/v1/inboxes" \
 別の内容に同じキーを使うと409を返します。
 
 ```sh
-curl "$MAIL_API_URL/v1/inboxes/INBOX_ID/send" \
-  -H "Authorization: Bearer $MAIL_API_TOKEN" \
+curl "$AGENTPOST_API_URL/v1/inboxes/INBOX_ID/send" \
+  -H "Authorization: Bearer $AGENTPOST_API_TOKEN" \
   -H 'Content-Type: application/json' \
   -H 'Idempotency-Key: task-123-message-1' \
   -d '{"to":["recipient@example.net"],"subject":"Hello","text":"Hello from my agent"}'

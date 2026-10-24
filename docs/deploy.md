@@ -2,6 +2,36 @@
 
 Cloudflare DNSで管理する独自ドメインを使う。ローカル検証と本番稼働は別で、最後の実送受信が通るまでは運用開始しない。
 
+## 環境変数
+
+利用者が設定する環境変数には`AGENTPOST_`プレフィックスを付ける。
+CLIとstdioのMCPはプロセスの環境変数を読み、Workerは`wrangler.jsonc`の`vars`とWorkers Secretsを読む。ローカルのWorker Secretsは`.dev.vars`に設定する。
+
+| 名前                           | 設定先                   | 用途                                                                    |
+| ------------------------------ | ------------------------ | ----------------------------------------------------------------------- |
+| `AGENTPOST_API_URL`            | CLI / stdio MCP          | APIの接続先。ローカルは`http://localhost:8787`、本番はWorkerのHTTPS URL |
+| `AGENTPOST_API_TOKEN`          | CLI / stdio MCP          | 操作に使う管理者トークンまたは受信箱トークン                            |
+| `AGENTPOST_ADMIN_TOKEN`        | Worker Secret            | 全受信箱を管理するトークン                                              |
+| `AGENTPOST_EMAIL_DOMAIN`       | `wrangler.jsonc`の`vars` | メールアドレスを発行するドメイン                                        |
+| `AGENTPOST_CF_ACCOUNT_ID`      | Worker Secret            | Email Sendingを利用するCloudflareアカウントID                           |
+| `AGENTPOST_CF_EMAIL_API_TOKEN` | Worker Secret            | Email Sending権限を持つCloudflare APIトークン                           |
+| `AGENTPOST_LOCAL_URL`          | ローカル受信テスト       | `smoke:local`の接続先。既定値は`http://127.0.0.1:8787`                  |
+
+旧名から移行する場合は、次の対応で名前だけを変更し、値は保持する。旧名は読み取らない。
+
+| 旧名                 | 新しい名前                     |
+| -------------------- | ------------------------------ |
+| `MAIL_API_URL`       | `AGENTPOST_API_URL`            |
+| `MAIL_API_TOKEN`     | `AGENTPOST_API_TOKEN`          |
+| `ADMIN_TOKEN`        | `AGENTPOST_ADMIN_TOKEN`        |
+| `EMAIL_DOMAIN`       | `AGENTPOST_EMAIL_DOMAIN`       |
+| `CF_ACCOUNT_ID`      | `AGENTPOST_CF_ACCOUNT_ID`      |
+| `CF_EMAIL_API_TOKEN` | `AGENTPOST_CF_EMAIL_API_TOKEN` |
+| `LOCAL_MAIL_URL`     | `AGENTPOST_LOCAL_URL`          |
+
+既存のWorkerを更新する場合は、新しい名前のSecretsを同じ値で登録してからデプロイする。CLIの環境変数、MCPの接続設定、`.dev.vars`も更新する。
+管理者トークンの値はイベントカーソルの署名にも使うため、名前の変更と同時に値を変えると既存カーソルは無効になる。
+
 ## 1. アカウントとドメイン
 
 1. CloudflareのWorkers PaidとR2・Queuesを利用できる状態にする。
@@ -9,7 +39,7 @@ Cloudflare DNSで管理する独自ドメインを使う。ローカル検証と
 3. Cloudflareが提示するMX・SPF・DKIM・DMARCの設定・検証を完了する。SendingはBetaなので、そのアカウントで実際に有効化できることを確認する。
 4. APIトークンに、対象アカウントの**Email Sending: Edit**権限を付与する。Worker実行時のトークンはメール送信に限定し、DNS変更・アカウント管理の権限を付けない。
 
-`wrangler.jsonc`の`vars.EMAIL_DOMAIN`を購入ドメインに変える。`CF_ACCOUNT_ID`はそのドメインとEmail Sendingを所有するアカウントのID。
+`wrangler.jsonc`の`vars.AGENTPOST_EMAIL_DOMAIN`を購入ドメインに変える。`AGENTPOST_CF_ACCOUNT_ID`はそのドメインとEmail Sendingを所有するアカウントのID。
 
 公式資料: [ドメイン設定](https://developers.cloudflare.com/email-service/configuration/domains/)、[送信](https://developers.cloudflare.com/email-service/get-started/send-emails/)、[REST API](https://developers.cloudflare.com/email-service/api/send-emails/rest-api/)。
 
@@ -36,17 +66,17 @@ R2は非公開のままにし、`r2.dev`や公開カスタムドメインを有�
 
 ## 3. Secretsとデプロイ
 
-`ADMIN_TOKEN`には32〜256文字の英数字・`_`・`-`からなるランダム文字列を使用する。生成例は`openssl rand -hex 32`。ローカル開発用とは別の値を生成する。秘密情報をREADME・チャット・Gitに貼らない。
+`AGENTPOST_ADMIN_TOKEN`には32〜256文字の英数字・`_`・`-`からなるランダム文字列を使用する。生成例は`openssl rand -hex 32`。ローカル開発用とは別の値を生成する。秘密情報をREADME・チャット・Gitに貼らない。
 
 ```sh
-mise exec -- bun run wrangler secret put ADMIN_TOKEN
-mise exec -- bun run wrangler secret put CF_ACCOUNT_ID
-mise exec -- bun run wrangler secret put CF_EMAIL_API_TOKEN
+mise exec -- bun run wrangler secret put AGENTPOST_ADMIN_TOKEN
+mise exec -- bun run wrangler secret put AGENTPOST_CF_ACCOUNT_ID
+mise exec -- bun run wrangler secret put AGENTPOST_CF_EMAIL_API_TOKEN
 mise run ci
 mise exec -- bun run deploy
 ```
 
-コマンドが返すWorker URLを`MAIL_API_URL`に使う。CIには実メール送信や自動デプロイを含めていない。
+コマンドが返すWorker URLを`AGENTPOST_API_URL`に使う。CIには実メール送信や自動デプロイを含めていない。
 
 ## 4. Catch-all
 

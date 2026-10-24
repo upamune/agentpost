@@ -21,7 +21,9 @@ export class MailClient {
   constructor(options: MailClientOptions) {
     this.url = new URL(options.url);
     if (this.url.username || this.url.password || this.url.search || this.url.hash) {
-      throw new Error("MAIL_API_URL must not contain credentials, query parameters, or a fragment");
+      throw new Error(
+        "AGENTPOST_API_URL must not contain credentials, query parameters, or a fragment",
+      );
     }
     if (
       this.url.protocol !== "https:" &&
@@ -30,7 +32,7 @@ export class MailClient {
         ["localhost", "127.0.0.1", "[::1]"].includes(this.url.hostname)
       )
     ) {
-      throw new Error("MAIL_API_URL must use HTTPS (HTTP is allowed on localhost)");
+      throw new Error("AGENTPOST_API_URL must use HTTPS (HTTP is allowed on localhost)");
     }
     this.token = options.token;
     this.request = options.fetch ?? fetch;

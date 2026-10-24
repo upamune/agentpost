@@ -28,8 +28,8 @@ const client = new Client(
   { versionNegotiation: { mode: { pin: "2026-07-28" } } },
 );
 await client.connect(
-  new StreamableHTTPClientTransport(new URL(process.env.MCP_URL!), {
-    requestInit: { headers: { Authorization: `Bearer ${process.env.MAIL_API_TOKEN}` } },
+  new StreamableHTTPClientTransport(new URL("/mcp", process.env.AGENTPOST_API_URL!), {
+    requestInit: { headers: { Authorization: `Bearer ${process.env.AGENTPOST_API_TOKEN}` } },
   }),
 );
 ```

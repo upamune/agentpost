@@ -6,7 +6,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "observability": { "enabled": true },
-  "vars": { "EMAIL_DOMAIN": "example.com" },
+  "vars": { "AGENTPOST_EMAIL_DOMAIN": "example.com" },
   "d1_databases": [
     {
       "binding": "DB",

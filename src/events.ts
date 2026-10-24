@@ -43,7 +43,7 @@ async function signature(secret: string, value: string): Promise<string> {
 
 async function makeCursor(env: Env, scope: string, seq: number): Promise<string> {
   const value = encode(JSON.stringify({ v: 1, seq, scope }));
-  return `${value}.${await signature(env.ADMIN_TOKEN, value)}`;
+  return `${value}.${await signature(env.AGENTPOST_ADMIN_TOKEN, value)}`;
 }
 
 async function readCursor(env: Env, scope: string, value: string): Promise<number> {
@@ -53,7 +53,7 @@ async function readCursor(env: Env, scope: string, value: string): Promise<numbe
       extra ||
       !encoded ||
       !/^[a-f0-9]{64}$/.test(mac) ||
-      !equalHash(mac, await signature(env.ADMIN_TOKEN, encoded))
+      !equalHash(mac, await signature(env.AGENTPOST_ADMIN_TOKEN, encoded))
     )
       throw new Error("Invalid signature");
     const parsed = cursorSchema.parse(

@@ -7,9 +7,9 @@ export default defineConfig({
       wrangler: { configPath: "./wrangler.jsonc" },
       miniflare: {
         bindings: {
-          ADMIN_TOKEN: "test-admin-token-with-at-least-32-characters",
-          CF_ACCOUNT_ID: "test-account",
-          CF_EMAIL_API_TOKEN: "test-provider-token",
+          AGENTPOST_ADMIN_TOKEN: "test-admin-token-with-at-least-32-characters",
+          AGENTPOST_CF_ACCOUNT_ID: "test-account",
+          AGENTPOST_CF_EMAIL_API_TOKEN: "test-provider-token",
           TEST_MIGRATIONS: await readD1Migrations("./migrations"),
         },
         queueConsumers: {},

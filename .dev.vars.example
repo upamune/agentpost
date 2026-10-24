@@ -1,4 +1,4 @@
-ADMIN_TOKEN=
+AGENTPOST_ADMIN_TOKEN=
 # Set both after enabling Email Sending for your purchased domain.
-CF_ACCOUNT_ID=
-CF_EMAIL_API_TOKEN=
+AGENTPOST_CF_ACCOUNT_ID=
+AGENTPOST_CF_EMAIL_API_TOKEN=

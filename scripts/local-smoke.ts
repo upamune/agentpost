@@ -1,12 +1,12 @@
 import { z } from "zod";
 
-const endpoint = new URL(process.env.LOCAL_MAIL_URL ?? "http://127.0.0.1:8787");
+const endpoint = new URL(process.env.AGENTPOST_LOCAL_URL ?? "http://127.0.0.1:8787");
 if (!["localhost", "127.0.0.1", "[::1]"].includes(endpoint.hostname)) {
   throw new Error("This smoke test only supports local development URLs");
 }
 const vars = await Bun.file(new URL("../.dev.vars", import.meta.url)).text();
-const token = vars.match(/^ADMIN_TOKEN=(.+)$/m)?.[1]?.trim();
-if (!token) throw new Error("ADMIN_TOKEN not found in .dev.vars");
+const token = vars.match(/^AGENTPOST_ADMIN_TOKEN=(.+)$/m)?.[1]?.trim();
+if (!token) throw new Error("AGENTPOST_ADMIN_TOKEN not found in .dev.vars");
 
 async function api(path: string, init: RequestInit = {}): Promise<unknown> {
   const response = await fetch(new URL(path, endpoint), {

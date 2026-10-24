@@ -85,9 +85,9 @@ app.post("/v1/events/poll", async (context) => {
 app.post("/v1/inboxes", async (context) => {
   requireAdmin(context);
   const input = await readJson(context, inboxInput);
-  const domain = context.env.EMAIL_DOMAIN.toLowerCase();
+  const domain = context.env.AGENTPOST_EMAIL_DOMAIN.toLowerCase();
   if (!z.hostname().safeParse(domain).success || !domain.includes("."))
-    throw new ApiError(503, "Invalid EMAIL_DOMAIN");
+    throw new ApiError(503, "Invalid AGENTPOST_EMAIL_DOMAIN");
   const id = crypto.randomUUID();
   const email = `${crypto.randomUUID().replaceAll("-", "")}@${domain}`;
   const token = randomToken();
@@ -135,7 +135,9 @@ app.get("/v1/health", async (context) => {
     oldest_outbound: number | null;
     oldest_inbound: number | null;
   }>();
-  const sendConfigured = Boolean(context.env.CF_ACCOUNT_ID && context.env.CF_EMAIL_API_TOKEN);
+  const sendConfigured = Boolean(
+    context.env.AGENTPOST_CF_ACCOUNT_ID && context.env.AGENTPOST_CF_EMAIL_API_TOKEN,
+  );
   const stale = [totals?.oldest_outbound, totals?.oldest_inbound].some(
     (time) => time != null && time < Date.now() - 15 * 60_000,
   );
