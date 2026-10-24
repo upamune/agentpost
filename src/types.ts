@@ -2,6 +2,8 @@ export interface Env {
   DB: D1Database;
   MAIL: R2Bucket;
   JOBS: Queue<Job>;
+  AGENTPOST_REQUEST_LIMITER: RateLimit;
+  AGENTPOST_SEND_LIMITER: RateLimit;
   AGENTPOST_EMAIL_DOMAIN: string;
   AGENTPOST_ADMIN_TOKEN: string;
   AGENTPOST_CF_ACCOUNT_ID?: string;

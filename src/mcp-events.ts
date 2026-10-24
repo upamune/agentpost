@@ -13,7 +13,12 @@ import { wait } from "./wait";
 const EVENTS_DRAFT_COMMIT = "d5316be214be2e76e51462069c1d67e00a5a7619";
 
 function protocolError(error: unknown): ProtocolError {
+  if (error instanceof ProtocolError) return error;
   if (error instanceof MailApiError) {
+    if (error.status === 429)
+      return new ProtocolError(-32603, "Event source rate limited", {
+        retryAfterMs: error.retryAfterMs ?? 60_000,
+      });
     if (error.status === 401 || error.status === 403)
       return new ProtocolError(-32024, "Event subscription forbidden");
     if (error.status === 404)
@@ -132,7 +137,21 @@ export function registerEventMethods(server: McpServer, client: MailClient): voi
               await send("notifications/events/heartbeat", { cursor });
               heartbeatAt = Date.now();
             }
-            await wait(Math.min(15_000, 1000 * 2 ** Math.min(failures++, 4)), signal);
+            const retry = z
+              .object({ retryAfterMs: z.number().int().min(1000).max(3_600_000) })
+              .safeParse(failure.data);
+            const retryAt =
+              Date.now() +
+              (retry.success
+                ? retry.data.retryAfterMs
+                : Math.min(15_000, 1000 * 2 ** Math.min(failures++, 4)));
+            while (!signal.aborted && Date.now() < retryAt) {
+              await wait(Math.min(15_000, retryAt - Date.now()), signal);
+              if (!signal.aborted && Date.now() - heartbeatAt >= 15_000) {
+                await send("notifications/events/heartbeat", { cursor });
+                heartbeatAt = Date.now();
+              }
+            }
           }
         }
       }

@@ -3,13 +3,23 @@ import { parseMessage, receive } from "./inbound";
 import { maintain } from "./maintenance";
 import { deliver } from "./outbound";
 import { handleMcp } from "./mcp-http";
+import { guardHttpRequest, secureResponse } from "./http-security";
 import type { Env, Job } from "./types";
 
 export default {
-  fetch(request: Request, env: Env, context: ExecutionContext): Promise<Response> | Response {
-    return new URL(request.url).pathname === "/mcp"
-      ? handleMcp(request, env, context)
-      : app.fetch(request, env, context);
+  async fetch(request: Request, env: Env, context: ExecutionContext): Promise<Response> {
+    try {
+      const rejected = await guardHttpRequest(request, env);
+      const response =
+        rejected ??
+        (await (new URL(request.url).pathname === "/mcp"
+          ? handleMcp(request, env, context)
+          : app.fetch(request, env, context)));
+      return secureResponse(request, response);
+    } catch {
+      console.error(JSON.stringify({ event: "http_request_failed" }));
+      return secureResponse(request, Response.json({ error: "Internal error" }, { status: 500 }));
+    }
   },
   email: receive,
   async queue(batch: MessageBatch<Job>, env: Env): Promise<void> {

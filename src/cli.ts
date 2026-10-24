@@ -1,5 +1,7 @@
 #!/usr/bin/env bun
 import { parseArgs } from "node:util";
+import { open } from "node:fs/promises";
+import { MAX_MAIL_BYTES, readBounded } from "./common";
 import { version } from "../package.json";
 import { MailClient } from "./client";
 import { watchEvents } from "./watch";
@@ -129,7 +131,15 @@ async function main(): Promise<void> {
             ? `${messagePath}/raw`
             : `${messagePath}/attachments/${encoded(positionals[4], "INDEX")}`;
         const response = await client.response("GET", url);
-        await Bun.write(output, await response.arrayBuffer());
+        const content = response.body
+          ? await readBounded(response.body, MAX_MAIL_BYTES)
+          : new ArrayBuffer(0);
+        const file = await open(output, "wx", 0o600);
+        try {
+          await file.writeFile(new Uint8Array(content));
+        } finally {
+          await file.close();
+        }
         result = { output };
       } else throw new Error("Unknown message command");
     }

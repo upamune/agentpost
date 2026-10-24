@@ -64,6 +64,20 @@ mise exec -- bun run wrangler d1 migrations apply DB --remote
 
 R2は非公開のままにし、`r2.dev`や公開カスタムドメインを有効化しない。メール取得は認証付きWorker APIを通す。
 
+### アクセスと送信の制限
+
+`wrangler.jsonc`の`ratelimits`に、HTTPアクセス用の`AGENTPOST_REQUEST_LIMITER`と送信要求用の`AGENTPOST_SEND_LIMITER`を定義している。シェルの環境変数やSecretsとして登録する値ではなく、Wranglerが作るバインディング。
+
+- HTTPは認証前にIP単位で毎分300回。APIとMCPで共通。MCPが内部でAPIを呼ぶ処理では二重に数えない。
+- 新しい送信・返信は受信箱単位で毎分10回。宛先数ではなく要求数。同じ冪等キーへの再要求は新規枠を使わない。
+- 429では`Retry-After: 60`に従って待つ。同じ論理メールの再要求に新しいキーを発行しない。制限基盤が使えなければ503で新規要求を拒否する。
+
+`namespace_id`はCloudflareアカウント内で他のWorkerと重複しない値にする。ステージング・本番を分ける場合は別のIDを設定し、Wranglerの名前付き環境には両方のバインディングを明示する。同じIDの環境はカウンターを共有する。
+
+[Cloudflareのレート制限](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/)は拠点ごとの近似値で、厳密な世界共通クォータではない。送信先の許可リストや日次の課金上限をこの制限で代用しない。公開時はCloudflare側のWAF・アクセス制御・送信上限も運用方針に合わせて設定する。
+
+HTTPはlocalhost・ループバック以外では拒否する。TLSを別のプロキシで終端する場合もWorkerまでHTTPSを使い、OriginはWorkerへの要求URLと一致させる。
+
 ## 3. Secretsとデプロイ
 
 `AGENTPOST_ADMIN_TOKEN`には32〜256文字の英数字・`_`・`-`からなるランダム文字列を使用する。生成例は`openssl rand -hex 32`。ローカル開発用とは別の値を生成する。秘密情報をREADME・チャット・Gitに貼らない。

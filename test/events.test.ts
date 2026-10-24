@@ -93,7 +93,7 @@ async function poll(
   return eventPollPageSchema.parse(await response.json());
 }
 
-async function mcpClient(token = admin) {
+async function mcpClient(token = admin, environment = bindings) {
   const client = new Client(
     { name: "agentpost-test", version: "1.0.0" },
     { versionNegotiation: { mode: { pin: "2026-07-28" } } },
@@ -101,7 +101,7 @@ async function mcpClient(token = admin) {
   const transport = new StreamableHTTPClientTransport(new URL("https://mail.test/mcp"), {
     requestInit: { headers: { Authorization: `Bearer ${token}` } },
     fetch: async (input, init) =>
-      worker.fetch(new Request(input, init), bindings, createExecutionContext()),
+      worker.fetch(new Request(input, init), environment, createExecutionContext()),
   });
   await client.connect(transport);
   return client;
@@ -248,6 +248,33 @@ describe("durable event history", () => {
 });
 
 describe("modern remote MCP", () => {
+  test("MCP send tools cannot bypass the inbox send limiter", async () => {
+    const box = await inbox();
+    const client = await mcpClient(box.token, {
+      ...bindings,
+      AGENTPOST_SEND_LIMITER: { limit: async () => ({ success: false }) },
+    });
+    try {
+      const result = await client.callTool({
+        name: "send_email",
+        arguments: {
+          inbox_id: box.id,
+          to: ["test@example.net"],
+          subject: "Test",
+          text: "Body",
+          idempotency_key: "mcp-limited",
+        },
+      });
+      expect(result.isError).toBe(true);
+      expect(JSON.stringify(result.content)).toContain("HTTP 429");
+      expect(
+        (await bindings.DB.prepare("SELECT count(*) AS total FROM outbox").first())?.total,
+      ).toBe(0);
+    } finally {
+      await client.close();
+    }
+  });
+
   test("requires authentication and rejects cross-origin requests", async () => {
     const context = createExecutionContext();
     expect(

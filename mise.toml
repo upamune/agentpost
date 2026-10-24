@@ -31,5 +31,8 @@ run = "bun run build"
 [tasks.secrets]
 run = "gitleaks git --redact --no-banner --log-opts=--all"
 
+[tasks.audit]
+run = "bun audit"
+
 [tasks.ci]
-depends = ["format:check", "lint", "typecheck", "test", "build", "secrets"]
+depends = ["format:check", "lint", "typecheck", "test", "build", "secrets", "audit"]

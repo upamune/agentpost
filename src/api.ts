@@ -1,22 +1,22 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
-import PostalMime from "postal-mime";
 import { z } from "zod";
 import { authenticate } from "./auth";
 import { equalHash, MAX_REQUEST_BYTES, randomToken, readBounded, sha256 } from "./common";
-import { enqueue } from "./inbound";
+import { enqueue, parseMime } from "./inbound";
 import { eventDescriptors, eventQuerySchema } from "./event-schema";
 import { EventQueryError, pollEvents } from "./events";
+import { enforceRateLimit } from "./http-security";
 import type { Env, Inbox, Message, Outbox, SendPayload } from "./types";
 
 type Bindings = { Bindings: Env; Variables: { admin: boolean; tokenHash: string; inbox: Inbox } };
 const app = new Hono<Bindings>();
-const noNewlines = z.string().refine((value) => !/[\r\n]/.test(value));
+const headerText = z.string().refine((value) => !/\p{Cc}/u.test(value));
 const address = z.email().max(254);
 const sendInput = z
   .object({
     to: z.array(address).min(1).max(50),
-    subject: noNewlines.pipe(z.string().max(998)),
+    subject: headerText.pipe(z.string().max(998)),
     text: z.string().min(1).max(200_000),
     html: z.string().max(200_000).optional(),
   })
@@ -43,7 +43,10 @@ app.use("/v1/*", async (context, next) => {
 });
 
 async function readJson<T>(context: Context<Bindings>, schema: z.ZodType<T>): Promise<T> {
-  if (!context.req.header("Content-Type")?.toLowerCase().startsWith("application/json")) {
+  if (
+    context.req.header("Content-Type")?.split(";", 1)[0]?.trim().toLowerCase() !==
+    "application/json"
+  ) {
     throw new ApiError(415, "Content-Type must be application/json");
   }
   const stream = context.req.raw.body;
@@ -244,7 +247,7 @@ app.get("/v1/inboxes/:inbox/messages/:message/attachments/:index", async (contex
   if (!Number.isInteger(index) || index < 0) throw new ApiError(400, "Invalid attachment index");
   const object = await context.env.MAIL.get(row.raw_key);
   if (!object) throw new ApiError(503, "Original MIME unavailable");
-  const parsed = await PostalMime.parse(await object.arrayBuffer());
+  const parsed = await parseMime(await object.arrayBuffer());
   const attachment = parsed.attachments[index];
   if (!attachment) throw new ApiError(404, "Attachment not found");
   return new Response(attachment.content, {
@@ -273,16 +276,21 @@ async function queueSend(context: Context<Bindings>, payload: SendPayload) {
   const serialized = JSON.stringify(payload);
   const hash = await sha256(serialized);
   const now = Date.now();
-  await context.env.DB.prepare(
-    "INSERT OR IGNORE INTO outbox (id, inbox_id, idempotency_key, payload, payload_hash, available_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-  )
-    .bind(crypto.randomUUID(), inbox.id, key, serialized, hash, now, now, now)
-    .run();
-  const row = await context.env.DB.prepare(
-    "SELECT * FROM outbox WHERE inbox_id = ? AND idempotency_key = ?",
-  )
-    .bind(inbox.id, key)
-    .first<Outbox>();
+  const find = () =>
+    context.env.DB.prepare("SELECT * FROM outbox WHERE inbox_id = ? AND idempotency_key = ?")
+      .bind(inbox.id, key)
+      .first<Outbox>();
+  let row = await find();
+  if (!row) {
+    const limited = await enforceRateLimit(context.env.AGENTPOST_SEND_LIMITER, `send:${inbox.id}`);
+    if (limited) return limited;
+    await context.env.DB.prepare(
+      "INSERT OR IGNORE INTO outbox (id, inbox_id, idempotency_key, payload, payload_hash, available_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    )
+      .bind(crypto.randomUUID(), inbox.id, key, serialized, hash, now, now, now)
+      .run();
+    row = await find();
+  }
   if (!row) throw new Error("Outbox record not found after insert");
   if (row.payload_hash !== hash)
     throw new ApiError(409, "Idempotency-Key already used for different content");
@@ -304,15 +312,15 @@ app.post("/v1/inboxes/:inbox/messages/:message/reply", async (context) => {
   const input = await readJson(context, replyInput);
   const object = await context.env.MAIL.get(row.raw_key);
   if (!object) throw new ApiError(503, "Original MIME unavailable");
-  const parsed = await PostalMime.parse(await object.arrayBuffer());
+  const parsed = await parseMime(await object.arrayBuffer());
   const target = parsed.replyTo?.[0]?.address ?? parsed.from?.address ?? row.envelope_from;
   if (!address.safeParse(target).success)
     throw new ApiError(409, "Message has no valid reply address");
   const refs = `${parsed.references ?? ""} ${parsed.messageId ?? ""}`
-    .match(/<[^<>\r\n]{1,250}>/g)
+    .match(/<[^<>\s\p{Cc}]{1,250}>/gu)
     ?.slice(-20)
     .join(" ");
-  const messageId = parsed.messageId?.match(/^<[^<>\r\n]{1,250}>$/)?.[0];
+  const messageId = parsed.messageId?.match(/^<[^<>\s\p{Cc}]{1,250}>$/u)?.[0];
   const headers: Record<string, string> = {};
   if (messageId) headers["In-Reply-To"] = messageId;
   if (refs) headers.References = refs;
@@ -321,7 +329,7 @@ app.post("/v1/inboxes/:inbox/messages/:message/reply", async (context) => {
     from: context.get("inbox").address,
     to: [target],
     subject: (/^re:/i.test(subject) ? subject : `Re: ${subject}`)
-      .replace(/[\r\n]/g, " ")
+      .replace(/\p{Cc}/gu, " ")
       .slice(0, 998),
     ...input,
     ...(Object.keys(headers).length ? { headers } : {}),
@@ -395,9 +403,7 @@ app.onError((error, context) => {
     return context.json({ error: error.message, details: error.details }, error.status);
   if (error.message === "Message exceeds size limit")
     return context.json({ error: "Request body too large" }, 413);
-  console.error(
-    JSON.stringify({ event: "request_failed", path: new URL(context.req.url).pathname }),
-  );
+  console.error(JSON.stringify({ event: "request_failed" }));
   return context.json(
     { error: "Internal error; retry send requests only with their original Idempotency-Key" },
     500,

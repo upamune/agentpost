@@ -38,10 +38,15 @@ export async function watchEvents(
         );
       } catch (error) {
         if (controller.signal.aborted) break;
-        if (error instanceof MailApiError && error.status < 500) throw error;
+        if (error instanceof MailApiError && error.status < 500 && error.status !== 429)
+          throw error;
         if (error instanceof z.ZodError) throw error;
         console.error("Event source unavailable; retrying from the last checkpoint");
-        await wait(Math.min(30_000, 1000 * 2 ** Math.min(failures++, 5)), controller.signal);
+        const delay =
+          error instanceof MailApiError && error.status === 429
+            ? (error.retryAfterMs ?? 60_000)
+            : Math.min(30_000, 1000 * 2 ** Math.min(failures++, 5));
+        await wait(delay, controller.signal);
         continue;
       }
       failures = 0;

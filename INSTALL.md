@@ -33,12 +33,14 @@ mise exec --cd /absolute/path/to/agentpost -- bun run src/cli.ts --help
 ```
 
 This command changes the working directory to the checkout. Use absolute paths for message files, attachments, and cursor files that belong to a different project.
+Raw email and attachment downloads create new files with permissions 0600; choose an unused output path. Existing files and symlinks are refused.
 
 ## Connect to an existing Worker
 
 Obtain the API URL and a token through the user's private configuration or secret manager. Keep token values out of chat, shell tracing, logs, and committed configuration. All application environment variables use the `AGENTPOST_` prefix; see [the configuration table](docs/deploy.md#環境変数).
 
 Set `AGENTPOST_API_URL` to the Worker's HTTPS base URL and `AGENTPOST_API_TOKEN` to an inbox token for ordinary email access. An admin token is required only for provisioning and inbox administration. Inbox creation and token rotation return secrets; store those responses privately.
+An inbox token allows sending as well as reading. Keep admin credentials outside ordinary agent sessions and use a separate inbox for each task. Follow `Retry-After` on HTTP 429; reuse the same idempotency key when retrying the same send.
 
 Verify access without sending a message. With a supplied inbox UUID, use:
 

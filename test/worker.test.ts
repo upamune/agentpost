@@ -212,6 +212,17 @@ describe("API and inbox isolation", () => {
 });
 
 describe("durable inbound processing", () => {
+  test("MIME resource limits leave the original recoverable when parsing is refused", async () => {
+    const box = await inbox();
+    const raw = `From: sender@example.net\r\nX-Oversized: ${"a".repeat(129 * 1024)}\r\n\r\nBody`;
+    await receive(email(box.address, raw).input, bindings);
+    const message = await bindings.DB.prepare("SELECT * FROM messages").first<Message>();
+    expect(message).not.toBeNull();
+    await expect(parseMessage(bindings, message!.id)).rejects.toThrow();
+    expect(await (await bindings.MAIL.get(message!.raw_key))?.text()).toBe(raw);
+    expect(await bindings.MAIL.head(`parsed/${message!.id}.json`)).toBeNull();
+  });
+
   test("cursor pagination does not skip messages with equal timestamps", async () => {
     const box = await inbox();
     for (const suffix of ["one", "two", "three"]) {

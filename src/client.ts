@@ -8,6 +8,7 @@ export class MailApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    public retryAfterMs?: number,
   ) {
     super(message);
   }
@@ -45,7 +46,18 @@ export class MailClient {
     key?: string,
     signal?: AbortSignal,
   ): Promise<Response> {
-    const response = await this.request(new URL(path, this.url), {
+    const target = new URL(path, this.url);
+    if (
+      !path.startsWith("/v1/") ||
+      path.includes("\\") ||
+      target.origin !== this.url.origin ||
+      !target.pathname.startsWith("/v1/") ||
+      target.username ||
+      target.password ||
+      target.hash
+    )
+      throw new Error("Mail API path must stay within the configured origin and /v1/");
+    const response = await this.request(target, {
       method,
       redirect: "manual",
       signal: signal
@@ -58,11 +70,22 @@ export class MailClient {
       },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-    if (!response.ok)
-      throw new MailApiError(
-        response.status,
-        `Mail API HTTP ${response.status}: ${(await response.text()).slice(0, 2000)}`,
-      );
+    if (!response.ok) {
+      // Error bodies can reflect credentials or contain hostile terminal/agent instructions.
+      void response.body?.cancel().catch(() => {});
+      let retryAfterMs: number | undefined;
+      if (response.status === 429) {
+        const value = response.headers.get("Retry-After");
+        const seconds = value && /^\d+$/.test(value) ? Number(value) : NaN;
+        const delay = Number.isFinite(seconds)
+          ? seconds * 1000
+          : value
+            ? Date.parse(value) - Date.now()
+            : NaN;
+        retryAfterMs = Math.min(3_600_000, Math.max(1000, Number.isFinite(delay) ? delay : 60_000));
+      }
+      throw new MailApiError(response.status, `Mail API HTTP ${response.status}`, retryAfterMs);
+    }
     return response;
   }
 

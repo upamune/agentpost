@@ -2,6 +2,16 @@ import PostalMime from "postal-mime";
 import { MAX_MAIL_BYTES, readBounded, sha256 } from "./common";
 import type { Env, Inbox, Message } from "./types";
 
+export function parseMime(raw: ArrayBuffer) {
+  return PostalMime.parse(raw, {
+    maxNestingDepth: 32,
+    maxHeadersSize: 128 * 1024,
+    maxPartCount: 1000,
+    maxRfc822NestingDepth: 4,
+    maxForwardedAddresses: 100,
+  });
+}
+
 export async function enqueue(env: Env, kind: "inbound" | "outbound", id: string): Promise<void> {
   try {
     await env.JOBS.send({ kind, id });
@@ -74,7 +84,7 @@ export async function parseMessage(env: Env, id: string): Promise<void> {
   if (!message || message.status === "ready") return;
   const object = await env.MAIL.get(message.raw_key);
   if (!object) throw new Error("Original MIME is missing");
-  const parsed = await PostalMime.parse(await object.arrayBuffer());
+  const parsed = await parseMime(await object.arrayBuffer());
   const document = {
     from: parsed.from,
     to: parsed.to,

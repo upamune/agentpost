@@ -5,7 +5,7 @@
   "compatibility_date": "2026-10-24",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
-  "observability": { "enabled": true },
+  "observability": { "enabled": true, "redact_query_string": true },
   "vars": { "AGENTPOST_EMAIL_DOMAIN": "example.com" },
   "d1_databases": [
     {
@@ -16,6 +16,18 @@
     },
   ],
   "r2_buckets": [{ "binding": "MAIL", "bucket_name": "agentpost" }],
+  "ratelimits": [
+    {
+      "name": "AGENTPOST_REQUEST_LIMITER",
+      "namespace_id": "682410241",
+      "simple": { "limit": 300, "period": 60 },
+    },
+    {
+      "name": "AGENTPOST_SEND_LIMITER",
+      "namespace_id": "682410242",
+      "simple": { "limit": 10, "period": 60 },
+    },
+  ],
   "queues": {
     "producers": [{ "binding": "JOBS", "queue": "agentpost" }],
     "consumers": [

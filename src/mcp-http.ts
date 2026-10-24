@@ -10,10 +10,6 @@ export async function handleMcp(
   env: Env,
   context: ExecutionContext,
 ): Promise<Response> {
-  const origin = request.headers.get("Origin");
-  if (origin && origin !== new URL(request.url).origin) {
-    return Response.json({ error: "Origin not allowed" }, { status: 403 });
-  }
   const authorization = request.headers.get("Authorization") ?? undefined;
   const principal = await authenticate(env, authorization);
   if (principal instanceof Response) return principal;
@@ -27,8 +23,5 @@ export async function handleMcp(
     maxSubscriptions: 32,
     onerror: () => console.error(JSON.stringify({ event: "mcp_request_failed" })),
   });
-  const response = await handler.fetch(request);
-  response.headers.set("Cache-Control", "no-store");
-  response.headers.set("X-Content-Type-Options", "nosniff");
-  return response;
+  return handler.fetch(request);
 }

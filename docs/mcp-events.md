@@ -15,6 +15,7 @@
 - イベント履歴・権限はD1に保持し、Workerプロセス内のメモリやMCPセッションには依存しない。
 
 HTTPは各要求に`Authorization: Bearer <admin-or-inbox-token>`を付ける。Originがある場合はWorker自身のoriginと一致する要求のみ受け入れる。APIトークンをクエリに入れない。
+HTTPS・Origin・キャッシュ禁止・HTTPレート制限はAPIとMCP共通のWorker入口で適用する。認証失敗や制限超過の応答もキャッシュさせない。レート制限の429では`Retry-After`に従う。MCPから呼ぶ新規送信・返信にも受信箱単位の送信制限が適用される。
 
 現在の認証は事前発行したBearerトークン方式。OAuthの認可画面や動的クライアント登録は実装していない。OAuthを必須にするホストとの接続は別途対応が必要で、ChatGPTなど特定ホストへの接続はまだ実証していない。
 
@@ -78,6 +79,7 @@ await client.connect(
 - `notifications/events/event`: `eventId`、名前、時刻、メタデータ、イベント直後のカーソル。
 - `notifications/events/heartbeat`: 通常15秒ごと。カーソルも更新する。
 - `notifications/events/error`: 一時的な上流障害。位置を進めず、バックオフ後に再試行する。
+- 内部のイベント取得が429を返した場合は`Retry-After`を尊重して待つ。待機中もキャンセルで停止でき、保存したカーソルを進めない。
 - `notifications/events/terminated`: トークンの無効化などで権限が失われた。購読を終了する。
 
 通知の`params._meta["io.modelcontextprotocol/subscriptionId"]`で元のJSON-RPC要求IDに紐付ける。HTTPでは要求のSSEストリーム、stdioでは標準出力を使う。HTTPの切断・stdioのキャンセルではSDKのAbortSignalからループと待機を止める。
