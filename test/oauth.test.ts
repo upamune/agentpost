@@ -18,7 +18,7 @@ const oauth: Env = {
   ...bindings,
   AGENTPOST_AUTH_MODE: "oauth",
   AGENTPOST_ADMIN_TOKEN: undefined,
-  AGENTPOST_CURSOR_KEY: "test-independent-cursor-key-with-32-characters",
+  AGENTPOST_CURSOR_KEY: "test-cursor-".repeat(4),
   AGENTPOST_ACCESS_TEAM_DOMAIN: issuer,
   AGENTPOST_ACCESS_AUD: aud,
   AGENTPOST_ACCESS_PRINCIPALS: JSON.stringify({
