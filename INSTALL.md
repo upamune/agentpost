@@ -6,7 +6,7 @@ Use this document when a user asks an AI agent to install or configure agentpost
 
 - **Connect to an existing Worker:** install the source checkout, configure `AGENTPOST_API_URL` and `AGENTPOST_API_TOKEN`, and optionally configure MCP and the skill. Cloudflare management credentials are not needed.
 - **Try a local Worker:** follow the source installation, then the local verification section. No domain or Cloudflare credentials are needed.
-- **Host a Worker:** follow [the deployment guide](docs/deploy.md) for the user's Cloudflare account and domain. Local installation does not deploy the service.
+- **Host a Worker:** follow [the deployment guide](docs/deploy.md) for the user's Cloudflare account and domain. Hosting uses D1, R2, Queues and a SQLite-backed Durable Object per inbox. Wrangler creates the Durable Object binding and migration during deployment. Local installation does not deploy the service.
 
 Reuse the user's existing checkout, tools, credentials, and MCP configuration when available. If the repository is private, Git access must already be configured; report an access failure instead of changing repository visibility.
 

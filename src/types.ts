@@ -1,5 +1,8 @@
+import type { InboxCoordinator } from "./coordinator";
+
 export interface Env {
   DB: D1Database;
+  AGENTPOST_INBOX_COORDINATOR: DurableObjectNamespace<InboxCoordinator>;
   MAIL: R2Bucket;
   JOBS: Queue<Job>;
   AGENTPOST_REQUEST_LIMITER: RateLimit;
@@ -18,6 +21,7 @@ export interface Inbox {
   label: string;
   token_hash: string;
   active: number;
+  active_version: number;
   created_at: number;
 }
 

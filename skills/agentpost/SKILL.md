@@ -6,7 +6,7 @@ license: MIT
 
 # Agentpost
 
-Use agentpost's configured MCP tools or Bun CLI. The service issues random addresses on the operator's domain; an inbox UUID identifies the mailbox in API and tool calls.
+Use agentpost's configured MCP tools or Bun CLI. Each operator self-hosts agentpost on their own Cloudflare account and domain. The Worker issues random addresses on that domain; an inbox UUID identifies the mailbox in API and tool calls.
 
 ## Connection and access
 
@@ -35,4 +35,4 @@ Save the returned outbox ID and use `get_send_status` or `list_outbox` to inspec
 | `failed`              | Investigate the recorded rejection or configuration issue before further action.                 |
 | `unknown`             | Outcome is uncertain. Stop automatic resending and have the operator reconcile provider records. |
 
-If a response was lost before the outbox ID was recorded, inspect the outbox list; don't generate a new idempotency key. Administrative reconciliation records evidence and does not resend mail. Report the inbox/message/outbox IDs and the observed state without exposing credentials or claiming delivery from queueing or API acceptance.
+If a response was lost before the outbox ID was recorded, inspect the outbox list; don't generate a new idempotency key. Disabling an inbox waits for earlier send processing before reporting success. A timeout is not proof that disabling completed; inspect the inbox state. Administrative reconciliation records evidence and does not resend mail. Report the inbox/message/outbox IDs and the observed state without exposing credentials or claiming delivery from queueing or API acceptance.

@@ -7,6 +7,10 @@
   "workers_dev": true,
   "observability": { "enabled": true, "redact_query_string": true },
   "vars": { "AGENTPOST_EMAIL_DOMAIN": "example.com" },
+  "durable_objects": {
+    "bindings": [{ "name": "AGENTPOST_INBOX_COORDINATOR", "class_name": "InboxCoordinator" }],
+  },
+  "migrations": [{ "tag": "v1-inbox-coordinator", "new_sqlite_classes": ["InboxCoordinator"] }],
   "d1_databases": [
     {
       "binding": "DB",

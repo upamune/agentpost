@@ -34,7 +34,7 @@ CLIとstdioのMCPはプロセスの環境変数を読み、Workerは`wrangler.js
 
 ## 1. アカウントとドメイン
 
-1. CloudflareのWorkers PaidとR2・Queuesを利用できる状態にする。
+1. CloudflareのWorkers PaidとD1・R2・Queues・SQLite-backed Durable Objectsを利用できる状態にする。
 2. ダッシュボードのEmail Serviceで、購入ドメインの**Email RoutingとEmail Sendingの両方**を有効化する。
 3. Cloudflareが提示するMX・SPF・DKIM・DMARCの設定・検証を完了する。SendingはBetaなので、そのアカウントで実際に有効化できることを確認する。
 4. APIトークンに、対象アカウントの**Email Sending: Edit**権限を付与する。Worker実行時のトークンはメール送信に限定し、DNS変更・アカウント管理の権限を付けない。
@@ -89,6 +89,8 @@ mise exec -- bun run wrangler secret put AGENTPOST_CF_EMAIL_API_TOKEN
 mise run ci
 mise exec -- bun run deploy
 ```
+
+`wrangler.jsonc`の`AGENTPOST_INBOX_COORDINATOR`バインディングと`InboxCoordinator`のSQLite migrationもデプロイで作成される。名前付き環境を使う場合は、このバインディングも明示する。既存環境からの更新・復元時は[同期基盤の前提](operations.md#同期基盤の前提)を確認する。
 
 コマンドが返すWorker URLを`AGENTPOST_API_URL`に使う。CIには実メール送信や自動デプロイを含めていない。
 

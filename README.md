@@ -108,7 +108,7 @@ Worker、CLI、MCPそれぞれの設定先は[環境変数の一覧](docs/deploy
 実際のメールを送受信するには、次の準備が必要です。
 
 - Cloudflare DNSで管理する独自ドメイン
-- Cloudflare Workers Paidと、D1、R2、Queuesを利用できるアカウント
+- Cloudflare Workers Paidと、D1、R2、Queues、Durable Objectsを利用できるアカウント
 - 対象ドメインのEmail RoutingとEmail Sendingの有効化
 - Email SendingのAPIトークンと、管理者トークン
 
@@ -216,6 +216,7 @@ curl "$AGENTPOST_API_URL/v1/inboxes" \
 
 メールの原文と本文はR2、受信箱、処理状態、イベント履歴はD1に保存します。
 Cloudflare WorkersがAPIとMCPを提供し、Queuesでメールを処理します。
+送信・受信箱の無効化・送信中断の復旧は、受信箱ごとのDurable Objectで順番に処理します。
 
 受信時は原文を保存してから解析します。
 キューへの投入や解析が失敗した場合は、保存済みの原文から復旧を試みます。
@@ -251,7 +252,7 @@ CIではmainへのpushとPRごとに、整形、静的解析、型検査、テ�
 CLIはBunで実行する構成で、単体バイナリの自動配布は行っていません。
 実メールの送信と本番への自動デプロイは行いません。
 リリースPRとタグ・GitHub Releaseはtagprで管理します。GitHub Appの初期設定とリリースの確認方法は[リリース手順](docs/releases.md)を参照してください。
-送信状態遷移の[pstack / TLA+形式検証](docs/formal-verification.md)には、停止・復旧と送信開始の競合に関する未修正の調査結果があります。
+送信停止・復旧の競合と、受信原文・索引の復旧は[pstack / TLA+形式検証](docs/formal-verification.md)で検査します。モデル検査、実コードでの再現、ガードを壊す変異検査をCIで実行します。
 不具合や提案は[Issues](https://github.com/upamune/agentpost/issues)、開発手順は[CONTRIBUTING.md](CONTRIBUTING.md)を参照してください。
 
 ## ライセンス

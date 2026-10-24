@@ -79,21 +79,35 @@ export async function cloudflareSend(
   };
 }
 
-export async function deliver(env: Env, id: string, sender = cloudflareSend): Promise<void> {
+// Called only inside InboxCoordinator's serialized operation. The synchronous fence
+// immediately before sender checks DO ownership after the final external await.
+export async function processOutbound(
+  env: Env,
+  id: string,
+  inboxId: string,
+  beforeDispatch: () => void,
+  sender = cloudflareSend,
+): Promise<void> {
   const now = Date.now();
   // A single conditional write claims the job, even when Queue delivers duplicates.
   const row = await env.DB.prepare(
-    "UPDATE outbox SET status = 'sending', attempts = attempts + 1, updated_at = ? WHERE id = ? AND status = 'pending' AND available_at <= ? RETURNING *",
+    "UPDATE outbox SET status = 'sending', attempts = attempts + 1, updated_at = ? WHERE id = ? AND inbox_id = ? AND status = 'pending' AND available_at <= ? RETURNING *",
   )
-    .bind(now, id, now)
+    .bind(now, id, inboxId, now)
     .first<Outbox>();
   if (!row) return;
   const inbox = await env.DB.prepare("SELECT active FROM inboxes WHERE id = ?")
     .bind(row.inbox_id)
     .first<{ active: number }>();
-  const result = inbox?.active
-    ? await sender(env, JSON.parse(row.payload))
-    : { status: "failed" as const, error: "Inbox is disabled" };
+  let result: SendResult;
+  if (inbox?.active) {
+    const payload = JSON.parse(row.payload);
+    beforeDispatch();
+    // No await between the ownership fence and starting the provider request.
+    result = await sender(env, payload);
+  } else {
+    result = { status: "failed", error: "Inbox is disabled" };
+  }
   if (result.status === "retry" && row.attempts < 8) {
     const delay = Math.max(result.delay, Math.min(3600, 30 * 2 ** (row.attempts - 1)));
     await env.DB.prepare(

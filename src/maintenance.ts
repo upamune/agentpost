@@ -1,3 +1,4 @@
+import { coordinator } from "./coordinator";
 import { enqueue, repairRawIndex } from "./inbound";
 import type { Env } from "./types";
 
@@ -5,7 +6,8 @@ export async function maintain(env: Env): Promise<void> {
   const results = await Promise.allSettled([
     recoverStaleSends(env),
     repairRawIndex(env),
-    republishPending(env),
+    republishInbound(env),
+    republishOutbound(env),
   ]);
   const errors = results.flatMap((result) => (result.status === "rejected" ? [result.reason] : []));
   if (errors.length) {
@@ -20,23 +22,28 @@ export async function maintain(env: Env): Promise<void> {
 async function recoverStaleSends(env: Env): Promise<void> {
   const now = Date.now();
   const stale = await env.DB.prepare(
-    "UPDATE outbox SET status = 'unknown', error = 'Worker stopped during send; check provider outcome before resending', updated_at = ? WHERE status = 'sending' AND updated_at < ? RETURNING id",
+    "SELECT id, inbox_id FROM outbox WHERE status = 'sending' AND updated_at < ? ORDER BY updated_at, id LIMIT 100",
   )
-    .bind(now, now - 2 * 60_000)
-    .all<{ id: string }>();
-  for (const row of stale.results) {
-    console.error(
-      JSON.stringify({ event: "outbound_attention_required", id: row.id, status: "unknown" }),
-    );
-  }
+    .bind(now - 2 * 60_000)
+    .all<{ id: string; inbox_id: string }>();
+  const recovered = await Promise.allSettled(
+    stale.results.map((row) => coordinator(env, row.inbox_id).recover(row.inbox_id, row.id)),
+  );
+  const errors = recovered.flatMap((result) =>
+    result.status === "rejected" ? [result.reason] : [],
+  );
+  if (errors.length) throw new AggregateError(errors, "Stale-send recovery failed");
 }
 
-async function republishPending(env: Env): Promise<void> {
-  const now = Date.now();
+async function republishInbound(env: Env): Promise<void> {
   const inbound = await env.DB.prepare(
     "SELECT id FROM messages WHERE status = 'pending' ORDER BY created_at LIMIT 100",
   ).all<{ id: string }>();
   for (const row of inbound.results) await enqueue(env, "inbound", row.id);
+}
+
+async function republishOutbound(env: Env): Promise<void> {
+  const now = Date.now();
   const outbound = await env.DB.prepare(
     "SELECT id FROM outbox WHERE status = 'pending' AND available_at <= ? ORDER BY created_at LIMIT 100",
   )

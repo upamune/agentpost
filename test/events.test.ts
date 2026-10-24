@@ -8,7 +8,7 @@ import worker from "../src/index";
 import { eventPollPageSchema } from "../src/event-schema";
 import type { EventPollPage } from "../src/event-schema";
 import { receive, parseMessage } from "../src/inbound";
-import { deliver } from "../src/outbound";
+import { deliver } from "./delivery";
 import type { Env, Message } from "../src/types";
 
 const bindings: Env = env;

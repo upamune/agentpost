@@ -5,7 +5,8 @@ import app from "../src/api";
 import { MAX_MAIL_BYTES, sha256 } from "../src/common";
 import { parseMessage, receive, repairRawIndex } from "../src/inbound";
 import { maintain } from "../src/maintenance";
-import { cloudflareSend, deliver } from "../src/outbound";
+import { cloudflareSend } from "../src/outbound";
+import { deliver } from "./delivery";
 import type { Env, Message, Outbox, SendPayload } from "../src/types";
 
 const bindings: Env = env;

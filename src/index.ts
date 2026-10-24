@@ -1,10 +1,12 @@
 import app from "./api";
 import { parseMessage, receive } from "./inbound";
 import { maintain } from "./maintenance";
-import { deliver } from "./outbound";
+import { deliver } from "./coordinator";
 import { handleMcp } from "./mcp-http";
 import { guardHttpRequest, secureResponse } from "./http-security";
 import type { Env, Job } from "./types";
+
+export { InboxCoordinator } from "./coordinator";
 
 export default {
   async fetch(request: Request, env: Env, context: ExecutionContext): Promise<Response> {

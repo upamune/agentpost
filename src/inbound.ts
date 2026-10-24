@@ -55,14 +55,32 @@ export async function receive(message: ForwardableEmailMessage, env: Env): Promi
   await enqueue(env, "inbound", id);
 }
 
+class RawIndexError extends Error {
+  constructor(public code: "invalid_metadata" | "missing_inbox") {
+    super(code);
+  }
+}
+
 async function indexRaw(
   env: Env,
   key: string,
   meta: Record<string, string> | undefined,
 ): Promise<void> {
-  if (!meta?.id || !meta.inbox_id || !meta.envelope_to || !meta.created_at) {
-    throw new Error("Raw message is missing recovery metadata");
+  if (
+    !meta ||
+    !/^[a-f0-9]{64}$/.test(meta.id ?? "") ||
+    !/^[a-f0-9-]{36}$/.test(meta.inbox_id ?? "") ||
+    key !== `raw/${meta.inbox_id}/${meta.id}.eml` ||
+    !meta.envelope_to ||
+    !/^\d+$/.test(meta.created_at ?? "") ||
+    !Number.isSafeInteger(Number(meta.created_at))
+  ) {
+    throw new RawIndexError("invalid_metadata");
   }
+  const inbox = await env.DB.prepare("SELECT id FROM inboxes WHERE id = ?")
+    .bind(meta.inbox_id)
+    .first();
+  if (!inbox) throw new RawIndexError("missing_inbox");
   await env.DB.prepare(
     "INSERT OR IGNORE INTO messages (id, inbox_id, raw_key, envelope_from, envelope_to, created_at) VALUES (?, ?, ?, ?, ?, ?)",
   )
@@ -126,12 +144,32 @@ export async function repairRawIndex(env: Env): Promise<void> {
     cursor: state?.value || undefined,
     include: ["customMetadata"],
   });
+  let failures = 0;
   for (const object of page.objects) {
-    await indexRaw(env, object.key, object.customMetadata);
+    try {
+      await indexRaw(env, object.key, object.customMetadata);
+      await env.DB.prepare("DELETE FROM raw_recovery_failures WHERE raw_key = ?")
+        .bind(object.key)
+        .run();
+    } catch (error) {
+      // One poisoned object must not pin the cursor and starve every later page.
+      // Recording attention must succeed before the cursor can move past it.
+      const code = error instanceof RawIndexError ? error.code : "index_write_failed";
+      await env.DB.prepare(
+        "INSERT INTO raw_recovery_failures (raw_key, error_code, updated_at) VALUES (?, ?, ?) ON CONFLICT(raw_key) DO UPDATE SET error_code = excluded.error_code, updated_at = excluded.updated_at",
+      )
+        .bind(object.key, code, Date.now())
+        .run();
+      failures++;
+    }
   }
   await env.DB.prepare(
     "INSERT INTO maintenance (key, value) VALUES ('raw_cursor', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
   )
     .bind(page.truncated ? page.cursor : "")
     .run();
+  if (failures) {
+    console.error(JSON.stringify({ event: "raw_index_attention_required", count: failures }));
+    throw new Error("Raw index recovery has unresolved objects");
+  }
 }

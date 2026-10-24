@@ -1,3 +1,4 @@
+import { coordinator } from "./coordinator";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { z } from "zod";
@@ -130,11 +131,12 @@ app.get("/v1/health", async (context) => {
   requireAdmin(context);
   await context.env.MAIL.list({ limit: 1 });
   const totals = await context.env.DB.prepare(
-    "SELECT (SELECT count(*) FROM outbox WHERE status = 'unknown' AND resolved_at IS NULL) AS unknown_sends, (SELECT count(*) FROM outbox WHERE status = 'failed' AND resolved_at IS NULL) AS failed_sends, (SELECT count(*) FROM messages WHERE status = 'failed') AS failed_messages, (SELECT min(created_at) FROM outbox WHERE status = 'pending') AS oldest_outbound, (SELECT min(created_at) FROM messages WHERE status = 'pending') AS oldest_inbound",
+    "SELECT (SELECT count(*) FROM outbox WHERE status = 'unknown' AND resolved_at IS NULL) AS unknown_sends, (SELECT count(*) FROM outbox WHERE status = 'failed' AND resolved_at IS NULL) AS failed_sends, (SELECT count(*) FROM messages WHERE status = 'failed') AS failed_messages, (SELECT count(*) FROM raw_recovery_failures) AS raw_recovery_failures, (SELECT min(created_at) FROM outbox WHERE status = 'pending') AS oldest_outbound, (SELECT min(created_at) FROM messages WHERE status = 'pending') AS oldest_inbound",
   ).first<{
     unknown_sends: number;
     failed_sends: number;
     failed_messages: number;
+    raw_recovery_failures: number;
     oldest_outbound: number | null;
     oldest_inbound: number | null;
   }>();
@@ -149,7 +151,8 @@ app.get("/v1/health", async (context) => {
     !stale &&
     totals?.unknown_sends === 0 &&
     totals.failed_sends === 0 &&
-    totals.failed_messages === 0;
+    totals.failed_messages === 0 &&
+    totals.raw_recovery_failures === 0;
   return context.json(
     { status: healthy ? "ok" : "attention_required", send_configured: sendConfigured, ...totals },
     healthy ? 200 : 503,
@@ -170,16 +173,17 @@ async function inboxAuth(context: Context<Bindings>, next: () => Promise<void>) 
 }
 
 app.get("/v1/inboxes/:inbox", (context) => {
-  const { token_hash: _secret, ...inbox } = context.get("inbox");
+  const { token_hash: _secret, active_version: _version, ...inbox } = context.get("inbox");
   return context.json(inbox);
 });
 
 app.patch("/v1/inboxes/:inbox", async (context) => {
   requireAdmin(context);
   const { active } = await readJson(context, z.object({ active: z.boolean() }).strict());
-  await context.env.DB.prepare("UPDATE inboxes SET active = ? WHERE id = ?")
-    .bind(active ? 1 : 0, context.get("inbox").id)
-    .run();
+  await coordinator(context.env, context.get("inbox").id).setActive(
+    context.get("inbox").id,
+    active,
+  );
   return context.json({ id: context.get("inbox").id, active });
 });
 
