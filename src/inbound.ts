@@ -62,20 +62,27 @@ class RawIndexError extends Error {
   }
 }
 
+function rawIdentityMatches(key: string, meta: Record<string, string>): boolean {
+  return (
+    /^[a-f0-9]{64}$/.test(meta.id ?? "") &&
+    /^[a-f0-9-]{36}$/.test(meta.inbox_id ?? "") &&
+    key === `raw/${meta.inbox_id}/${meta.id}.eml`
+  );
+}
+function validRawEnvelope(meta: Record<string, string>): boolean {
+  return (
+    Boolean(meta.envelope_to) &&
+    /^\d+$/.test(meta.created_at ?? "") &&
+    Number.isSafeInteger(Number(meta.created_at))
+  );
+}
+
 async function indexRaw(
   env: Env,
   key: string,
   meta: Record<string, string> | undefined,
 ): Promise<void> {
-  if (
-    !meta ||
-    !/^[a-f0-9]{64}$/.test(meta.id ?? "") ||
-    !/^[a-f0-9-]{36}$/.test(meta.inbox_id ?? "") ||
-    key !== `raw/${meta.inbox_id}/${meta.id}.eml` ||
-    !meta.envelope_to ||
-    !/^\d+$/.test(meta.created_at ?? "") ||
-    !Number.isSafeInteger(Number(meta.created_at))
-  ) {
+  if (!meta || !rawIdentityMatches(key, meta) || !validRawEnvelope(meta)) {
     throw new RawIndexError("invalid_metadata");
   }
   const inbox = await env.DB.prepare("SELECT id FROM inboxes WHERE id = ?")

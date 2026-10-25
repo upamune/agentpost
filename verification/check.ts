@@ -148,7 +148,44 @@ function run(args: string[], extra: Record<string, string | undefined> = {}) {
   return { code: result.exitCode, log };
 }
 
+function tlcOutcome(selected: string, result: ReturnType<typeof run>): "violated" | "passed" {
+  const violated =
+    result.log.includes(`Invariant ${selected} is violated`) ||
+    (properties.includes(selected) && result.log.includes("Temporal properties were violated"));
+  if (result.code !== 0 && !violated) throw new Error(`${selected} could not run: ${result.log}`);
+  if (
+    result.code === 0 &&
+    !result.log.includes("Model checking completed. No error has been found")
+  )
+    throw new Error(`Missing TLC completion: ${selected}`);
+  return violated ? "violated" : "passed";
+}
+
 type ReplayCase = { title: string; status: string; failureMessages: string[] };
+type ReplayReport = {
+  testResults: { assertionResults: ReplayCase[]; message?: string }[];
+  numRuntimeErrorTestSuites: number;
+  numUnhandledErrors: number;
+};
+
+function assertReplayPopulation(
+  name: string,
+  report: ReplayReport,
+  cases: ReplayCase[],
+  pattern?: string,
+) {
+  const expected = pattern ? undefined : 8;
+  if (
+    !cases.length ||
+    (expected && cases.length !== expected) ||
+    report.numRuntimeErrorTestSuites > 0 ||
+    report.numUnhandledErrors > 0
+  )
+    throw new Error(
+      `Replay did not run correctly; inspect ${name}-report.json: ${JSON.stringify(report.testResults.map((item) => item.message))}`,
+    );
+}
+
 async function replay(name: string, mutant?: { file: string; path: string }, pattern?: string) {
   const reportFile = join(scratch, `${name}.json`);
   const args = [
@@ -169,21 +206,12 @@ async function replay(name: string, mutant?: { file: string; path: string }, pat
     AGENTPOST_FORMAL_INBOUND_MUTANT: area === "inbound" ? mutant?.path : undefined,
   });
   await writeFile(join(output, `${name}.log`), result.log);
-  const report = JSON.parse(await readFile(reportFile, "utf8"));
+  const report: ReplayReport = JSON.parse(await readFile(reportFile, "utf8"));
   await copyFile(reportFile, join(output, `${name}-report.json`));
   const cases: ReplayCase[] = report.testResults
     .flatMap((file: { assertionResults: ReplayCase[] }) => file.assertionResults)
     .filter((item: ReplayCase) => item.status !== "pending" && item.status !== "skipped");
-  const expected = pattern ? undefined : 8;
-  if (
-    !cases.length ||
-    (expected && cases.length !== expected) ||
-    report.numRuntimeErrorTestSuites > 0 ||
-    report.numUnhandledErrors > 0
-  )
-    throw new Error(
-      `Replay did not run correctly; inspect ${name}-report.json: ${JSON.stringify(report.testResults.map((item: { message?: string }) => item.message))}`,
-    );
+  assertReplayPopulation(name, report, cases, pattern);
   if (result.code !== 0 && !cases.some((item) => item.status === "failed"))
     throw new Error(`Replay exited without a failed assertion; inspect ${name}.log`);
   await writeFile(
@@ -249,16 +277,7 @@ try {
       ),
     );
     await writeFile(join(output, `${name}.log`), result.log);
-    const violated =
-      result.log.includes(`Invariant ${selected} is violated`) ||
-      (properties.includes(selected) && result.log.includes("Temporal properties were violated"));
-    if (result.code !== 0 && !violated) throw new Error(`${selected} could not run: ${result.log}`);
-    if (
-      result.code === 0 &&
-      !result.log.includes("Model checking completed. No error has been found")
-    )
-      throw new Error(`Missing TLC completion: ${selected}`);
-    return { check: selected, outcome: violated ? "violated" : "passed" };
+    return { check: selected, outcome: tlcOutcome(selected, result) };
   }
   if (selftest) {
     for (const mutation of mutations) {

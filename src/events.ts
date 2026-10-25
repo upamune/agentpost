@@ -64,15 +64,7 @@ async function makeCursor(env: Env, scope: string, seq: number): Promise<string>
 
 async function readCursor(env: Env, scope: string, value: string): Promise<number> {
   try {
-    // Legacy readable cursors and noncanonical encodings require an explicit restart.
-    const encoded = /^v2\.([a-zA-Z0-9_-]{91})$/.exec(value)?.[1];
-    if (!encoded) throw new Error("Invalid cursor encoding");
-    const bytes = Uint8Array.from(
-      atob(`${encoded.replaceAll("-", "+").replaceAll("_", "/")}=`),
-      (character) => character.charCodeAt(0),
-    );
-    if (bytes.length !== CURSOR_BYTES || encode(bytes) !== encoded)
-      throw new Error("Noncanonical cursor encoding");
+    const bytes = decodeCursor(value);
     const plaintext = await crypto.subtle.decrypt(
       {
         name: "AES-GCM",
@@ -99,24 +91,35 @@ async function readCursor(env: Env, scope: string, value: string): Promise<numbe
   }
 }
 
-export async function pollEvents(
-  env: Env,
-  principal: Principal,
-  query: EventQuery,
-): Promise<EventPollPage> {
+function decodeCursor(value: string): Uint8Array {
+  // Legacy readable cursors and noncanonical encodings require an explicit restart.
+  const encoded = /^v2\.([a-zA-Z0-9_-]{91})$/.exec(value)?.[1];
+  if (!encoded) throw new Error("Invalid cursor encoding");
+  const bytes = Uint8Array.from(
+    atob(`${encoded.replaceAll("-", "+").replaceAll("_", "/")}=`),
+    (character) => character.charCodeAt(0),
+  );
+  if (bytes.length !== CURSOR_BYTES || encode(bytes) !== encoded)
+    throw new Error("Noncanonical cursor encoding");
+  return bytes;
+}
+
+function subscriptionInbox(principal: Principal, query: EventQuery): string | null {
+  const inboxId = query.arguments.inbox_id ?? principal.inboxId;
+  if (principal.admin) return inboxId;
+  if (principal.credential === "token") {
+    if (query.arguments.inbox_id && query.arguments.inbox_id !== principal.inboxId)
+      throw new EventQueryError(403, "Subscription is outside the token's inbox scope");
+  } else if (principal.credential === "oauth" && !inboxId) {
+    throw new EventQueryError(403, "OAuth agents must select an owned inbox");
+  }
+  return inboxId;
+}
+
+async function authorizeSubscription(env: Env, principal: Principal, query: EventQuery) {
   if (!EVENT_NAMES.some((name) => name === query.name))
     throw new EventQueryError(404, "Event type not found");
-  if (
-    !principal.admin &&
-    principal.credential === "token" &&
-    query.arguments.inbox_id &&
-    query.arguments.inbox_id !== principal.inboxId
-  ) {
-    throw new EventQueryError(403, "Subscription is outside the token's inbox scope");
-  }
-  const inboxId = query.arguments.inbox_id ?? principal.inboxId;
-  if (!principal.admin && principal.credential === "oauth" && !inboxId)
-    throw new EventQueryError(403, "OAuth agents must select an owned inbox");
+  const inboxId = subscriptionInbox(principal, query);
   if (inboxId) {
     const inbox = await env.DB.prepare("SELECT * FROM inboxes WHERE id = ? AND active = 1")
       .bind(inboxId)
@@ -124,15 +127,29 @@ export async function pollEvents(
     if (!inbox || !canAccessInbox(principal, inbox))
       throw new EventQueryError(403, "Inbox is disabled or unavailable");
   }
-  const scope = await sha256(
-    JSON.stringify({ principal: principal.tokenHash, name: query.name, inboxId }),
-  );
-  const head =
+  return inboxId;
+}
+
+async function eventHead(env: Env): Promise<number> {
+  return (
     (
       await env.DB.prepare("SELECT coalesce(max(seq), 0) AS seq FROM events").first<{
         seq: number;
       }>()
-    )?.seq ?? 0;
+    )?.seq ?? 0
+  );
+}
+
+export async function pollEvents(
+  env: Env,
+  principal: Principal,
+  query: EventQuery,
+): Promise<EventPollPage> {
+  const inboxId = await authorizeSubscription(env, principal, query);
+  const scope = await sha256(
+    JSON.stringify({ principal: principal.tokenHash, name: query.name, inboxId }),
+  );
+  const head = await eventHead(env);
   if (query.cursor == null) {
     const cursor = await makeCursor(env, scope, head);
     return {

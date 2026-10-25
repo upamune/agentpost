@@ -18,9 +18,11 @@ mise run ci
 
 The gate scans `src/`, `scripts/`, and `verification/` using the explicit `cccc.toml`. It includes the complexity checker itself and formal-check tooling. TypeScript test fixtures (`*.test.ts`, `*.bun.ts`, `*.fuzz.ts`) are excluded; their large synthetic cases are tested separately. Other directories, private operator files, dependencies, build output, and unsupported extensions are outside this scope. Caching and top-N/minimum filtering are disabled for the gate.
 
-## Limits and existing debt
+## Limits and eliminated debt
 
-`complexity-baseline.json` sets limits of **15 cognitive / 10 cyclomatic per function identity**, including nested functions. Initial measurement of product revision `59dfd626440963a76ac72edf6075975f9caa722c` found **28 existing exceptions**. They are recorded at their actual measured values; either metric increasing fails. For example, CLI `main` starts at 90/56. This is acknowledged debt, not a declaration that 90 is an acceptable general limit. The newly added checker has no exception.
+`complexity-baseline.json` sets limits of **12 cognitive / 8 cyclomatic per function identity**, including nested functions. There are **no exceptions**. The original 15/10 policy recorded 28 existing exceptions at product revision `59dfd626440963a76ac72edf6075975f9caa722c`, with CLI `main` at 90/56. All 28 were refactored; the maximum across the current scan is 12/8, including verification tooling. No source directory was excluded to achieve this reduction.
+
+CLI commands, DNS diagnostics, subscription state, bounded JSON sizing, and mail/authentication guards now have smaller operations with explicit responsibilities. Regression tests cover command requests, TXT decoding and MCP error mapping; send/receive formal models and real-code mutation replays check the preserved state transitions.
 
 An identity combines the normalized file path, enclosing function chain, kind, name, and occurrence among same-named sibling functions. Line-number-only movement preserves it. Anonymous functions and same-named methods have structural identities, not semantic or cryptographic identities: insertion, reordering, renaming, or moving functions needs careful diff review to avoid assigning an old allowance to different code. Metrics cannot replace that review.
 

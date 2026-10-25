@@ -37,14 +37,7 @@ type AuthSettings = Pick<
   | "AGENTPOST_OAUTH_AUTHORIZATION_SERVER"
 >;
 
-export function authConfiguration(env: AuthSettings) {
-  const mode = modes.parse(env.AGENTPOST_AUTH_MODE ?? "token");
-  if (mode !== "oauth" && !validSecret(env.AGENTPOST_ADMIN_TOKEN))
-    throw new Error("Token authentication is not configured");
-  const cursorKey =
-    env.AGENTPOST_CURSOR_KEY ?? (mode === "token" ? env.AGENTPOST_ADMIN_TOKEN : undefined);
-  if (!validSecret(cursorKey)) throw new Error("Cursor encryption is not configured");
-  if (mode === "token") return { mode, cursorKey, oauth: null };
+function oauthConfiguration(env: AuthSettings) {
   const issuer = httpsUrl(env.AGENTPOST_ACCESS_TEAM_DOMAIN);
   if (
     !/^[a-z0-9][a-z0-9-]*\.cloudflareaccess\.com$/.test(issuer.hostname) ||
@@ -62,14 +55,20 @@ export function authConfiguration(env: AuthSettings) {
   const grantText = z.string().max(16_384).parse(env.AGENTPOST_ACCESS_PRINCIPALS);
   const grants = grantsSchema.parse(JSON.parse(grantText));
   return {
-    mode,
-    cursorKey,
-    oauth: {
-      issuer: issuer.origin,
-      audience,
-      resource: resource.href,
-      authorizationServer: env.AGENTPOST_OAUTH_AUTHORIZATION_SERVER!,
-      grants,
-    },
+    issuer: issuer.origin,
+    audience,
+    resource: resource.href,
+    authorizationServer: env.AGENTPOST_OAUTH_AUTHORIZATION_SERVER!,
+    grants,
   };
+}
+
+export function authConfiguration(env: AuthSettings) {
+  const mode = modes.parse(env.AGENTPOST_AUTH_MODE ?? "token");
+  if (mode !== "oauth" && !validSecret(env.AGENTPOST_ADMIN_TOKEN))
+    throw new Error("Token authentication is not configured");
+  const cursorKey =
+    env.AGENTPOST_CURSOR_KEY ?? (mode === "token" ? env.AGENTPOST_ADMIN_TOKEN : undefined);
+  if (!validSecret(cursorKey)) throw new Error("Cursor encryption is not configured");
+  return { mode, cursorKey, oauth: mode === "token" ? null : oauthConfiguration(env) };
 }

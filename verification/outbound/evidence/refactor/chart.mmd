@@ -1,0 +1,72 @@
+---
+config:
+  markdownAutoWrap: false
+  state:
+    useMaxWidth: false
+---
+stateDiagram-v2
+  classDef group0 fill:#d6eaf8,stroke:#6b757c,color:#1b2631
+  state "Legend" as legend {
+    state "Within the checked rules" as legendGroup0
+  }
+  class legendGroup0 group0
+  state "Inbox disabled; Earlier<br/>check said inbox disabled;<br/>sending; accepted 0" as s0
+  state "Inbox disabled; No<br/>provider call running;<br/>accepted; accepted 1" as s1
+  state "Inbox disabled; No<br/>provider call running;<br/>failed; accepted 0" as s2
+  state "Inbox disabled; No<br/>provider call running;<br/>sending; accepted 0" as s3
+  state "Inbox disabled; No<br/>provider call running;<br/>unknown; accepted 0" as s4
+  state "Inbox disabled; No<br/>provider call running;<br/>unknown; accepted 1" as s5
+  state "Inbox disabled; Provider<br/>result awaits saving;<br/>sending; accepted 0" as s6
+  state "Inbox disabled; Queued for<br/>a worker; pending;<br/>accepted 0" as s7
+  state "Inbox disabled; Worker<br/>claimed request; sending;<br/>accepted 0" as s8
+  state "Inbox enabled; Earlier<br/>check said inbox enabled;<br/>sending; accepted 0" as s9
+  state "Inbox enabled; No provider<br/>call running; accepted;<br/>accepted 1" as s10
+  state "Inbox enabled; No provider<br/>call running; failed;<br/>accepted 0" as s11
+  state "Inbox enabled; No provider<br/>call running; sending;<br/>accepted 0" as s12
+  state "Inbox enabled; No provider<br/>call running; unknown;<br/>accepted 0" as s13
+  state "Inbox enabled; No provider<br/>call running; unknown;<br/>accepted 1" as s14
+  state "Inbox enabled; Provider<br/>request in flight;<br/>sending; accepted 0" as s15
+  state "Inbox enabled; Provider<br/>result awaits saving;<br/>sending; accepted 0" as s16
+  state "Inbox enabled; Provider<br/>result awaits saving;<br/>sending; accepted 1" as s17
+  state "Inbox enabled; Queued for<br/>a worker; pending;<br/>accepted 0" as s18
+  state "Inbox enabled; Worker<br/>claimed request; sending;<br/>accepted 0" as s19
+  [*] --> s18
+  s18 --> s7 : Admin disables inbox
+  s18 --> s19 : Worker claims queued request
+  s7 --> s8 : Worker claims queued request
+  s19 --> s9 : Read whether inbox is enabled
+  s19 --> s12 : Worker stops at an await
+  s8 --> s0 : Read whether inbox is enabled
+  s8 --> s3 : Worker stops at an await
+  s9 --> s15 : Start a request to the email<br/>provider
+  s12 --> s13 : Cron marks stale request<br/>outcome unknown
+  s0 --> s6 : Reject a disabled inbox
+  s3 --> s4 : Cron marks stale request<br/>outcome unknown
+  s15 --> s16 : Provider replies
+  s15 --> s17 : Provider replies
+  s6 --> s2 : Save provider outcome<br/>conditionally
+  s16 --> s11 : Save provider outcome<br/>conditionally
+  s17 --> s14 : Save provider outcome<br/>conditionally
+  s17 --> s10 : Save provider outcome<br/>conditionally
+  s14 --> s5 : Admin disables inbox
+  s10 --> s1 : Admin disables inbox
+  class s0 group0
+  class s1 group0
+  class s2 group0
+  class s3 group0
+  class s4 group0
+  class s5 group0
+  class s6 group0
+  class s7 group0
+  class s8 group0
+  class s9 group0
+  class s10 group0
+  class s11 group0
+  class s12 group0
+  class s13 group0
+  class s14 group0
+  class s15 group0
+  class s16 group0
+  class s17 group0
+  class s18 group0
+  class s19 group0

@@ -1,25 +1,20 @@
 export const readerActions = ["Disable"];
-export function state(v) {
-  if (v.badUnknown) return "Outcome unknown but old worker starts sending";
-  if (v.badDisabled) return "Inbox disabled but provider call starts";
+function stage(v) {
   const stages = Object.values(v.pc);
   const cachedEnabled = Object.keys(v.pc).some(
     (worker) => v.pc[worker] === "checked" && v.snapshot[worker],
   );
-  const stage = stages.includes("waiting")
-    ? "Provider request in flight"
-    : stages.includes("checked")
-      ? cachedEnabled
-        ? "Earlier check said inbox enabled"
-        : "Earlier check said inbox disabled"
-      : stages.includes("claimed")
-        ? "Worker claimed request"
-        : stages.includes("result")
-          ? "Provider result awaits saving"
-          : v.status === "pending"
-            ? "Queued for a worker"
-            : "No provider call running";
-  return `${v.active ? "Inbox enabled" : "Inbox disabled"}; ${stage}; ${v.status}; accepted ${v.acceptances}`;
+  if (stages.includes("waiting")) return "Provider request in flight";
+  if (stages.includes("checked"))
+    return cachedEnabled ? "Earlier check said inbox enabled" : "Earlier check said inbox disabled";
+  if (stages.includes("claimed")) return "Worker claimed request";
+  if (stages.includes("result")) return "Provider result awaits saving";
+  return v.status === "pending" ? "Queued for a worker" : "No provider call running";
+}
+export function state(v) {
+  if (v.badUnknown) return "Outcome unknown but old worker starts sending";
+  if (v.badDisabled) return "Inbox disabled but provider call starts";
+  return `${v.active ? "Inbox enabled" : "Inbox disabled"}; ${stage(v)}; ${v.status}; accepted ${v.acceptances}`;
 }
 const labels = {
   Acquire: "Wait for earlier inbox operations to finish",

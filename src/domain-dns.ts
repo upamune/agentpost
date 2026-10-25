@@ -25,41 +25,55 @@ export function dnsName(value: string): string {
 
 /** Decode one TXT RR's quoted character-strings; do not merge separate RRs. */
 export function dnsTxt(data: string): string {
-  let result = "";
-  let offset = 0;
-  let chunks = 0;
-  while (offset < data.length) {
-    while (/[ \t]/.test(data[offset] ?? "") && offset < data.length) offset++;
-    if (offset === data.length) break;
-    if (data[offset++] !== '"') throw new Error("Invalid TXT encoding");
-    chunks++;
-    let closed = false;
-    while (offset < data.length) {
-      const char = data[offset++];
-      if (char === '"') {
-        closed = true;
-        break;
-      }
-      if (char !== "\\") result += char;
-      else {
-        const decimal = data.slice(offset, offset + 3);
-        if (/^\d{3}$/.test(decimal)) {
-          const byte = Number(decimal);
-          if (byte > 255) throw new Error("Invalid TXT escape");
-          result += String.fromCharCode(byte);
-          offset += 3;
-        } else {
-          if (offset === data.length) throw new Error("Invalid TXT escape");
-          result += data[offset++];
-        }
-      }
-    }
-    if (!closed) throw new Error("Unclosed TXT string");
-    if (offset < data.length && !/[ \t]/.test(data[offset]!))
-      throw new Error("Invalid TXT separator");
+  return new TxtReader(data).read();
+}
+
+class TxtReader {
+  private offset = 0;
+  constructor(private readonly data: string) {}
+
+  private skipHorizontalSpace(): void {
+    while (/[ \t]/.test(this.data[this.offset] ?? "") && this.offset < this.data.length)
+      this.offset++;
   }
-  if (!chunks) throw new Error("Empty TXT encoding");
-  return result;
+
+  private escape(): string {
+    const decimal = this.data.slice(this.offset, this.offset + 3);
+    if (/^\d{3}$/.test(decimal)) {
+      const byte = Number(decimal);
+      if (byte > 255) throw new Error("Invalid TXT escape");
+      this.offset += 3;
+      return String.fromCharCode(byte);
+    }
+    if (this.offset === this.data.length) throw new Error("Invalid TXT escape");
+    return this.data[this.offset++]!;
+  }
+
+  private chunk(): string {
+    if (this.data[this.offset++] !== '"') throw new Error("Invalid TXT encoding");
+    let result = "";
+    while (this.offset < this.data.length) {
+      const char = this.data[this.offset++];
+      if (char === '"') return result;
+      result += char === "\\" ? this.escape() : char;
+    }
+    throw new Error("Unclosed TXT string");
+  }
+
+  read(): string {
+    let result = "";
+    let chunks = 0;
+    while (this.offset < this.data.length) {
+      this.skipHorizontalSpace();
+      if (this.offset === this.data.length) break;
+      result += this.chunk();
+      chunks++;
+      if (this.offset < this.data.length && !/[ \t]/.test(this.data[this.offset]!))
+        throw new Error("Invalid TXT separator");
+    }
+    if (!chunks) throw new Error("Empty TXT encoding");
+    return result;
+  }
 }
 
 export async function diagnosticJson(url: URL, headers: HeadersInit, signal: AbortSignal) {
@@ -86,44 +100,61 @@ export function publicDns(signal: AbortSignal) {
     let result = cache.get(key);
     if (!result) {
       if (cache.size >= 24) throw new Error("DNS diagnostic query budget exhausted");
-      result = (async () => {
-        const code = type === "TXT" ? 16 : 15;
-        const url = new URL("https://cloudflare-dns.com/dns-query");
-        url.search = new URLSearchParams({ name, type }).toString();
-        const response = responseSchema.parse(
-          await diagnosticJson(url, { Accept: "application/dns-json" }, signal),
-        );
-        const question = response.Question[0]!;
-        if (dnsName(question.name) !== name || question.type !== code || response.TC)
-          throw new Error("Incomplete or mismatched DNS response");
-        if (response.Status === 3) return [];
-        if (response.Status !== 0) throw new Error("DNS resolution failed");
-        const answers = response.Answer ?? [];
-        let owner = name;
-        const visited = new Set<string>();
-        for (let hop = 0; hop <= 8; hop++) {
-          if (visited.has(owner)) throw new Error("DNS alias loop");
-          visited.add(owner);
-          const owned = answers.filter((answer) => dnsName(answer.name) === owner);
-          const aliases = owned.filter((answer) => answer.type === 5);
-          const records = owned.filter((answer) => answer.type === code);
-          if (aliases.length) {
-            if (aliases.length !== 1 || records.length || hop === 8)
-              throw new Error("Ambiguous DNS alias");
-            owner = dnsName(aliases[0]!.data);
-            continue;
-          }
-          if (!records.length && owner !== name) throw new Error("Incomplete DNS alias answer");
-          return [
-            ...new Set(
-              records.map((answer) => (type === "TXT" ? dnsTxt(answer.data) : answer.data)),
-            ),
-          ];
-        }
-        throw new Error("DNS alias limit");
-      })();
+      result = queryDns(name, type, signal);
       cache.set(key, result);
     }
     return result;
   };
+}
+
+type DnsAnswer = z.output<typeof answerSchema>;
+const recordCodes = { TXT: 16, MX: 15 };
+
+async function queryDns(name: string, type: "TXT" | "MX", signal: AbortSignal) {
+  const url = new URL("https://cloudflare-dns.com/dns-query");
+  url.search = new URLSearchParams({ name, type }).toString();
+  const response = responseSchema.parse(
+    await diagnosticJson(url, { Accept: "application/dns-json" }, signal),
+  );
+  const question = response.Question[0]!;
+  if (dnsName(question.name) !== name || question.type !== recordCodes[type] || response.TC)
+    throw new Error("Incomplete or mismatched DNS response");
+  if (response.Status === 3) return [];
+  if (response.Status !== 0) throw new Error("DNS resolution failed");
+  return resolveAnswers(response.Answer ?? [], name, type);
+}
+
+function answerNode(
+  answers: DnsAnswer[],
+  owner: string,
+  code: number,
+  hop: number,
+): { alias: string } | { records: DnsAnswer[] } {
+  const owned = answers.filter((answer) => dnsName(answer.name) === owner);
+  const aliases = owned.filter((answer) => answer.type === 5);
+  const records = owned.filter((answer) => answer.type === code);
+  if (!aliases.length) return { records };
+  if (aliases.length !== 1 || records.length || hop === 8) throw new Error("Ambiguous DNS alias");
+  return { alias: dnsName(aliases[0]!.data) };
+}
+
+function resolveAnswers(answers: DnsAnswer[], name: string, type: "TXT" | "MX") {
+  let owner = name;
+  const visited = new Set<string>();
+  for (let hop = 0; hop <= 8; hop++) {
+    if (visited.has(owner)) throw new Error("DNS alias loop");
+    visited.add(owner);
+    const node = answerNode(answers, owner, recordCodes[type], hop);
+    if ("alias" in node) {
+      owner = node.alias;
+      continue;
+    }
+    if (!node.records.length && owner !== name) throw new Error("Incomplete DNS alias answer");
+    return [
+      ...new Set(
+        node.records.map((answer) => (type === "TXT" ? dnsTxt(answer.data) : answer.data)),
+      ),
+    ];
+  }
+  throw new Error("DNS alias limit");
 }
