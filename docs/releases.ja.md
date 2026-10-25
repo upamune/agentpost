@@ -15,10 +15,10 @@ Workerの導入・更新は[導入手順](deploy.ja.md)に従って行います�
 同じ[リリース](https://github.com/upamune/agentpost/releases)から、バージョン付きアーカイブ、`SHA256SUMS`、`release-manifest.json`、`provenance.sigstore.json` を取得します。展開や実行の前に来歴を検証してください。
 
 ```sh
-gh attestation verify agentpost-0.1.0.tar.gz --repo upamune/agentpost \
+gh attestation verify agentpost-0.1.1.tar.gz --repo upamune/agentpost \
   --bundle provenance.sigstore.json \
   --signer-workflow upamune/agentpost/.github/workflows/release.yml \
-  --source-ref refs/tags/v0.1.0 --deny-self-hosted-runners
+  --source-ref refs/tags/v0.1.1 --deny-self-hosted-runners
 sha256sum --check SHA256SUMS
 ```
 
@@ -89,5 +89,5 @@ gh pr list --repo upamune/agentpost --label tagpr
 ```sh
 git fetch origin --tags
 git tag --points-at origin/main
-gh release view v0.1.0 --repo upamune/agentpost
+gh release view v0.1.1 --repo upamune/agentpost
 ```

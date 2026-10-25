@@ -1,6 +1,7 @@
 import { mkdtemp, mkdir, readFile, writeFile, copyFile, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
+import { tlcCommand } from "./tlc";
 
 const root = resolve(import.meta.dir, "..");
 const area = process.argv[2];
@@ -232,20 +233,21 @@ try {
       selectedConfig,
       `${configuration}${properties.includes(selected) ? "PROPERTY" : "INVARIANT"} ${selected}\n`,
     );
-    const result = run([
-      "java",
-      "-XX:+UseParallelGC",
-      "-cp",
-      jar,
-      "tlc2.TLC",
-      "-workers",
-      "1",
-      "-config",
-      selectedConfig,
-      "-metadir",
-      join(scratch, name),
-      join(scratch, `${model}.tla`),
-    ]);
+    const result = run(
+      await tlcCommand(
+        jar,
+        [
+          "-workers",
+          "1",
+          "-config",
+          selectedConfig,
+          "-metadir",
+          join(scratch, name),
+          join(scratch, `${model}.tla`),
+        ],
+        scratch,
+      ),
+    );
     await writeFile(join(output, `${name}.log`), result.log);
     const violated =
       result.log.includes(`Invariant ${selected} is violated`) ||
