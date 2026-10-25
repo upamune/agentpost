@@ -74,6 +74,17 @@ async function inboxCommand(
       );
     case "list":
       return client.call("GET", `/v1/inboxes?${pagination(values)}`);
+    default:
+      return existingInboxCommand(client, action, id);
+  }
+}
+
+function existingInboxCommand(
+  client: MailClient,
+  action: string | undefined,
+  id: string | undefined,
+) {
+  switch (action) {
     case "get":
       return client.call("GET", path(id));
     case "enable":
@@ -115,9 +126,7 @@ async function messageCommand(client: MailClient, args: Arguments) {
     positionals: [, action, id, extra],
   } = args;
   if (action === "list") {
-    const query = new URLSearchParams({ limit: values.limit ?? "25" });
-    if (values.cursor) query.set("cursor", values.cursor);
-    return client.call("GET", `${path(id)}/messages?${query}`);
+    return listMessages(client, values, id);
   }
   const messagePath = `${path(id)}/messages/${encoded(extra, "MESSAGE_ID")}`;
   switch (action) {
@@ -131,6 +140,12 @@ async function messageCommand(client: MailClient, args: Arguments) {
     default:
       throw new Error("Unknown message command");
   }
+}
+
+function listMessages(client: MailClient, values: Values, id: string | undefined) {
+  const query = new URLSearchParams({ limit: values.limit ?? "25" });
+  if (values.cursor) query.set("cursor", values.cursor);
+  return client.call("GET", `${path(id)}/messages?${query}`);
 }
 
 function outboxCommand(

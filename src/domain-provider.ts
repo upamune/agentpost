@@ -88,13 +88,7 @@ export async function checkSending(ctx: DomainDiagnostics) {
         );
         return;
       }
-      const nextSelector = dnsName(details.dkim_selector ?? "cf-bounce");
-      const nextReturnPath = dnsName(details.return_path_domain ?? `cf-bounce.${baseDomain}`);
-      if (!nextReturnPath.endsWith(`.${baseDomain}`)) throw new Error("Unexpected return path");
-      ctx.signingDomain = baseDomain;
-      ctx.selector = nextSelector;
-      ctx.returnPath = nextReturnPath;
-      ctx.providerRecords = expected;
+      configureSendingNames(ctx, details, baseDomain, expected);
       add(
         "cloudflare_sending",
         details.enabled ? "pass" : "fail",
@@ -106,24 +100,48 @@ export async function checkSending(ctx: DomainDiagnostics) {
     });
   }
 }
+
+function configureSendingNames(
+  ctx: DomainDiagnostics,
+  details: z.output<typeof subdomain>["result"],
+  baseDomain: string,
+  expected: ProviderRecord[],
+): void {
+  const selector = dnsName(details.dkim_selector ?? "cf-bounce");
+  const returnPath = dnsName(details.return_path_domain ?? `cf-bounce.${baseDomain}`);
+  if (!returnPath.endsWith(`.${baseDomain}`)) throw new Error("Unexpected return path");
+  ctx.signingDomain = baseDomain;
+  ctx.selector = selector;
+  ctx.returnPath = returnPath;
+  ctx.providerRecords = expected;
+}
+
 export async function checkProviderDns(ctx: DomainDiagnostics) {
   const { domain, signingDomain, add, run } = ctx;
   const dkimName = `${ctx.selector}._domainkey.${signingDomain}`;
   await run("cloudflare_dns", domain, async () => {
     const { mismatch, custom } = await compareExpectedDns(ctx, dkimName);
+    const status = dnsComparisonStatus(mismatch, custom);
+    const messages = {
+      fail: "Public sending keys or required records differ from Cloudflare's expected records.",
+      warning:
+        "Sending keys match, but custom SPF or MX priorities differ from the provider profile.",
+      pass: "Public sending records match Cloudflare's expected records.",
+    };
     add(
       "cloudflare_dns",
-      mismatch ? "fail" : custom ? "warning" : "pass",
-      mismatch
-        ? "Public sending keys or required records differ from Cloudflare's expected records."
-        : custom
-          ? "Sending keys match, but custom SPF or MX priorities differ from the provider profile."
-          : "Public sending records match Cloudflare's expected records.",
-      mismatch || custom
+      status,
+      messages[status],
+      status !== "pass"
         ? "Compare the sending-domain DNS records in Cloudflare; check the active DKIM key, SPF, bounce MX, and propagation before changing records."
         : undefined,
     );
   });
+}
+
+function dnsComparisonStatus(mismatch: boolean, custom: boolean) {
+  if (mismatch) return "fail";
+  return custom ? "warning" : "pass";
 }
 
 async function compareExpectedDns(ctx: DomainDiagnostics, dkimName: string) {

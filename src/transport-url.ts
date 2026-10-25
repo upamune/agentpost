@@ -5,3 +5,10 @@ export function isHttpsOrLoopbackHttp(url: Pick<URL, "protocol" | "hostname">): 
     (url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname))
   );
 }
+export function hasUrlUserInfo(url: URL): boolean {
+  return Boolean(url.username || url.password);
+}
+
+export function hasUrlExtras(url: URL): boolean {
+  return hasUrlUserInfo(url) || Boolean(url.search || url.hash);
+}

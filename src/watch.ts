@@ -8,6 +8,11 @@ import { wait } from "./wait";
 
 type PollResult = z.output<typeof eventPollResultSchema>;
 
+function assertRetryablePoll(error: unknown): void {
+  if (error instanceof MailApiError && error.status < 500 && error.status !== 429) throw error;
+  if (error instanceof z.ZodError) throw error;
+}
+
 async function checkpointCursor(cursor: EventQuery["cursor"], file: string | undefined) {
   if (!file || !(await Bun.file(file).exists())) return cursor;
   return z.object({ cursor: z.string() }).parse(JSON.parse(await Bun.file(file).text())).cursor;
@@ -31,8 +36,7 @@ class WatchSubscription {
   ) {}
 
   private retryDelay(error: unknown): number {
-    if (error instanceof MailApiError && error.status < 500 && error.status !== 429) throw error;
-    if (error instanceof z.ZodError) throw error;
+    assertRetryablePoll(error);
     console.error("Event source unavailable; retrying from the last checkpoint");
     if (error instanceof MailApiError && error.status === 429) return error.retryAfterMs ?? 60_000;
     return Math.min(30_000, 1000 * 2 ** Math.min(this.failures++, 5));

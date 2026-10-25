@@ -30,20 +30,26 @@ function reportDkimStrength(
   dkimName: string,
 ) {
   const bits = z.object({ modulusLength: z.number().int() }).parse(key.algorithm).modulusLength;
-  const warning = bits < 2048 || testing?.split(":").includes("y");
+  const status = dkimStrength(bits, testing);
+  const messages = {
+    fail: "DKIM RSA key is shorter than 1024 bits.",
+    warning: "DKIM uses a short key or testing mode.",
+    pass: "A usable RSA DKIM public key is published.",
+  };
   ctx.add(
     "dkim",
-    bits < 1024 ? "fail" : warning ? "warning" : "pass",
-    bits < 1024
-      ? "DKIM RSA key is shorter than 1024 bits."
-      : warning
-        ? "DKIM uses a short key or testing mode."
-        : "A usable RSA DKIM public key is published.",
-    warning
+    status,
+    messages[status],
+    status !== "pass"
       ? "Prefer an active 2048-bit or stronger provider-managed key outside testing mode."
       : undefined,
     dkimName,
   );
+}
+
+function dkimStrength(bits: number, testing: string | undefined) {
+  if (bits < 1024) return "fail";
+  return bits < 2048 || testing?.split(":").includes("y") ? "warning" : "pass";
 }
 
 function dkimRecord(ctx: DomainDiagnostics, records: string[], dkimName: string) {
@@ -185,6 +191,12 @@ function validDmarcPolicy(record: Record<string, string>): boolean {
     policy.safeParse(record.p).success &&
     !["sp", "np"].some((tag) => record[tag] && !policy.safeParse(record[tag]).success) &&
     !["aspf", "adkim"].some((tag) => record[tag] && !["r", "s"].includes(record[tag]!)) &&
+    validDmarcFlags(record)
+  );
+}
+
+function validDmarcFlags(record: Record<string, string>): boolean {
+  return (
     !(record.t && !["y", "n"].includes(record.t)) &&
     !(record.psd && !["y", "n", "u"].includes(record.psd))
   );
@@ -206,8 +218,7 @@ function validReportUri(value: string): boolean {
 
 function checkReports(ctx: DomainDiagnostics, record: Record<string, string>) {
   const { add } = ctx;
-  const reportUris = (record.rua ?? "").split(",");
-  const validReports = Boolean(record.rua) && reportUris.every(validReportUri);
+  const validReports = hasValidReportUris(record.rua);
   add(
     "dmarc_reports",
     validReports ? "pass" : "warning",
@@ -220,6 +231,11 @@ function checkReports(ctx: DomainDiagnostics, record: Record<string, string>) {
       ? undefined
       : "Configure valid monitored aggregate-report URIs; check external reporting authorization separately.",
   );
+}
+
+function hasValidReportUris(rua: string | undefined): boolean {
+  if (!rua) return false;
+  return rua.split(",").every(validReportUri);
 }
 
 function checkAlignment(ctx: DomainDiagnostics, record: Record<string, string>) {

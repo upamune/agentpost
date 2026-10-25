@@ -37,16 +37,19 @@ export async function guardHttpRequest(request: Request, env: Env): Promise<Resp
   const url = new URL(request.url);
   if (!isHttpsOrLoopbackHttp(url))
     return Response.json({ error: "HTTPS required" }, { status: 403 });
-  const origin = request.headers.get("Origin");
-  const publicDiscovery =
-    isOAuthMetadataPath(url.pathname) && ["GET", "HEAD", "OPTIONS"].includes(request.method);
-  if (
-    !publicDiscovery &&
-    ((origin !== null && origin !== url.origin) ||
-      request.headers.get("Sec-Fetch-Site") === "cross-site")
-  )
+  if (!allowsOrigin(request, url))
     return Response.json({ error: "Origin not allowed" }, { status: 403 });
   // Cloudflare supplies this header at the edge. Keep raw IPs out of limiter keys/logs.
   const peer = request.headers.get("CF-Connecting-IP") ?? "local";
   return enforceRateLimit(env.AGENTPOST_REQUEST_LIMITER, `http:${await sha256(peer)}`);
+}
+
+function allowsOrigin(request: Request, url: URL): boolean {
+  if (isOAuthMetadataPath(url.pathname) && ["GET", "HEAD", "OPTIONS"].includes(request.method))
+    return true;
+  const origin = request.headers.get("Origin");
+  return (
+    (origin === null || origin === url.origin) &&
+    request.headers.get("Sec-Fetch-Site") !== "cross-site"
+  );
 }

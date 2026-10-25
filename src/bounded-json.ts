@@ -37,8 +37,13 @@ class JsonSize {
     for (const entry of items) this.visit(entry === undefined ? null : entry);
   }
 
-  private object(item: object): void {
+  private container(item: object | null): void {
+    if (item === null) return this.add(4);
     if (Array.isArray(item)) return this.array(item);
+    this.object(item);
+  }
+
+  private object(item: object): void {
     if (!(Object.getPrototypeOf(item) === Object.prototype || Object.getPrototypeOf(item) === null))
       throw new Error("Parsed message contains unsupported JSON data");
     this.add(2);
@@ -53,17 +58,20 @@ class JsonSize {
     }
   }
 
+  private number(item: number): void {
+    this.add(Number.isFinite(item) ? String(item).length : 4);
+  }
+
   visit(item: unknown): void {
-    if (item === null) return this.add(4);
     switch (typeof item) {
       case "string":
         return this.string(item);
       case "boolean":
         return this.add(item ? 4 : 5);
       case "number":
-        return this.add(Number.isFinite(item) ? String(item).length : 4);
+        return this.number(item);
       case "object":
-        return this.object(item);
+        return this.container(item);
       default:
         throw new Error("Parsed message contains unsupported JSON data");
     }
