@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { hasUrlExtras } from "./transport-url";
 import type { Env } from "./types";
 
 const secret = z
@@ -20,8 +21,7 @@ function validSecret(value: unknown): value is string {
 function httpsUrl(value: string | undefined): URL {
   if (!value || /[\s\p{Cc}]/u.test(value)) throw new Error("Invalid authentication URL");
   const url = new URL(value);
-  if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash)
-    throw new Error("Invalid authentication URL");
+  if (url.protocol !== "https:" || hasUrlExtras(url)) throw new Error("Invalid authentication URL");
   return url;
 }
 
@@ -67,8 +67,13 @@ export function authConfiguration(env: AuthSettings) {
   const mode = modes.parse(env.AGENTPOST_AUTH_MODE ?? "token");
   if (mode !== "oauth" && !validSecret(env.AGENTPOST_ADMIN_TOKEN))
     throw new Error("Token authentication is not configured");
-  const cursorKey =
-    env.AGENTPOST_CURSOR_KEY ?? (mode === "token" ? env.AGENTPOST_ADMIN_TOKEN : undefined);
-  if (!validSecret(cursorKey)) throw new Error("Cursor encryption is not configured");
+  const cursorKey = cursorEncryptionKey(env, mode);
   return { mode, cursorKey, oauth: mode === "token" ? null : oauthConfiguration(env) };
+}
+
+function cursorEncryptionKey(env: AuthSettings, mode: z.output<typeof modes>): string {
+  const key =
+    env.AGENTPOST_CURSOR_KEY ?? (mode === "token" ? env.AGENTPOST_ADMIN_TOKEN : undefined);
+  if (!validSecret(key)) throw new Error("Cursor encryption is not configured");
+  return key;
 }

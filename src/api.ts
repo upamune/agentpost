@@ -46,12 +46,7 @@ app.use("/v1/*", async (context, next) => {
 });
 
 async function readJson<T>(context: Context<Bindings>, schema: z.ZodType<T>): Promise<T> {
-  if (
-    context.req.header("Content-Type")?.split(";", 1)[0]?.trim().toLowerCase() !==
-    "application/json"
-  ) {
-    throw new ApiError(415, "Content-Type must be application/json");
-  }
+  requireJsonContentType(context);
   const stream = context.req.raw.body;
   const raw = stream ? await readBounded(stream, MAX_REQUEST_BYTES) : new ArrayBuffer(0);
   let value: unknown;
@@ -63,6 +58,15 @@ async function readJson<T>(context: Context<Bindings>, schema: z.ZodType<T>): Pr
   const parsed = schema.safeParse(value);
   if (!parsed.success) throw new ApiError(400, "Invalid input", parsed.error.flatten());
   return parsed.data;
+}
+
+function requireJsonContentType(context: Context<Bindings>): void {
+  if (
+    context.req.header("Content-Type")?.split(";", 1)[0]?.trim().toLowerCase() !==
+    "application/json"
+  ) {
+    throw new ApiError(415, "Content-Type must be application/json");
+  }
 }
 
 class ApiError extends Error {
@@ -185,6 +189,12 @@ function noHealthFailures(totals: HealthTotals | null): boolean {
   ].every((count) => count === 0);
 }
 
+function staleHealthTotals(totals: HealthTotals | null): boolean {
+  return [totals?.oldest_outbound, totals?.oldest_inbound].some(
+    (time) => time != null && time < Date.now() - 15 * 60_000,
+  );
+}
+
 app.get("/v1/health", async (context) => {
   requireAdmin(context);
   await context.env.MAIL.list({ limit: 1 });
@@ -194,9 +204,7 @@ app.get("/v1/health", async (context) => {
   const sendConfigured = Boolean(
     context.env.AGENTPOST_CF_ACCOUNT_ID && context.env.AGENTPOST_CF_EMAIL_API_TOKEN,
   );
-  const stale = [totals?.oldest_outbound, totals?.oldest_inbound].some(
-    (time) => time != null && time < Date.now() - 15 * 60_000,
-  );
+  const stale = staleHealthTotals(totals);
   const healthy = sendConfigured && !stale && noHealthFailures(totals);
   return context.json(
     { status: healthy ? "ok" : "attention_required", send_configured: sendConfigured, ...totals },
@@ -348,12 +356,17 @@ async function findOrCreateOutbox(context: Context<Bindings>, request: OutboxReq
   return find();
 }
 
-async function queueSend(context: Context<Bindings>, payload: SendPayload) {
-  const inbox = context.get("inbox");
-  if (!inbox.active) throw new ApiError(409, "Inbox is disabled");
+function idempotencyKey(context: Context<Bindings>): string {
   const key = context.req.header("Idempotency-Key");
   if (!key || !/^[a-zA-Z0-9_.:-]{1,128}$/.test(key))
     throw new ApiError(400, "Idempotency-Key header required (1-128 letters, digits, _, ., :, -)");
+  return key;
+}
+
+async function queueSend(context: Context<Bindings>, payload: SendPayload) {
+  const inbox = context.get("inbox");
+  if (!inbox.active) throw new ApiError(409, "Inbox is disabled");
+  const key = idempotencyKey(context);
   const serialized = JSON.stringify(payload);
   const hash = await sha256(serialized);
   const now = Date.now();
@@ -376,11 +389,15 @@ app.post("/v1/inboxes/:inbox/send", async (context) => {
 });
 
 type ParsedMail = Awaited<ReturnType<typeof parseMime>>;
-function replyHeaders(parsed: ParsedMail): Record<string, string> {
-  const refs = `${parsed.references ?? ""} ${parsed.messageId ?? ""}`
+function replyReferences(parsed: ParsedMail): string | undefined {
+  return `${parsed.references ?? ""} ${parsed.messageId ?? ""}`
     .match(/<[^<>\s\p{Cc}]{1,250}>/gu)
     ?.slice(-20)
     .join(" ");
+}
+
+function replyHeaders(parsed: ParsedMail): Record<string, string> {
+  const refs = replyReferences(parsed);
   const messageId = parsed.messageId?.match(/^<[^<>\s\p{Cc}]{1,250}>$/u)?.[0];
   const headers: Record<string, string> = {};
   if (messageId) headers["In-Reply-To"] = messageId;
@@ -408,10 +425,14 @@ function replyPayload(
 }
 
 function replyAddress(parsed: ParsedMail, row: Message): string {
-  const target = parsed.replyTo?.[0]?.address ?? parsed.from?.address ?? row.envelope_from;
+  const target = parsed.replyTo?.[0]?.address ?? originalSender(parsed, row);
   if (!address.safeParse(target).success)
     throw new ApiError(409, "Message has no valid reply address");
   return target;
+}
+
+function originalSender(parsed: ParsedMail, row: Message): string {
+  return parsed.from?.address ?? row.envelope_from;
 }
 
 app.post("/v1/inboxes/:inbox/messages/:message/reply", async (context) => {

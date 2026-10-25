@@ -116,12 +116,20 @@ async function queryDns(name: string, type: "TXT" | "MX", signal: AbortSignal) {
   const response = responseSchema.parse(
     await diagnosticJson(url, { Accept: "application/dns-json" }, signal),
   );
-  const question = response.Question[0]!;
-  if (dnsName(question.name) !== name || question.type !== recordCodes[type] || response.TC)
-    throw new Error("Incomplete or mismatched DNS response");
+  validateQuestion(response, name, recordCodes[type]);
   if (response.Status === 3) return [];
   if (response.Status !== 0) throw new Error("DNS resolution failed");
   return resolveAnswers(response.Answer ?? [], name, type);
+}
+
+function validateQuestion(
+  response: z.output<typeof responseSchema>,
+  name: string,
+  code: number,
+): void {
+  const question = response.Question[0]!;
+  if (dnsName(question.name) !== name || question.type !== code || response.TC)
+    throw new Error("Incomplete or mismatched DNS response");
 }
 
 function answerNode(

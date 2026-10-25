@@ -5,7 +5,7 @@ description: Check agentpost outbound claims, actor ownership, inbox disabling, 
 
 # Verify outbound safety
 
-Run in the source checkout. Last synchronized with product commit `ee8c98f11baf9eb04bf3e2c37c10a7aeb372e32f`, following the original findings at `ed15d43123471a7de7c89be7f77f5380da136dc9`.
+Run in the source checkout. Last synchronized with product commit `741a80e7d576a33746c1b1b2919364104094fc2e`, following the original findings at `ed15d43123471a7de7c89be7f77f5380da136dc9`.
 
 ## Covered code
 

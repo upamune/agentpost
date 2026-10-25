@@ -1,5 +1,5 @@
 {
-  "verifiedProductCommit": "ee8c98f11baf9eb04bf3e2c37c10a7aeb372e32f",
+  "verifiedProductCommit": "741a80e7d576a33746c1b1b2919364104094fc2e",
   "bounds": {
     "originals": 3,
     "valid": 2,
@@ -17,11 +17,11 @@
   "sourceFiles": [
     {
       "path": "src/inbound.ts",
-      "sha256": "0bb1115e09481a0b675392a85e3fda667468c57762b30c621bb237787cea2695"
+      "sha256": "d7e4bfeeb2aea3536257f6666e94bedbd375a19b3bc5c87cdda9477652c74ed4"
     },
     {
       "path": "src/bounded-json.ts",
-      "sha256": "52297b8b50fea832979668a4c1601a12c38d298a18f22dc08795dcc9b2b9ea6c"
+      "sha256": "1a847ef629c4712a81bd83261c8f8728db149456cf32a59d116927721cd503b0"
     },
     {
       "path": "src/maintenance.ts",
@@ -29,11 +29,11 @@
     },
     {
       "path": "src/index.ts",
-      "sha256": "e6f856e257e9cda1fb67214f53106dac8f39f7e2a6153f373970c9e6f7d367e2"
+      "sha256": "bdf45340a6ff0cba7a46ed5063e03b1d7cd731fe132f0ed955328ff3e972b5f3"
     },
     {
       "path": "src/api.ts",
-      "sha256": "41e4c783ebf10b7328097323e4a4d2b74af957d87018fe2cd4e776bb11b416a0"
+      "sha256": "39306c5f7fa31760439fad71473217ffac68344f0af2bdab605661833024ae27"
     },
     {
       "path": "migrations/0001_mail.sql",
@@ -82,7 +82,7 @@
         "fullName": "a D1 failure after raw persistence is repaired from the original metadata",
         "status": "passed",
         "title": "a D1 failure after raw persistence is repaired from the original metadata",
-        "duration": 31,
+        "duration": 43,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -93,7 +93,7 @@
         "fullName": "queue outage and duplicate recovery preserve one message and one received event",
         "status": "passed",
         "title": "queue outage and duplicate recovery preserve one message and one received event",
-        "duration": 25,
+        "duration": 26,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -115,7 +115,7 @@
         "fullName": "poisoned first page cannot starve healthy later raw objects and stays visible in health",
         "status": "passed",
         "title": "poisoned first page cannot starve healthy later raw objects and stays visible in health",
-        "duration": 21,
+        "duration": 18,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -126,7 +126,7 @@
         "fullName": "orphaned inbox metadata is reported, retried and cleared after the inbox is restored",
         "status": "passed",
         "title": "orphaned inbox metadata is reported, retried and cleared after the inbox is restored",
-        "duration": 21,
+        "duration": 16,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -137,7 +137,7 @@
         "fullName": "cursor commit failure repeats safe inserts without downgrading ready messages",
         "status": "passed",
         "title": "cursor commit failure repeats safe inserts without downgrading ready messages",
-        "duration": 21,
+        "duration": 19,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -148,7 +148,7 @@
         "fullName": "failed inbound republishing does not prevent outbound republishing",
         "status": "passed",
         "title": "failed inbound republishing does not prevent outbound republishing",
-        "duration": 17,
+        "duration": 15,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -159,7 +159,7 @@
         "fullName": "failed attention persistence keeps the cursor before the poisoned original",
         "status": "passed",
         "title": "failed attention persistence keeps the cursor before the poisoned original",
-        "duration": 31,
+        "duration": 11,
         "failureMessages": [],
         "meta": {},
         "tags": [],

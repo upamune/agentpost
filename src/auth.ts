@@ -57,11 +57,14 @@ export async function authenticate(env: Env, request: Request): Promise<Principa
   const assertion = request.headers.get("Cf-Access-Jwt-Assertion");
   if (config.oauth && assertion !== null) {
     // Explicit OAuth credentials never fall back to a static token on failure.
-    const result = await authenticateAccess(config.oauth, assertion);
-    if (result instanceof Response && result.status === 401)
-      result.headers.set("WWW-Authenticate", oauthChallenge(env));
-    return result;
+    return challengeAccessFailure(env, await authenticateAccess(config.oauth, assertion));
   }
   if (config.mode === "oauth") return denyAuthentication(env);
   return authenticateToken(env, request);
+}
+
+function challengeAccessFailure(env: Env, result: Principal | Response): Principal | Response {
+  if (result instanceof Response && result.status === 401)
+    result.headers.set("WWW-Authenticate", oauthChallenge(env));
+  return result;
 }

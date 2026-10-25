@@ -22,7 +22,7 @@ Use strict TypeScript, the existing formatter/linter, SHA-pinned Actions, and En
 
 Security fuzzing runs on PRs, main, and daily. See [security checks](docs/security-checks.md) for replay instructions. Keep discovered inputs synthetic and minimize them before committing a regression. Report exploitable findings privately before proposing a public fix that reveals them.
 
-`mise run ci` also checks cognitive and cyclomatic complexity with pinned [cccc](https://github.com/moznion/cccc). Use `mise run complexity` for the gate or `mise run complexity:report` for the full JSON measurements. Every function identity has limits of 12 cognitive / 8 cyclomatic, with no existing exceptions. Baseline changes require review; never regenerate or increase allowances just to pass. See [complexity checks](docs/complexity.md) for scope, identities, reports, and limitations.
+`mise run ci` also checks cognitive and cyclomatic complexity with pinned [cccc](https://github.com/moznion/cccc). Use `mise run complexity` for the gate or `mise run complexity:report` for the full JSON measurements. Every function identity has limits of 8 cognitive / 6 cyclomatic, with no existing exceptions. Baseline changes require review; never regenerate or increase allowances just to pass. See [complexity checks](docs/complexity.md) for scope, identities, reports, and limitations.
 
 Tests use synthetic provider responses and local storage; builds are dry runs. Keep real mail, API tokens, and production data out of fixtures. Use a full-history clone for secret scanning and also inspect staged changes with `mise exec -- gitleaks git --staged --redact --no-banner`.
 

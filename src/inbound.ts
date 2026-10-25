@@ -52,8 +52,12 @@ export async function receive(message: ForwardableEmailMessage, env: Env): Promi
       },
     });
   }
-  await indexRaw(env, key, existing?.customMetadata ?? (await env.MAIL.head(key))?.customMetadata);
+  await indexRaw(env, key, await rawMetadata(env, key, existing));
   await enqueue(env, "inbound", id);
+}
+
+async function rawMetadata(env: Env, key: string, existing: R2Object | null) {
+  return existing?.customMetadata ?? (await env.MAIL.head(key))?.customMetadata;
 }
 
 class RawIndexError extends Error {
@@ -116,9 +120,7 @@ export async function parseMessage(env: Env, id: string): Promise<void> {
     to: parsed.to,
     cc: parsed.cc,
     reply_to: parsed.replyTo,
-    subject: parsed.subject ?? "",
-    text: parsed.text ?? "",
-    html: parsed.html ?? "",
+    ...parsedContent(parsed),
     message_id: parsed.messageId,
     references: parsed.references,
     date: parsed.date,
@@ -142,16 +144,24 @@ export async function parseMessage(env: Env, id: string): Promise<void> {
     .run();
 }
 
-export async function repairRawIndex(env: Env): Promise<void> {
+function parsedContent(parsed: Awaited<ReturnType<typeof parseMime>>) {
+  return { subject: parsed.subject ?? "", text: parsed.text ?? "", html: parsed.html ?? "" };
+}
+
+async function rawRecoveryPage(env: Env) {
   const state = await env.DB.prepare(
     "SELECT value FROM maintenance WHERE key = 'raw_cursor'",
   ).first<{ value: string }>();
-  const page = await env.MAIL.list({
+  return env.MAIL.list({
     prefix: "raw/",
     limit: 100,
     cursor: state?.value || undefined,
     include: ["customMetadata"],
   });
+}
+
+export async function repairRawIndex(env: Env): Promise<void> {
+  const page = await rawRecoveryPage(env);
   let failures = 0;
   for (const object of page.objects) {
     try {

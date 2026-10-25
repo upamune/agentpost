@@ -41,18 +41,19 @@ export async function cloudflareSend(
   payload: SendPayload,
   request: (url: string, init: RequestInit) => Promise<Response> = fetch,
 ): Promise<SendResult> {
-  if (!env.AGENTPOST_CF_ACCOUNT_ID || !env.AGENTPOST_CF_EMAIL_API_TOKEN) {
+  const credentials = sendingCredentials(env);
+  if (!credentials) {
     return { status: "failed", error: "Email Sending credentials are not configured" };
   }
   let response: Response;
   try {
     response = await request(
-      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(env.AGENTPOST_CF_ACCOUNT_ID)}/email/sending/send`,
+      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(credentials.accountId)}/email/sending/send`,
       {
         method: "POST",
         redirect: "manual",
         headers: {
-          Authorization: `Bearer ${env.AGENTPOST_CF_EMAIL_API_TOKEN}`,
+          Authorization: `Bearer ${credentials.token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
@@ -83,6 +84,11 @@ export async function cloudflareSend(
     };
   }
   return providerAcceptance(response);
+}
+
+function sendingCredentials(env: Env) {
+  if (!env.AGENTPOST_CF_ACCOUNT_ID || !env.AGENTPOST_CF_EMAIL_API_TOKEN) return null;
+  return { accountId: env.AGENTPOST_CF_ACCOUNT_ID, token: env.AGENTPOST_CF_EMAIL_API_TOKEN };
 }
 
 // Called only inside InboxCoordinator's serialized operation. The synchronous fence
@@ -133,18 +139,18 @@ async function settleSend(
     return;
   }
   const status = result.status === "retry" ? "failed" : result.status;
+  const fields = providerOutcomeFields(result);
   await env.DB.prepare(
     "UPDATE outbox SET status = ?, provider_result = ?, error = ?, updated_at = ? WHERE id = ? AND status = 'sending'",
   )
-    .bind(
-      status,
-      result.status === "accepted" ? result.result : null,
-      result.status === "accepted" ? null : result.error,
-      Date.now(),
-      id,
-    )
+    .bind(status, fields.providerResult, fields.error, Date.now(), id)
     .run();
   if (status === "unknown" || status === "failed") {
     console.error(JSON.stringify({ event: "outbound_attention_required", id, status }));
   }
+}
+
+function providerOutcomeFields(result: SendResult) {
+  if (result.status === "accepted") return { providerResult: result.result, error: null };
+  return { providerResult: null, error: result.error };
 }

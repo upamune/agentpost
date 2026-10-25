@@ -108,12 +108,16 @@ function subscriptionInbox(principal: Principal, query: EventQuery): string | nu
   const inboxId = query.arguments.inbox_id ?? principal.inboxId;
   if (principal.admin) return inboxId;
   if (principal.credential === "token") {
-    if (query.arguments.inbox_id && query.arguments.inbox_id !== principal.inboxId)
-      throw new EventQueryError(403, "Subscription is outside the token's inbox scope");
+    assertTokenSubscription(principal, query.arguments.inbox_id);
   } else if (principal.credential === "oauth" && !inboxId) {
     throw new EventQueryError(403, "OAuth agents must select an owned inbox");
   }
   return inboxId;
+}
+
+function assertTokenSubscription(principal: Principal, requested: string | undefined): void {
+  if (requested && requested !== principal.inboxId)
+    throw new EventQueryError(403, "Subscription is outside the token's inbox scope");
 }
 
 async function authorizeSubscription(env: Env, principal: Principal, query: EventQuery) {

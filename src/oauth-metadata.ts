@@ -24,24 +24,31 @@ export function oauthMetadata(request: Request, env: Env): Response | undefined 
     return Response.json({ error: "Server authentication is not configured" }, { status: 503 });
   }
   if (!config.oauth) return Response.json({ error: "OAuth is disabled" }, { status: 404 });
+  return metadataResponse(request.method, config.oauth);
+}
+
+function metadataResponse(
+  method: string,
+  oauth: NonNullable<ReturnType<typeof authConfiguration>["oauth"]>,
+): Response {
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
   };
-  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers });
-  if (request.method !== "GET" && request.method !== "HEAD")
+  if (method === "OPTIONS") return new Response(null, { status: 204, headers });
+  if (method !== "GET" && method !== "HEAD")
     return new Response(null, {
       status: 405,
       headers: { ...headers, Allow: "GET, HEAD, OPTIONS" },
     });
   const response = Response.json(
     {
-      resource: config.oauth.resource,
-      authorization_servers: [config.oauth.authorizationServer],
+      resource: oauth.resource,
+      authorization_servers: [oauth.authorizationServer],
       resource_name: "agentpost",
       bearer_methods_supported: ["header"],
     },
     { headers },
   );
-  return request.method === "HEAD" ? new Response(null, response) : response;
+  return method === "HEAD" ? new Response(null, response) : response;
 }

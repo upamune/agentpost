@@ -106,18 +106,22 @@ class EventStream {
     const { signal } = this.request;
     while (!signal.aborted) {
       try {
-        const page = await this.poll({ ...this.query, cursor: this.cursor }, signal);
-        this.failures = 0;
-        if (page.truncated) {
-          this.cursor = page.startCursor;
-          await this.send("notifications/events/active", { cursor: this.cursor, truncated: true });
-        }
-        return page;
+        return await this.fetchPage();
       } catch (error) {
         if (signal.aborted || !(await this.handleFailure(error))) return null;
       }
     }
     return null;
+  }
+
+  private async fetchPage(): Promise<EventPollPage> {
+    const page = await this.poll({ ...this.query, cursor: this.cursor }, this.request.signal);
+    this.failures = 0;
+    if (page.truncated) {
+      this.cursor = page.startCursor;
+      await this.send("notifications/events/active", { cursor: this.cursor, truncated: true });
+    }
+    return page;
   }
 
   async run(): Promise<{ _meta: Record<string, never> }> {
@@ -167,14 +171,7 @@ export function registerEventMethods(server: McpServer, client: MailClient): voi
         JSON.stringify({
           event: "mcp_event_poll_failed",
           status: error instanceof MailApiError ? error.status : undefined,
-          reason:
-            error instanceof z.ZodError
-              ? error.issues.map((issue) => ({ path: issue.path, code: issue.code }))
-              : error instanceof MailApiError
-                ? "api_rejected"
-                : error instanceof Error
-                  ? error.message
-                  : "unknown",
+          reason: pollFailureReason(error),
         }),
       );
       throw protocolError(error);
@@ -204,4 +201,11 @@ export function registerEventMethods(server: McpServer, client: MailClient): voi
     },
     (query, context) => new EventStream(query, context.mcpReq, poll).run(),
   );
+}
+
+function pollFailureReason(error: unknown) {
+  if (error instanceof z.ZodError)
+    return error.issues.map((issue) => ({ path: issue.path, code: issue.code }));
+  if (error instanceof MailApiError) return "api_rejected";
+  return error instanceof Error ? error.message : "unknown";
 }

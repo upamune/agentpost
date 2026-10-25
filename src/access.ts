@@ -60,17 +60,29 @@ export async function authenticateAccess(
     });
     claims = identitySchema.parse(payload);
   } catch (error) {
-    const invalid = invalidAssertionErrors.some((type) => error instanceof type);
-    return Response.json(
-      { error: invalid ? "Invalid Access assertion" : "Access verification unavailable" },
-      { status: invalid ? 401 : 503 },
-    );
+    return assertionFailure(error);
   }
-  const subject = claims.sub
-    ? `user:${claims.sub}`
-    : claims.common_name
-      ? `service:${claims.common_name}`
-      : "";
+  return accessPrincipal(config, claims);
+}
+
+function assertionFailure(error: unknown): Response {
+  const invalid = invalidAssertionErrors.some((type) => error instanceof type);
+  return Response.json(
+    { error: invalid ? "Invalid Access assertion" : "Access verification unavailable" },
+    { status: invalid ? 401 : 503 },
+  );
+}
+
+function accessSubject(claims: z.output<typeof identitySchema>): string {
+  if (claims.sub) return `user:${claims.sub}`;
+  return claims.common_name ? `service:${claims.common_name}` : "";
+}
+
+async function accessPrincipal(
+  config: AccessConfiguration,
+  claims: z.output<typeof identitySchema>,
+): Promise<Principal | Response> {
+  const subject = accessSubject(claims);
   const role = config.grants[subject];
   if (!role) return Response.json({ error: "Identity has no agentpost grant" }, { status: 403 });
   const ownerId = await sha256(`agentpost:oauth:owner\0${config.issuer}\0${subject}`);

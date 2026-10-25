@@ -1,15 +1,17 @@
 export const readerActions = ["Disable"];
 function stage(v) {
   const stages = Object.values(v.pc);
-  const cachedEnabled = Object.keys(v.pc).some(
-    (worker) => v.pc[worker] === "checked" && v.snapshot[worker],
-  );
   if (stages.includes("waiting")) return "Provider request in flight";
-  if (stages.includes("checked"))
-    return cachedEnabled ? "Earlier check said inbox enabled" : "Earlier check said inbox disabled";
+  if (stages.includes("checked")) return checkedStage(v);
   if (stages.includes("claimed")) return "Worker claimed request";
   if (stages.includes("result")) return "Provider result awaits saving";
   return v.status === "pending" ? "Queued for a worker" : "No provider call running";
+}
+function checkedStage(v) {
+  const enabled = Object.keys(v.pc).some(
+    (worker) => v.pc[worker] === "checked" && v.snapshot[worker],
+  );
+  return enabled ? "Earlier check said inbox enabled" : "Earlier check said inbox disabled";
 }
 export function state(v) {
   if (v.badUnknown) return "Outcome unknown but old worker starts sending";

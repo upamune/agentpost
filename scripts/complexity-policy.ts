@@ -105,13 +105,20 @@ function checkFunction(
 ): string[] {
   const allowance = policy.exceptions[key];
   const limit = allowance ?? policy.limits;
-  if (fn.cognitive > limit.cognitive || fn.cyclomatic > limit.cyclomatic)
+  if (exceedsMetrics(fn, limit))
     return [
       `${fn.path}:${fn.line} ${key}: ${fn.cognitive}/${fn.cyclomatic} exceeds ${limit.cognitive}/${limit.cyclomatic} (cognitive/cyclomatic)`,
     ];
   if (allowance && (fn.cognitive < allowance.cognitive || fn.cyclomatic < allowance.cyclomatic))
     return [`Tighten exception to measured values ${fn.cognitive}/${fn.cyclomatic}: ${key}`];
   return [];
+}
+
+function exceedsMetrics(
+  actual: Pick<FunctionReport, "cognitive" | "cyclomatic">,
+  limit: z.infer<typeof policySchema>["limits"],
+): boolean {
+  return actual.cognitive > limit.cognitive || actual.cyclomatic > limit.cyclomatic;
 }
 
 export function checkComplexity(raw: unknown, input: unknown): string[] {

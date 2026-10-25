@@ -1,5 +1,5 @@
 {
-  "verifiedProductCommit": "ee8c98f11baf9eb04bf3e2c37c10a7aeb372e32f",
+  "verifiedProductCommit": "741a80e7d576a33746c1b1b2919364104094fc2e",
   "bounds": {
     "workers": 2,
     "maxClaims": 8,
@@ -18,7 +18,7 @@
     },
     {
       "path": "src/outbound.ts",
-      "sha256": "d63f8d845e2263d8daf6775ddda995ab0de57b4c8d4c20f24b431b32037011c3"
+      "sha256": "83311a5b32e07d325c3dc765e9f7019afc906a41aef64ea008ccf79c11478cf8"
     },
     {
       "path": "src/maintenance.ts",
@@ -26,11 +26,11 @@
     },
     {
       "path": "src/api.ts",
-      "sha256": "41e4c783ebf10b7328097323e4a4d2b74af957d87018fe2cd4e776bb11b416a0"
+      "sha256": "39306c5f7fa31760439fad71473217ffac68344f0af2bdab605661833024ae27"
     },
     {
       "path": "src/index.ts",
-      "sha256": "e6f856e257e9cda1fb67214f53106dac8f39f7e2a6153f373970c9e6f7d367e2"
+      "sha256": "bdf45340a6ff0cba7a46ed5063e03b1d7cd731fe132f0ed955328ff3e972b5f3"
     },
     {
       "path": "wrangler.jsonc",
@@ -83,7 +83,7 @@
         "fullName": "no new provider request starts after disabling the inbox has completed",
         "status": "passed",
         "title": "no new provider request starts after disabling the inbox has completed",
-        "duration": 38,
+        "duration": 34,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -94,7 +94,7 @@
         "fullName": "provider accepts the same request at most once with duplicate queue jobs",
         "status": "passed",
         "title": "provider accepts the same request at most once with duplicate queue jobs",
-        "duration": 27,
+        "duration": 31,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -105,7 +105,7 @@
         "fullName": "ownership fence failure after the active read prevents dispatch",
         "status": "passed",
         "title": "ownership fence failure after the active read prevents dispatch",
-        "duration": 30,
+        "duration": 28,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -116,7 +116,7 @@
         "fullName": "actor failure releases serialization without allowing a cross-inbox claim",
         "status": "passed",
         "title": "actor failure releases serialization without allowing a cross-inbox claim",
-        "duration": 34,
+        "duration": 28,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -127,7 +127,7 @@
         "fullName": "a fresh actor recovers an orphaned sending request without dispatching",
         "status": "passed",
         "title": "a fresh actor recovers an orphaned sending request without dispatching",
-        "duration": 33,
+        "duration": 34,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -138,7 +138,7 @@
         "fullName": "stale worker does not start a provider call after Cron marks the outcome unknown",
         "status": "passed",
         "title": "stale worker does not start a provider call after Cron marks the outcome unknown",
-        "duration": 32,
+        "duration": 36,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -149,7 +149,7 @@
         "fullName": "unknown outcomes never create a new automatic provider attempt",
         "status": "passed",
         "title": "unknown outcomes never create a new automatic provider attempt",
-        "duration": 32,
+        "duration": 36,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -160,7 +160,7 @@
         "fullName": "a delayed old enable cannot overwrite a newer disable after actor handoff",
         "status": "passed",
         "title": "a delayed old enable cannot overwrite a newer disable after actor handoff",
-        "duration": 33,
+        "duration": 41,
         "failureMessages": [],
         "meta": {},
         "tags": [],
