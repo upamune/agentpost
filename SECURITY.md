@@ -4,7 +4,7 @@
 
 ## Report a vulnerability
 
-Do not publish working exploits, real mail, tokens, or private deployment details in a public issue. If this repository's Security tab offers private vulnerability reporting, use it. Otherwise, contact the maintainer privately to agree on a reporting channel before sharing sensitive details.
+Use [GitHub private vulnerability reporting](https://github.com/upamune/agentpost/security/advisories/new). Do not publish working exploits, real mail, tokens, or private deployment details in a public issue. If that channel is temporarily unavailable, contact the maintainer privately before sharing sensitive details.
 
 Include the affected version, prerequisites, reproduction steps with synthetic data, observed impact, and any proposed mitigation. Local tests and bounded model checks do not establish that every deployment is secure.
 
@@ -13,8 +13,8 @@ Include the affected version, prerequisites, reproduction steps with synthetic d
 - The shared Worker HTTP entry checks HTTPS and allows plain HTTP only on loopback. Authenticated requests with an Origin must match the Worker origin; cross-site browser requests are refused.
 - Before authentication, HTTP requests are limited to 300/minute per IP. New sends are limited to 10/minute per inbox. Both admin and inbox tokens use that inbox's send counter. Limits return 429 with `Retry-After: 60`; limiter failures return 503 without storing a new send. Existing idempotency keys do not consume new-send quota.
 - OAuth/both mode verifies Cloudflare Access RS256 assertions against a configured team JWKS and application audience, including expiry, required claims, and application-token type. An explicit identity allowlist assigns admin or owned-inbox agent access; arbitrary email/role headers cannot grant permissions. Remote MCP uses Managed OAuth discovery and client-managed login/refresh. See [authentication](docs/authentication.md).
-- Inbox tokens have 256 bits of randomness; D1 stores SHA-256 hashes. Mail, raw MIME, attachments, and outbox lookups include inbox scope. Only admins may provision or administer inboxes.
-- Custom mailbox names are validated and normalized before a domain-bound, atomic unique insert. Conflicts never replace credentials, including for disabled inboxes; only admins can allocate names.
+- Inbox tokens have 256 bits of randomness; D1 stores SHA-256 hashes. Mail, raw MIME, attachments, and outbox lookups include inbox scope. Admins can provision and administer inboxes; allowlisted OAuth agents can provision and use their own active inboxes. Inbox tokens cannot provision or administer inboxes.
+- Custom mailbox names are validated and normalized before a domain-bound, atomic unique insert. Conflicts never replace credentials, including for disabled inboxes; admins and allowlisted OAuth agents can allocate names within their provisioning permissions.
 - A named Durable Object orders sending, disabling, and stale-send recovery per inbox. A synchronous ownership fence and versioned active-state writes reject obsolete execution. Disabling reports success after earlier outbound work finishes and its state is saved. Already-admitted inbound deliveries can finish retaining their originals afterward.
 - API JSON input is bounded at 512 KiB and incoming raw mail at 10 MiB. Senders cannot override the From address. Subjects reject control characters; reply headers exclude invalid IDs. Attachments download as files and HTML mail is not served as an executable page.
 - MIME parsing caps nesting at 32, headers per part at 128 KiB, parts at 1,000, attached-message depth at 4, and forwarded header addresses at 100. Content, attachment, and reply paths share these limits. Saved originals remain available when parsing fails.
@@ -44,3 +44,7 @@ See the [2026-10-25 adversarial audit](docs/security-audit.md) for exercised bou
 ## Diagnostic egress
 
 Admin domain diagnostics use fixed Cloudflare API/DoH HTTPS origins and reject redirects. Body size, query count and network deadlines are bounded; resolution/schema failures remain unknown. A dedicated provider diagnostic token goes only to the API and never falls back to sending credentials. DNS content and upstream error bodies are not reflected in reports. See [diagnostic details](docs/domain-diagnostics.md).
+
+## Continuous analysis
+
+See [continuous security checks](docs/security-checks.md) for CodeQL, OSV, Bun audit, Dependency review, Dependabot, zizmor, OpenSSF Scorecard, secret protection and formal verification. Report completion and a green badge do not by themselves establish that all alerts are resolved.

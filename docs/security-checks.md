@@ -1,0 +1,54 @@
+# Continuous security checks
+
+[English](security-checks.md) | [日本語](security-checks.ja.md)
+
+Agentpost combines static analysis, dependency and secret scanning, adversarial tests, and bounded formal verification. The README badges link to current results. A passing badge means the corresponding check completed; it is not a security certification or proof of safe operator configuration.
+
+## Automated coverage
+
+| Check                                 | Coverage                                                                                                | When                                               | Results                                                                                                                                                                         |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CodeQL, `security-extended`           | JavaScript/TypeScript data-flow and security queries                                                    | Main pushes, PRs, daily, manual                    | [Code scanning](https://github.com/upamune/agentpost/security/code-scanning), [workflow](https://github.com/upamune/agentpost/actions/workflows/codeql.yml)                     |
+| OSV-Scanner                           | Resolved direct and transitive packages in `bun.lock`, including development dependencies               | Main pushes, PRs, daily, manual                    | Code scanning and [workflow artifacts](https://github.com/upamune/agentpost/actions/workflows/osv.yml)                                                                          |
+| Bun audit                             | Registry advisory checks against the resolved dependency tree                                           | Main pushes, PRs, daily, manual                    | [Dependency audit](https://github.com/upamune/agentpost/actions/workflows/audit.yml)                                                                                            |
+| Dependency review                     | Newly introduced known vulnerabilities, including low severity                                          | PRs; manual base/head comparison                   | [Dependency review](https://github.com/upamune/agentpost/actions/workflows/dependency-review.yml)                                                                               |
+| Dependabot                            | Bun and SHA-pinned GitHub Actions update PRs; advisory-driven security updates                          | Weekly version checks and new advisories           | [Dependabot alerts](https://github.com/upamune/agentpost/security/dependabot), dependency PRs                                                                                   |
+| zizmor, auditor persona               | Workflow injection, dangerous triggers, permissions, credentials and Actions configuration              | Main pushes, PRs, weekly, manual; local CI offline | Code scanning and [Workflow security](https://github.com/upamune/agentpost/actions/workflows/zizmor.yml)                                                                        |
+| OpenSSF Scorecard                     | Repository and software supply-chain practices                                                          | Main pushes, weekly, manual                        | [Public score](https://scorecard.dev/viewer/?uri=github.com/upamune/agentpost), code scanning, [workflow](https://github.com/upamune/agentpost/actions/workflows/scorecard.yml) |
+| Gitleaks and GitHub secret protection | Reachable Git history and recognized accidentally committed credentials                                 | CI; server-side detection and push protection      | [CI](https://github.com/upamune/agentpost/actions/workflows/ci.yml), maintainer-only secret alerts                                                                              |
+| Tests and TLA+                        | Adversarial boundary regressions, inbound/outbound invariants, real-code replays and mutation selftests | Main pushes and PRs                                | CI and [formal verification](formal-verification.md)                                                                                                                            |
+
+CodeQL, OSV, zizmor and Scorecard upload SARIF to GitHub. Security workflows have read-only repository access and only the job permissions needed to publish reports. Scorecard alone receives an OIDC identity for authenticated publication of its public results; no production mail credential is involved. Workflows do not use `pull_request_target`, install third-party GitHub Apps, or send scan comments to PRs. Action references are SHA-pinned with pinact.
+
+A known OSV vulnerability or a reported low-or-higher zizmor finding fails its check. Dependency review blocks newly introduced advisories. CodeQL and Scorecard use GitHub's alert dashboard: a completed workflow alone does not mean their alert lists are empty. CodeQL/other code scanning alerts and repository rules must be reviewed as well. Findings must be investigated and fixed or given a narrowly documented, evidence-based disposition; do not add blanket ignores to obtain green badges.
+
+These SARIF workflows are gated to public repositories, where the GitHub security integration is available without enabling a paid private-repository product. Private forks still have local checks, Gitleaks, Bun audit, tests and formal verification. See the official [CodeQL guidance](https://docs.github.com/en/code-security/code-scanning/introduction-to-code-scanning/about-code-scanning), [OSV integration](https://google.github.io/osv-scanner/github-action/), [zizmor integration](https://docs.zizmor.sh/integrations/), and [Scorecard documentation](https://github.com/ossf/scorecard-action).
+
+## Local checks
+
+```sh
+mise install
+mise exec -- bun install --frozen-lockfile
+mise run ci
+mise run security:dependencies
+```
+
+`ci` includes the offline zizmor workflow audit. OSV's separate command checks only the resolved `bun.lock`; it does not recursively inspect local private deployment files. OSV sends package names and resolved versions to its advisory service. Online workflow analysis in GitHub can find issues that offline analysis cannot.
+
+## Reporting and triage
+
+Report vulnerabilities through [GitHub private vulnerability reporting](https://github.com/upamune/agentpost/security/advisories/new), as described in [SECURITY.md](../SECURITY.md). Keep live tokens, messages, deployment hostnames and working exploit details out of public issues and CI artifacts. The configured production credentials and private deployment helpers are not part of this repository or these scanners.
+
+Review alerts after dependency or authentication changes and new advisories. A scanner outage is not a clean result. The owned OSV job preserves its exit status and uploads reports only for completed scans: 0 (clean) or 1 (vulnerabilities). Operational failures such as 127 fail even if the scanner wrote an empty report, and cannot publish a clean result. Three shell-execution regressions exercise this boundary. A score measures observable practices, not the absence of exploitable code; do not weaken checks or invent policy documents to raise it. Ordinary advisory triage and remediation remain maintainer work.
+
+Release automation uses a main-only `release-automation` Environment for the future GitHub App private key. The existing App setup remains a separate operator step; no App key is required for security scanning. See [releases](releases.md).
+
+## Publication audit — 2026-10-26
+
+The audited code baseline is `61e305b62f0c98dde3ca1a84d7829f195fd70c01`. Three independent adversarial reviewers rechecked authentication/OAuth/MCP/ownership, clients and installation, and mail/recovery/domain-diagnostic boundaries. No new reproducible publication-blocking vulnerability was identified in that scope. The earlier remediations remain documented in the [2026-10-25 audit](security-audit.md).
+
+Before publication, Gitleaks scanned all 21 reachable commits. A separate comparison of 441 reachable blobs against five known local credentials and selected live deployment identifiers found no matches; the values were never included in the report. The dependency checks reported no known advisories in Bun audit's 287 packages and OSV's 290 parsed lockfile entries. The independent reviewers exercised 39 auth/Event tests, 28 client/adversarial tests, 17 mocked diagnostic tests and 69 mail/diagnostic/security tests; overlapping tests are not unique coverage counts. No production probing or actual mail was involved in this audit. Local CI also passed 100 ordinary Worker tests, 28 client tests, inbound/outbound formal verification and mutation selftests.
+
+Workflow hardening replaces direct matrix interpolation in shell source with quoted environment variables and moves the future release key behind a main-only Environment. The previous matrix was a fixed trusted list; this is preventive hardening, not a demonstrated remote code-execution finding.
+
+This is a source/publication audit. It does not prove whole-system absence of bugs, every MIME parser allocation bound, real Cloudflare platform isolation, backup restoration, mail deliverability, or safety of arbitrary agent actions based on hostile mail. Each operator must complete their own [deployment checks](deploy.md).

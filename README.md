@@ -1,5 +1,13 @@
 # agentpost
 
+[![CI](https://github.com/upamune/agentpost/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/upamune/agentpost/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/codeql.yml)
+[![OSV-Scanner](https://github.com/upamune/agentpost/actions/workflows/osv.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/osv.yml)
+[![Workflow security](https://github.com/upamune/agentpost/actions/workflows/zizmor.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/zizmor.yml)
+[![Dependency audit](https://github.com/upamune/agentpost/actions/workflows/audit.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/audit.yml)
+[![Dependency review](https://github.com/upamune/agentpost/actions/workflows/dependency-review.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/dependency-review.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/upamune/agentpost/badge)](https://scorecard.dev/viewer/?uri=github.com/upamune/agentpost)
+
 [English](README.md) | [日本語](README.ja.md)
 
 **Give your AI agents as many email addresses as they need.**
@@ -7,6 +15,8 @@
 Create an address for every agent, task, or workflow, then send and receive email through an API, CLI, or MCP. Agentpost runs on your own domain and Cloudflare account, so you keep control of your inboxes, mail, and credentials. It is open source under the MIT license.
 
 Use a fresh inbox for a research task, give a long-running agent its own identity, or keep separate workflows from sharing mail. Provision addresses on demand and disable them when the work is done. There is no fixed inbox-count limit in Agentpost; infrastructure capacity, rate limits, and Cloudflare sending limits still apply.
+
+See [continuous security checks](docs/security-checks.md) for scanner coverage, alert triage, and the pre-publication audit. Badges report check results; they do not certify that a deployment is secure.
 
 ## What you can do
 
@@ -16,7 +26,7 @@ Use a fresh inbox for a research task, give a long-running agent its own identit
 - **Watch for new mail.** Subscribe to received messages and send-status changes, then resume from a saved cursor after a disconnect.
 - **Keep your deployment under your control.** Each operator brings their own Cloudflare account and domain. Agentpost does not provide a shared hosted email service.
 
-Agentpost is in early development. Local tests and formal checks pass, but real send/receive behavior on a configured domain has not yet been verified. [Cloudflare Email Sending](https://developers.cloudflare.com/email-service/get-started/send-emails/) is Beta. Follow the deployment checks before relying on a new installation.
+Agentpost is in early development. Each self-hosted installation needs its own authentication, DNS, and real send/receive checks. [Cloudflare Email Sending](https://developers.cloudflare.com/email-service/get-started/send-emails/) is Beta. Follow the deployment checks before relying on a new installation.
 
 ## Install with an AI agent
 

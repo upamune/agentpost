@@ -1,0 +1,67 @@
+name: OSV-Scanner
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "43 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: osv-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    name: OSV analysis
+    if: github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write # Publish only completed scans to GitHub code scanning.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        with:
+          version: 2026.10.17
+          install_args: github:google/osv-scanner
+      - name: Scan resolved dependencies
+        id: scan
+        run: |
+          mkdir -p "$RUNNER_TEMP/agentpost-osv"
+          agentpost_osv_report="$RUNNER_TEMP/agentpost-osv/results.sarif"
+          rm -f "$agentpost_osv_report"
+          set +e
+          osv-scanner scan source --lockfile=bun.lock --format=sarif --output-file="$agentpost_osv_report"
+          agentpost_osv_status=$?
+          set -e
+          case "$agentpost_osv_status" in
+            0|1)
+              echo 'completed=true' >> "$GITHUB_OUTPUT"
+              echo "report=$agentpost_osv_report" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "::error::OSV scan failed with exit $agentpost_osv_status; no clean report will be published."
+              exit "$agentpost_osv_status"
+              ;;
+          esac
+          exit "$agentpost_osv_status"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() && steps.scan.outputs.completed == 'true' }}
+        with:
+          name: osv-results
+          path: ${{ steps.scan.outputs.report }}
+          if-no-files-found: error
+          retention-days: 14
+      - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        if: ${{ !cancelled() && steps.scan.outputs.completed == 'true' }}
+        with:
+          sarif_file: ${{ steps.scan.outputs.report }}
+          category: osv-scanner

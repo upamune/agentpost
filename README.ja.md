@@ -1,5 +1,13 @@
 # agentpost
 
+[![CI](https://github.com/upamune/agentpost/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/upamune/agentpost/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/codeql.yml)
+[![OSV-Scanner](https://github.com/upamune/agentpost/actions/workflows/osv.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/osv.yml)
+[![Workflow security](https://github.com/upamune/agentpost/actions/workflows/zizmor.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/zizmor.yml)
+[![Dependency audit](https://github.com/upamune/agentpost/actions/workflows/audit.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/audit.yml)
+[![Dependency review](https://github.com/upamune/agentpost/actions/workflows/dependency-review.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/dependency-review.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/upamune/agentpost/badge)](https://scorecard.dev/viewer/?uri=github.com/upamune/agentpost)
+
 [English](README.md) | [日本語](README.ja.md)
 
 **AIエージェントに、必要なだけメールアドレスを。**
@@ -9,6 +17,8 @@ agentpostは、自分のCloudflareアカウントと独自ドメインで動か�
 エージェントやタスクを増やすたびに、専用のアドレスでメールを送受信できます。
 受信箱数の固定枠はありません。Cloudflareの利用上限・レート制限・保存容量・料金は適用されます。
 各利用者が自分のアカウントとドメインでセルフホストし、メールと認証情報を管理します。
+
+スキャンの対象・検出結果の確認先・公開前の監査は[継続的なセキュリティチェック](docs/security-checks.ja.md)にまとめています。バッジはチェック結果を示すもので、各環境の安全性を認証するものではありません。
 
 ## できること
 
@@ -20,7 +30,7 @@ agentpostは、自分のCloudflareアカウントと独自ドメインで動か�
 - 受信箱トークンで、エージェントが操作できるメールを受信箱ごとに分離できます。
 
 現在は初期開発段階です。
-ローカル環境での検証を行っていますが、独自ドメインでの実際のメール送受信は未検証です。
+各セルフホスト環境で、認証・DNS・実際のメール送受信を確認する必要があります。
 送信に使う[Cloudflare Email Sending](https://developers.cloudflare.com/email-service/get-started/send-emails/)はBetaです。
 本番導入前に、利用する環境で送受信と復旧手順を確認してください。
 

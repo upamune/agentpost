@@ -111,8 +111,12 @@ jobs:
           version: 2026.10.17
           install_args: bun node java github:tlaplus/tlaplus
       - run: bun install --frozen-lockfile
-      - run: mise run verify:${{ matrix.area }}
-      - run: mise run verify:${{ matrix.area }}:selftest
+      - run: mise run "verify:$VERIFY_AREA"
+        env:
+          VERIFY_AREA: ${{ matrix.area }}
+      - run: mise run "verify:$VERIFY_AREA:selftest"
+        env:
+          VERIFY_AREA: ${{ matrix.area }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:

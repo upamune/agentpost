@@ -8,6 +8,8 @@ This releases source only. It does not publish npm packages, CLI binaries, or pr
 
 ## GitHub App setup
 
+Restrict the `release-automation` Environment to deployments from the main branch and store the private key as an Environment secret. Keep the Client ID in repository variables so the job can decide whether automation is enabled before entering the Environment.
+
 The tagpr job is skipped while `TAGPR_APP_CLIENT_ID` is unset. Adding the workflow alone does not create release PRs.
 
 1. [Create a GitHub App](https://github.com/settings/apps/new), or reuse an existing release App.
@@ -16,7 +18,7 @@ The tagpr job is skipped while `TAGPR_APP_CLIENT_ID` is unset. Adding the workfl
 4. Register the key as an Actions secret, then the Client ID as an Actions variable. Keep the key out of Git and chat.
 
 ```sh
-gh secret set TAGPR_APP_PRIVATE_KEY --repo upamune/agentpost < /absolute/path/to/app.private-key.pem
+gh secret set TAGPR_APP_PRIVATE_KEY --env release-automation --repo upamune/agentpost < /absolute/path/to/app.private-key.pem
 gh variable set TAGPR_APP_CLIENT_ID --repo upamune/agentpost --body 'YOUR_APP_CLIENT_ID'
 ```
 

@@ -12,6 +12,8 @@ Workerの導入・更新は[導入手順](deploy.ja.md)に従って行います�
 
 ## GitHub Appの初期設定
 
+`release-automation` Environment のデプロイ対象を main ブランチだけに制限し、秘密鍵はその Environment のシークレットとして登録します。Client ID はジョブの有効化判定に使うためリポジトリ変数に置きます。
+
 `TAGPR_APP_CLIENT_ID`が未登録の間、tagprジョブはスキップされます。
 ワークフローの追加だけではリリースPRは作成されません。
 
@@ -21,7 +23,7 @@ Workerの導入・更新は[導入手順](deploy.ja.md)に従って行います�
 4. 秘密鍵をActions secretに登録した後、Client IDをActions variableに登録します。鍵をGitやチャットに貼らないでください。
 
 ```sh
-gh secret set TAGPR_APP_PRIVATE_KEY --repo upamune/agentpost < /absolute/path/to/app.private-key.pem
+gh secret set TAGPR_APP_PRIVATE_KEY --env release-automation --repo upamune/agentpost < /absolute/path/to/app.private-key.pem
 gh variable set TAGPR_APP_CLIENT_ID --repo upamune/agentpost --body 'YOUR_APP_CLIENT_ID'
 ```
 

@@ -23,7 +23,7 @@
     "lint": "oxlint",
     "knip": "knip",
     "typecheck": "tsc --noEmit",
-    "test": "bun run test:worker && bun test ./test/client.bun.ts ./test/adversarial-client.bun.ts",
+    "test": "bun run test:worker && bun test ./test/client.bun.ts ./test/adversarial-client.bun.ts ./test/security-workflows.bun.ts",
     "test:worker": "vitest run",
     "mcp": "bun run src/mcp.ts",
     "smoke:local": "bun run scripts/local-smoke.ts",

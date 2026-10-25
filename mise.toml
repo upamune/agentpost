@@ -8,6 +8,8 @@ java = "temurin-21.0.11+10.0.LTS"
 "github:tlaplus/tlaplus" = { version = "1.7.4", asset_pattern = "tla2tools.jar", checksum = "sha256:936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88" }
 # init-projectで指定されたosmove/backlog。npmの公開元を確認した上で、このパッケージのみ許可する。
 "npm:backlog" = { version = "1.4.56", allow_low_downloads = true }
+"github:zizmorcore/zizmor" = "1.31.1"
+"github:google/osv-scanner" = "2.7.0"
 
 [tasks.dev]
 run = "bun run dev"
@@ -36,6 +38,12 @@ run = "gitleaks git --redact --no-banner --log-opts=--all"
 [tasks.audit]
 run = "bun audit"
 
+[tasks."security:workflows"]
+run = "zizmor --offline --no-progress --persona auditor --min-severity low .github/workflows"
+
+[tasks."security:dependencies"]
+run = "osv-scanner scan source --lockfile=bun.lock"
+
 [tasks."verify:outbound"]
 run = "bun run verification/check.ts outbound"
 
@@ -57,4 +65,14 @@ depends = [
 ]
 
 [tasks.ci]
-depends = ["format:check", "lint", "typecheck", "test", "build", "secrets", "audit", "verify"]
+depends = [
+  "format:check",
+  "lint",
+  "typecheck",
+  "test",
+  "build",
+  "secrets",
+  "audit",
+  "security:workflows",
+  "verify",
+]
