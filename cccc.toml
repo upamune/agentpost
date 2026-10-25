@@ -1,0 +1,5 @@
+languages = ["es"]
+exclude = ["**/*.test.ts", "**/*.bun.ts", "**/*.fuzz.ts"]
+cache = false
+# Per-function limits and existing debt are enforced by scripts/check-complexity.ts.
+# Keep the full population: no --min or top-N filtering in the CI gate.

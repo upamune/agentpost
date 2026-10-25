@@ -17,6 +17,7 @@ agentpost は静的解析、依存関係・秘密情報のスキャン、敵対�
 | OpenSSF Scorecard                    | リポジトリとソフトウェアサプライチェーンの運用状況                           | main への push、毎週、手動                               | [公開スコア](https://scorecard.dev/viewer/?uri=github.com/upamune/agentpost)、Code scanning、[ワークフロー](https://github.com/upamune/agentpost/actions/workflows/scorecard.yml) |
 | Gitleaks と GitHub secret protection | 到達可能な Git 履歴と認識対象の漏洩した認証情報                              | CI、GitHub 側の検出と push protection                    | [CI](https://github.com/upamune/agentpost/actions/workflows/ci.yml)、管理者向け秘密情報アラート                                                                                   |
 | テストと TLA+                        | 敵対的な境界テスト、送受信の不変条件、実コードでの再現、変異自己検査         | main への push、PR                                       | CI と[形式検証](formal-verification.ja.md)                                                                                                                                        |
+| cccc                                 | 関数ごとの負債上限による認知的・循環的複雑度。脆弱性検出ではなく保守性の指標 | main・PR・手動、ローカル・リリース CI                    | [複雑度ポリシー](complexity.ja.md)、[workflow](https://github.com/upamune/agentpost/actions/workflows/complexity.yml)                                                             |
 
 CodeQL、OSV、zizmor、Scorecard は SARIF を GitHub に送ります。各セキュリティワークフローのリポジトリアクセスは読み取りを基本とし、結果の登録に必要な権限だけをジョブ単位で与えます。Scorecard は公開結果の送信元を OIDC で認証します。別のソースリリースも OIDC で来歴に署名し、読み取り専用のビルド、署名、リリース書き込み権限だけを持つ公開ジョブを分離しています。本番のメール認証情報は使いません。`pull_request_target`、外部の GitHub App のインストール、PR へのスキャン結果コメントは使いません。Action の参照は pinact で SHA に固定します。
 
@@ -55,7 +56,7 @@ Dependabot の通常更新は、新しく公開された悪意あるバージョ
 
 上流リポジトリは公開済みです。GitHub の秘密情報スキャン、push protection、Dependabot のアラートとセキュリティ更新、脆弱性の非公開報告を有効にしています。Actions は SHA 固定を必須にし、既定の権限を読み取り専用にしています。外部の貢献者によるワークフロー実行には、全員についてメンテナーの承認を要求します。
 
-有効な `main security checks` ルールは、PR、main に追随したブランチ、レビュー会話の解決と、15 個の GitHub Actions 検査の通過を要求します。対象は整形、lint、型、テスト、ビルド、Action の固定、秘密情報、送受信それぞれの形式検証、Bun audit、OSV、zizmor、CodeQL、依存関係レビュー、セキュリティ fuzzing です。別のコードスキャンルールでも CodeQL の全重大度の検出をマージの阻止対象にします。強制 push とブランチ削除を禁止し、ルールを迂回できる主体は設定していません。運用者が 1 人のため、他者の承認数は 0 に設定しています。独立した人間のレビューを保証する設定ではありません。
+有効な `main security checks` ルールは、PR、main に追随したブランチ、レビュー会話の解決と、16 個の GitHub Actions 検査の通過を要求します。対象は整形、lint、型、テスト、ビルド、Action の固定、秘密情報、送受信それぞれの形式検証、Bun audit、OSV、zizmor、CodeQL、依存関係レビュー、セキュリティ fuzzing、コード複雑度です。別のコードスキャンルールでも CodeQL の全重大度の検出をマージの阻止対象にします。強制 push とブランチ削除を禁止し、ルールを迂回できる主体は設定していません。運用者が 1 人のため、他者の承認数は 0 に設定しています。独立した人間のレビューを保証する設定ではありません。
 
 これらは上流 GitHub リポジトリの設定です。clone やセルフホスト環境には自動継承されません。fork の管理者は自分のリポジトリでも保護を設定してください。
 
