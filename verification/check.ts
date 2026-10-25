@@ -149,9 +149,7 @@ function run(args: string[], extra: Record<string, string | undefined> = {}) {
 }
 
 function tlcOutcome(selected: string, result: ReturnType<typeof run>): "violated" | "passed" {
-  const violated =
-    result.log.includes(`Invariant ${selected} is violated`) ||
-    (properties.includes(selected) && result.log.includes("Temporal properties were violated"));
+  const violated = modelViolation(selected, result.log);
   if (result.code !== 0 && !violated) throw new Error(`${selected} could not run: ${result.log}`);
   if (
     result.code === 0 &&
@@ -159,6 +157,13 @@ function tlcOutcome(selected: string, result: ReturnType<typeof run>): "violated
   )
     throw new Error(`Missing TLC completion: ${selected}`);
   return violated ? "violated" : "passed";
+}
+
+function modelViolation(selected: string, log: string): boolean {
+  return (
+    log.includes(`Invariant ${selected} is violated`) ||
+    (properties.includes(selected) && log.includes("Temporal properties were violated"))
+  );
 }
 
 type ReplayCase = { title: string; status: string; failureMessages: string[] };
@@ -175,18 +180,27 @@ function assertReplayPopulation(
   pattern?: string,
 ) {
   const expected = pattern ? undefined : 8;
-  if (
-    !cases.length ||
-    (expected && cases.length !== expected) ||
-    report.numRuntimeErrorTestSuites > 0 ||
-    report.numUnhandledErrors > 0
-  )
+  if (!cases.length || (expected && cases.length !== expected) || replayRuntimeFailed(report))
     throw new Error(
       `Replay did not run correctly; inspect ${name}-report.json: ${JSON.stringify(report.testResults.map((item) => item.message))}`,
     );
 }
 
-async function replay(name: string, mutant?: { file: string; path: string }, pattern?: string) {
+function replayRuntimeFailed(report: ReplayReport): boolean {
+  return report.numRuntimeErrorTestSuites > 0 || report.numUnhandledErrors > 0;
+}
+
+type MutantSource = { file: string; path: string };
+
+function replayEnvironment(mutant?: MutantSource) {
+  return {
+    AGENTPOST_FORMAL_MUTANT: mutant?.path,
+    AGENTPOST_FORMAL_MUTANT_MODULE: mutant?.file,
+    AGENTPOST_FORMAL_INBOUND_MUTANT: area === "inbound" ? mutant?.path : undefined,
+  };
+}
+
+async function replay(name: string, mutant?: MutantSource, pattern?: string) {
   const reportFile = join(scratch, `${name}.json`);
   const args = [
     "bun",
@@ -200,11 +214,7 @@ async function replay(name: string, mutant?: { file: string; path: string }, pat
     reportFile,
   ];
   if (pattern) args.push("-t", pattern);
-  const result = run(args, {
-    AGENTPOST_FORMAL_MUTANT: mutant?.path,
-    AGENTPOST_FORMAL_MUTANT_MODULE: mutant?.file,
-    AGENTPOST_FORMAL_INBOUND_MUTANT: area === "inbound" ? mutant?.path : undefined,
-  });
+  const result = run(args, replayEnvironment(mutant));
   await writeFile(join(output, `${name}.log`), result.log);
   const report: ReplayReport = JSON.parse(await readFile(reportFile, "utf8"));
   await copyFile(reportFile, join(output, `${name}-report.json`));

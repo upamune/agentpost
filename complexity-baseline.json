@@ -2,8 +2,8 @@
   "version": 1,
   "toolVersion": "1.8.4",
   "limits": {
-    "cognitive": 12,
-    "cyclomatic": 8
+    "cognitive": 8,
+    "cyclomatic": 6
   },
   "exceptions": {}
 }

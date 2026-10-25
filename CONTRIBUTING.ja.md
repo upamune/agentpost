@@ -22,7 +22,7 @@ TypeScript の strict 設定、既存の formatter・linter、SHA 固定した A
 
 セキュリティ fuzzing は PR・main・毎日実行します。再現方法は[セキュリティ検査](docs/security-checks.ja.md)を参照してください。検出入力は合成データにし、回帰テストへ追加する前に最小化します。悪用できる指摘は、攻撃方法が分かる公開修正案を出す前に非公開で報告してください。
 
-`mise run ci` は、固定した [cccc](https://github.com/moznion/cccc) で認知的複雑度と循環的複雑度も検査します。ゲートは `mise run complexity`、全 JSON 測定結果は `mise run complexity:report` で確認できます。すべての関数識別子の上限は認知的複雑度12・循環的複雑度8で、既存の例外はありません。基準値の変更はレビュー対象とし、通過のためだけに再生成・引き上げをしないでください。対象範囲、識別子、レポート、限界は[複雑度の検査](docs/complexity.ja.md)を参照してください。
+`mise run ci` は、固定した [cccc](https://github.com/moznion/cccc) で認知的複雑度と循環的複雑度も検査します。ゲートは `mise run complexity`、全 JSON 測定結果は `mise run complexity:report` で確認できます。すべての関数識別子の上限は認知的複雑度8・循環的複雑度6で、既存の例外はありません。基準値の変更はレビュー対象とし、通過のためだけに再生成・引き上げをしないでください。対象範囲、識別子、レポート、限界は[複雑度の検査](docs/complexity.ja.md)を参照してください。
 
 テストでは合成したプロバイダー応答とローカルストレージを使い、ビルドは dry-run です。本物のメール、API トークン、本番データを fixture に含めません。秘密情報の検査には全履歴を clone し、ステージ済み変更も `mise exec -- gitleaks git --staged --redact --no-banner` で確認します。
 

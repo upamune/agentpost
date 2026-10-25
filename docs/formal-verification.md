@@ -83,6 +83,12 @@ The full models and sixteen real-code replays pass. All eight deliberately broke
 
 Fresh smaller-bound diagrams were rendered and visually inspected: [outbound](../verification/outbound/evidence/refactor/chart.png), [inbound](../verification/inbound/evidence/refactor/chart.png), and [versioned activity](../verification/outbound/evidence/refactor-active-version/chart.png). Their adjacent Mermaid sources, `summary.json`, and `stories.md` record the checked scopes. They have no broken rule; the historical bug diagrams above remain available. To reproduce, copy each current model, its `*.chart.cfg` (or `ActiveVersion.cfg`), and mapping outside the repository, then run the bundled statechart command with `from-spec MODEL --config CONFIG --map MAP --cover --png`. Use the current help's TLC/Java setup.
 
+### Further reduction to 8/6
+
+Product revision `741a80e7d576a33746c1b1b2919364104094fc2e` further separates URL/identity validation, queue-item handling, stored raw metadata/page lookup, parsed content defaults, and provider outcome fields. All covered changes since `ee8c98f11baf9eb04bf3e2c37c10a7aeb372e32f` preserve the modeled atomic persistence steps and guards. Async helpers add promise continuations but move no operation across the claim/fence/save, parsed-put/ready, attention/cursor, or parse/ack boundaries. Queue items remain sequential. The outcome is **in sync** for all three models, with the same bounds and properties and no new counterexample.
+
+The full verification and all eight model/real-code safety mutations pass again. Three additional real-storage queue regressions cover mixed-success batches, retry delay/capping, and duplicate delivery without duplicate events. The local queue-result helper omits per-message delay, so those tests also spy on the actual public `retry` call. The smaller-bound diagrams above were regenerated and inspected; the outbound mappings still agree across 23,520 combinations. Authentication and parsers remain covered by regression/fuzz tests, outside the formal proof's scope.
+
 ## Rerun and CI
 
 ```sh
