@@ -39,7 +39,7 @@ run = "gitleaks git --redact --no-banner --log-opts=--all"
 run = "bun audit"
 
 [tasks."security:workflows"]
-run = "zizmor --offline --no-progress --persona auditor --min-severity low .github/workflows"
+run = "zizmor --offline --no-progress --persona auditor --min-severity low .github"
 
 [tasks."security:dependencies"]
 run = "osv-scanner scan source --lockfile=bun.lock"

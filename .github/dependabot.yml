@@ -2,6 +2,8 @@ version: 2
 updates:
   - package-ecosystem: bun
     directory: /
+    cooldown:
+      default-days: 7
     schedule:
       interval: weekly
       day: monday
@@ -13,6 +15,8 @@ updates:
         update-types: [minor, patch]
   - package-ecosystem: github-actions
     directory: /
+    cooldown:
+      default-days: 7
     schedule:
       interval: weekly
       day: monday
