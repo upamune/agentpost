@@ -1,0 +1,35 @@
+name: Security fuzzing
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "41 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fuzz-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fuzz:
+    name: Security fuzzing
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        with:
+          version: 2026.10.17
+          install_args: bun node
+      - run: bun install --frozen-lockfile
+      - run: mise run fuzz
+        env:
+          # fast-check reports the seed and shrinking path for every failure.
+          AGENTPOST_FUZZ_RUNS: ${{ github.event_name == 'schedule' && '100000' || '10000' }}

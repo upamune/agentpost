@@ -39,6 +39,10 @@ mise exec --cd /absolute/path/to/agentpost -- bun run src/cli.ts --help
 This command changes the working directory to the checkout. Use absolute paths for message files, attachments, and cursor files that belong to a different project.
 Raw email and attachment downloads create new files with permissions 0600; choose an unused output path. Existing files and symlinks are refused.
 
+## Install a verified release archive
+
+For a versioned source installation, obtain the archive and provenance bundle from [GitHub Releases](https://github.com/upamune/agentpost/releases), and follow [release verification](docs/releases.md#verify-a-download) before extracting or running anything. Verify the publisher repository, signing workflow, and selected version tag; a checksum alone is insufficient. Missing or invalid provenance is a failed installation check, not permission to skip verification. The archive includes source and the frozen lockfile, not Bun, npm packages, or a standalone binary. After verification, extract it into a new persistent directory, install the pinned Bun/Node tools and frozen dependencies as above, and record the absolute source path and version. Cloning main remains available for development.
+
 ## Connect to an existing Worker
 
 Obtain the API URL and a token through the user's private configuration or secret manager. Keep token values out of chat, shell tracing, logs, and committed configuration. All application environment variables use the `AGENTPOST_` prefix; see [the configuration table](docs/deploy.md#environment-variables).

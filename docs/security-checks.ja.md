@@ -18,11 +18,25 @@ agentpost は静的解析、依存関係・秘密情報のスキャン、敵対�
 | Gitleaks と GitHub secret protection | 到達可能な Git 履歴と認識対象の漏洩した認証情報                              | CI、GitHub 側の検出と push protection                    | [CI](https://github.com/upamune/agentpost/actions/workflows/ci.yml)、管理者向け秘密情報アラート                                                                                   |
 | テストと TLA+                        | 敵対的な境界テスト、送受信の不変条件、実コードでの再現、変異自己検査         | main への push、PR                                       | CI と[形式検証](formal-verification.ja.md)                                                                                                                                        |
 
-CodeQL、OSV、zizmor、Scorecard は SARIF を GitHub に送ります。各セキュリティワークフローのリポジトリアクセスは読み取りを基本とし、結果の登録に必要な権限だけをジョブ単位で与えます。Scorecard だけは公開結果の送信元を認証する OIDC ID を受け取り、本番のメール認証情報は使いません。`pull_request_target`、外部の GitHub App のインストール、PR へのスキャン結果コメントは使いません。Action の参照は pinact で SHA に固定します。
+CodeQL、OSV、zizmor、Scorecard は SARIF を GitHub に送ります。各セキュリティワークフローのリポジトリアクセスは読み取りを基本とし、結果の登録に必要な権限だけをジョブ単位で与えます。Scorecard は公開結果の送信元を OIDC で認証します。別のソースリリースも OIDC で来歴に署名し、読み取り専用のビルド、署名、リリース書き込み権限だけを持つ公開ジョブを分離しています。本番のメール認証情報は使いません。`pull_request_target`、外部の GitHub App のインストール、PR へのスキャン結果コメントは使いません。Action の参照は pinact で SHA に固定します。
 
 OSV の既知の脆弱性や zizmor の Low 以上の指摘はチェックを失敗させます。Dependency review は新しく持ち込まれるアドバイザリを拒否します。CodeQL と Scorecard は GitHub のアラート画面を使うため、ワークフローの完了だけでは指摘がないとは判断できません。Code scanning のアラートとリポジトリルールも確認します。検出結果は調査して修正するか、根拠と対象を限定して判断を記録します。バッジを緑にするための一括除外は追加しません。
 
 SARIF を送るワークフローは public リポジトリを対象とし、private 向けの有料機能を有効化せずに GitHub の連携を使います。private な fork でもローカル検査、Gitleaks、Bun audit、テスト、形式検証は利用できます。[CodeQL](https://docs.github.com/en/code-security/code-scanning/introduction-to-code-scanning/about-code-scanning)、[OSV](https://google.github.io/osv-scanner/github-action/)、[zizmor](https://docs.zizmor.sh/integrations/)、[Scorecard](https://github.com/ossf/scorecard-action) の公式説明も参照してください。
+
+## 生成型のセキュリティ fuzzing
+
+[fast-check](https://github.com/dubzzz/fast-check) が `test/security.fuzz.ts` で敵対的な入力を生成し、失敗入力を縮小します。5 個の性質で、単独サロゲートを含む JSON の UTF-8 サイズ、ストリームの上限とキャンセル、トークンの送信先、実際のループバック HTTP リダイレクト、メールボックス名へのヘッダー等の注入を実装に対して検査します。PR・main は各 1 万ケース、毎日は各 10 万ケース、ローカルの `mise run ci` は既定の各 1,000 ケースです。実サービス、実メールの宛先、本番の秘密情報は使いません。
+
+失敗時は報告された seed と縮小パスを使い、同じテストだけを選んで再現します。
+
+```sh
+AGENTPOST_FUZZ_RUNS=10000 AGENTPOST_FUZZ_SEED=123 \
+  AGENTPOST_FUZZ_PATH=0:1:2 mise exec -- bun test ./test/security.fuzz.ts \
+  --test-name-pattern 'JSON preflight'
+```
+
+件数は 1〜100,000、seed は符号付き 32 bit 整数を受け付け、不正な設定は失敗させます。再現には同じ lockfile と生成器を使います。Worker 全体のカバレッジ誘導型 fuzzing ではなく、生成型の性質検査です。認可と復旧は別の敵対的テスト・形式検証を併用します。初回の 50 万ケースは新しい実装不具合を検出せず通過しました。
 
 ## ローカルでの実行
 
@@ -41,9 +55,13 @@ Dependabot の通常更新は、新しく公開された悪意あるバージョ
 
 上流リポジトリは公開済みです。GitHub の秘密情報スキャン、push protection、Dependabot のアラートとセキュリティ更新、脆弱性の非公開報告を有効にしています。Actions は SHA 固定を必須にし、既定の権限を読み取り専用にしています。外部の貢献者によるワークフロー実行には、全員についてメンテナーの承認を要求します。
 
-有効な `main security checks` ルールは、PR、main に追随したブランチ、レビュー会話の解決と、14 個の GitHub Actions 検査の通過を要求します。対象は整形、lint、型、テスト、ビルド、Action の固定、秘密情報、送受信それぞれの形式検証、Bun audit、OSV、zizmor、CodeQL、依存関係レビューです。別のコードスキャンルールでも CodeQL の全重大度の検出をマージの阻止対象にします。強制 push とブランチ削除を禁止し、ルールを迂回できる主体は設定していません。運用者が 1 人のため、他者の承認数は 0 に設定しています。独立した人間のレビューを保証する設定ではありません。
+有効な `main security checks` ルールは、PR、main に追随したブランチ、レビュー会話の解決と、15 個の GitHub Actions 検査の通過を要求します。対象は整形、lint、型、テスト、ビルド、Action の固定、秘密情報、送受信それぞれの形式検証、Bun audit、OSV、zizmor、CodeQL、依存関係レビュー、セキュリティ fuzzing です。別のコードスキャンルールでも CodeQL の全重大度の検出をマージの阻止対象にします。強制 push とブランチ削除を禁止し、ルールを迂回できる主体は設定していません。運用者が 1 人のため、他者の承認数は 0 に設定しています。独立した人間のレビューを保証する設定ではありません。
 
 これらは上流 GitHub リポジトリの設定です。clone やセルフホスト環境には自動継承されません。fork の管理者は自分のリポジトリでも保護を設定してください。
+
+バージョンタグは作成と整合性を別々のルールで守ります。現状 `v*` タグを作れるのはリポジトリの所有者だけで、通常の Git 操作による更新・削除を迂回できる主体はいません。将来のリリース App は作成ルールにだけ明示追加し、更新・削除ルールには追加しません。通常の書き込み権限を持つ利用者が、新しいタグ経由で main 未承認の署名ワークフローを使うことを防ぎます。公開済みのリリースは immutable です。公開時は実際のタグの参照先、署名対象の 3 ファイル、配布ファイル 5 個の完全な一覧、ダウンロードしたバイト列、公開後の immutable 状態を確認します。[リリース手順](releases.ja.md)を参照してください。
+
+コードの変更で作り出せない実績や前提条件は[残る Scorecard 項目](scorecard-remediation.ja.md)に記録しています。
 
 ## 報告と対応
 

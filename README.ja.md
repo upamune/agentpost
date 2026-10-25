@@ -8,6 +8,9 @@
 [![Dependency review](https://github.com/upamune/agentpost/actions/workflows/dependency-review.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/dependency-review.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/upamune/agentpost/badge)](https://scorecard.dev/viewer/?uri=github.com/upamune/agentpost)
 
+[![Security fuzzing](https://github.com/upamune/agentpost/actions/workflows/fuzz.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/fuzz.yml)
+[![Verified source release](https://github.com/upamune/agentpost/actions/workflows/release.yml/badge.svg)](https://github.com/upamune/agentpost/actions/workflows/release.yml)
+
 [English](README.md) | [日本語](README.ja.md)
 
 **AIエージェントに、必要なだけメールアドレスを。**
