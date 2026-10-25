@@ -43,16 +43,16 @@ jobs:
         run: |
           set -euo pipefail
           version=$(bun -e 'process.stdout.write(require("./package.json").version)')
-          [[ "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          [[ "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || exit 1
           tag="v$version"
           commit=$(git rev-parse HEAD)
           git merge-base --is-ancestor "$commit" origin/main
           if [[ "$GITHUB_REF_TYPE" == tag ]]; then
-            [[ "$GITHUB_REF_NAME" == "$tag" ]]
+            [[ "$GITHUB_REF_NAME" == "$tag" ]] || exit 1
           fi
           if [[ "$PUBLISH" == true ]]; then
-            [[ "$GITHUB_REF_TYPE" == tag ]]
-            [[ "$(git rev-parse "refs/tags/$tag^{commit}")" == "$commit" ]]
+            [[ "$GITHUB_REF_TYPE" == tag ]] || exit 1
+            [[ "$(git rev-parse "refs/tags/$tag^{commit}")" == "$commit" ]] || exit 1
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
@@ -124,7 +124,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          [[ "$(gh api "repos/$GITHUB_REPOSITORY/commits/refs%2Ftags%2F$TAG" --jq .sha)" == "$SOURCE_COMMIT" ]]
+          [[ "$(gh api "repos/$GITHUB_REPOSITORY/commits/refs%2Ftags%2F$TAG" --jq .sha)" == "$SOURCE_COMMIT" ]] || exit 1
           cd release
           for subject in agentpost-*.tar.gz SHA256SUMS release-manifest.json; do
             gh attestation verify "$subject" --repo "$GITHUB_REPOSITORY" \
@@ -186,9 +186,9 @@ jobs:
           mkdir downloaded
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir downloaded
           expected=("agentpost-${TAG#v}.tar.gz" SHA256SUMS release-manifest.json provenance.sigstore.json provenance.intoto.jsonl)
-          [[ "$(find downloaded -mindepth 1 -maxdepth 1 | wc -l)" -eq "${#expected[@]}" ]]
+          [[ "$(find downloaded -mindepth 1 -maxdepth 1 | wc -l)" -eq "${#expected[@]}" ]] || exit 1
           for name in "${expected[@]}"; do
-            [[ -f "downloaded/$name" && ! -L "downloaded/$name" ]]
+            [[ -f "downloaded/$name" && ! -L "downloaded/$name" ]] || exit 1
             # A previous valid draft run may have a different Sigstore signature.
             # Its source files must match exactly; verify its original bundle below.
             if [[ "$name" != provenance.* ]]; then
@@ -205,7 +205,7 @@ jobs:
           jq -ce '.dsseEnvelope' provenance.sigstore.json > envelope.jsonl
           cmp envelope.jsonl provenance.intoto.jsonl
           sha256sum --check SHA256SUMS
-          [[ "$(gh api "repos/$GITHUB_REPOSITORY/commits/refs%2Ftags%2F$TAG" --jq .sha)" == "$SOURCE_COMMIT" ]]
+          [[ "$(gh api "repos/$GITHUB_REPOSITORY/commits/refs%2Ftags%2F$TAG" --jq .sha)" == "$SOURCE_COMMIT" ]] || exit 1
           if [[ "$ALREADY_PUBLISHED" != true ]]; then
             gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --verify-tag
           fi

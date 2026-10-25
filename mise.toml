@@ -3,6 +3,7 @@ bun = "1.4.4"
 node = "24.22.1"
 pinact = "5.0.1"
 actionlint = "1.7.12"
+jq = "1.8.2"
 gitleaks = "8.30.1"
 java = "temurin-21.0.11+10.0.LTS"
 "github:tlaplus/tlaplus" = { version = "1.7.4", asset_pattern = "tla2tools.jar", checksum = "sha256:936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88" }
