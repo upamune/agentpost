@@ -5,7 +5,7 @@ import { MailApiError, MailClient } from "../src/client";
 import { createMailServer } from "../src/mcp-server";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { z } from "zod";
-import { mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, open, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { version } from "../package.json";
@@ -654,15 +654,21 @@ describe("agent client and MCP", () => {
     try {
       const output = join(directory, "private.eml");
       expect((await download(output)).code).toBe(0);
-      expect((await stat(output)).mode & 0o777).toBe(0o600);
-      expect(await readFile(output, "utf8")).toBe("private mail content");
-      await writeFile(output, "keep this file");
-      expect((await download(output)).code).toBe(1);
-      expect(await readFile(output, "utf8")).toBe("keep this file");
+      const downloaded = await open(output, "r");
+      try {
+        expect((await downloaded.stat()).mode & 0o777).toBe(0o600);
+        expect(await downloaded.readFile("utf8")).toBe("private mail content");
+      } finally {
+        await downloaded.close();
+      }
+      const existing = join(directory, "existing.eml");
+      await writeFile(existing, "keep this file", { flag: "wx", mode: 0o600 });
+      expect((await download(existing)).code).toBe(1);
+      expect(await readFile(existing, "utf8")).toBe("keep this file");
       const link = join(directory, "symlink.eml");
-      await symlink(output, link);
+      await symlink(existing, link);
       expect((await download(link)).code).toBe(1);
-      expect(await readFile(output, "utf8")).toBe("keep this file");
+      expect(await readFile(existing, "utf8")).toBe("keep this file");
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

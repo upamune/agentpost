@@ -35,6 +35,16 @@ mise run security:dependencies
 
 `ci` includes the offline zizmor workflow audit. OSV's separate command checks only the resolved `bun.lock`; it does not recursively inspect local private deployment files. OSV sends package names and resolved versions to its advisory service. Online workflow analysis in GitHub can find issues that offline analysis cannot.
 
+Dependabot version updates wait seven days after an upstream release to reduce exposure to newly published malicious versions. Advisory-driven security updates are exempt from that cooldown. Local zizmor checks cover all of `.github`, including Dependabot configuration.
+
+## Repository protection
+
+The upstream repository is public. GitHub secret scanning, push protection, Dependabot alerts and security updates, and private vulnerability reporting are enabled. Actions require SHA-pinned references, use read-only default permissions, and require maintainer approval for workflows from all external contributors.
+
+The active `main security checks` ruleset requires a PR, a branch up to date with main, resolved review conversations, and fourteen passing GitHub Actions checks: formatting, lint, types, tests, build, action pins, secrets, both formal-verification jobs, Bun audit, OSV, zizmor, CodeQL, and dependency review. CodeQL findings at any severity also block merges through a separate code-scanning rule. Force pushes and branch deletion are blocked, with no configured bypass actors. The repository has one operator, so the rule requires zero external approvals; this does not provide independent human review.
+
+These are settings of the upstream GitHub repository, not settings automatically inherited by a clone or self-hosted deployment. Fork maintainers must configure their own repository protections.
+
 ## Reporting and triage
 
 Report vulnerabilities through [GitHub private vulnerability reporting](https://github.com/upamune/agentpost/security/advisories/new), as described in [SECURITY.md](../SECURITY.md). Keep live tokens, messages, deployment hostnames and working exploit details out of public issues and CI artifacts. The configured production credentials and private deployment helpers are not part of this repository or these scanners.
@@ -50,5 +60,9 @@ The audited code baseline is `61e305b62f0c98dde3ca1a84d7829f195fd70c01`. Three i
 Before publication, Gitleaks scanned all 21 reachable commits. A separate comparison of 441 reachable blobs against five known local credentials and selected live deployment identifiers found no matches; the values were never included in the report. The dependency checks reported no known advisories in Bun audit's 287 packages and OSV's 290 parsed lockfile entries. The independent reviewers exercised 39 auth/Event tests, 28 client/adversarial tests, 17 mocked diagnostic tests and 69 mail/diagnostic/security tests; overlapping tests are not unique coverage counts. No production probing or actual mail was involved in this audit. Local CI also passed 100 ordinary Worker tests, 28 client tests, inbound/outbound formal verification and mutation selftests.
 
 Workflow hardening replaces direct matrix interpolation in shell source with quoted environment variables and moves the future release key behind a main-only Environment. The previous matrix was a fixed trusted list; this is preventive hardening, not a demonstrated remote code-execution finding.
+
+The first hosted scan found four CodeQL filesystem-race alerts in the synthetic CLI download test. The test inspected a pathname before reading or replacing its fixture. Production downloads already use atomic exclusive creation (`open` with `wx`) and write through the returned handle. The test now checks permissions and content through one handle and uses a separate exclusively created fixture for overwrite and symlink assertions, without suppressing the query. The first zizmor run also detected an insufficient implicit Dependabot cooldown; both ecosystems now explicitly use seven days. Three additional shell regressions verify OSV's clean, vulnerable, and failed-scan paths; the resulting ordinary test suite has 100 Worker tests and 31 Bun tests.
+
+Scorecard results also report practice gaps, including the repository's young age, absent independent review history, missing continuous fuzzing, and no OpenSSF Best Practices registration. Those are not claims of exploitable application vulnerabilities. They remain visible rather than being dismissed or hidden to improve the badge.
 
 This is a source/publication audit. It does not prove whole-system absence of bugs, every MIME parser allocation bound, real Cloudflare platform isolation, backup restoration, mail deliverability, or safety of arbitrary agent actions based on hostile mail. Each operator must complete their own [deployment checks](deploy.md).
