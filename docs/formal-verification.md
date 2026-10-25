@@ -73,6 +73,16 @@ The security hardening adds a 16 MiB parsed-JSON preflight before parsed put. It
 
 The OAuth addition changes HTTP authentication and inbox authorization, not the modeled send, disable, recovery, raw-index, or parse ordering. The existing models and real-code replays were rerun unchanged. OAuth discovery, JWT validation, inbox ownership, and cursor refresh are covered separately by `test/oauth.test.ts`; these are regression tests, not a formal proof of authentication. See [authentication](authentication.md).
 
+## Complexity refactor synchronization
+
+Product revision `ee8c98f11baf9eb04bf3e2c37c10a7aeb372e32f` splits provider response classification, conditional outcome persistence (`settleSend`), raw metadata validation, and escaped JSON sizing into smaller operations. Comparing every covered change since `54b677e5f77962db60e3da0ce9a88b3fafdf9cf1` found no change to a modeled atomic step, state guard, or external-await boundary. API ownership/naming/domain-diagnostic changes since that revision do not change the modeled ordering. The outcome is **in sync** for outbound, inbound and active-version checks; no new product bug was found by this run.
+
+The conditional D1 claim and outcome updates retain their predicates. The ownership fence still immediately precedes sender initiation without an await. Original retention, durable attention before cursor advancement, parsed R2 put before ready, and queue acknowledgement ordering remain unchanged. Models retain all properties and bounds; only their code references move. Replay population/completion validation and diagram label selection were factored into helpers without changing failure criteria. The old/new outbound mappings produce identical labels for 23,520 input combinations.
+
+The full models and sixteen real-code replays pass. All eight deliberately broken safety variants are detected in both models and real code. Separately, 33 contract regressions and 500,000 security-fuzz cases cover CLI requests, DNS TXT grammar, MCP error mapping, bounded JSON and credential boundaries. These remain tests, rather than formal proofs of those components.
+
+Fresh smaller-bound diagrams were rendered and visually inspected: [outbound](../verification/outbound/evidence/refactor/chart.png), [inbound](../verification/inbound/evidence/refactor/chart.png), and [versioned activity](../verification/outbound/evidence/refactor-active-version/chart.png). Their adjacent Mermaid sources, `summary.json`, and `stories.md` record the checked scopes. They have no broken rule; the historical bug diagrams above remain available. To reproduce, copy each current model, its `*.chart.cfg` (or `ActiveVersion.cfg`), and mapping outside the repository, then run the bundled statechart command with `from-spec MODEL --config CONFIG --map MAP --cover --png`. Use the current help's TLC/Java setup.
+
 ## Rerun and CI
 
 ```sh

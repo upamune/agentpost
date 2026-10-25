@@ -2,17 +2,8 @@
   "version": 1,
   "toolVersion": "1.8.4",
   "limits": {
-    "cognitive": 15,
-    "cyclomatic": 10
+    "cognitive": 12,
+    "cyclomatic": 8
   },
-  "exceptions": {
-    "verification/check.ts/function:replay#1": {
-      "cognitive": 8,
-      "cyclomatic": 14
-    },
-    "verification/outbound/Outbound.map.mjs/function:state#1": {
-      "cognitive": 21,
-      "cyclomatic": 10
-    }
-  }
+  "exceptions": {}
 }

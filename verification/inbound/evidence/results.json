@@ -1,5 +1,5 @@
 {
-  "verifiedProductCommit": "54b677e5f77962db60e3da0ce9a88b3fafdf9cf1",
+  "verifiedProductCommit": "ee8c98f11baf9eb04bf3e2c37c10a7aeb372e32f",
   "bounds": {
     "originals": 3,
     "valid": 2,
@@ -17,11 +17,11 @@
   "sourceFiles": [
     {
       "path": "src/inbound.ts",
-      "sha256": "73065cc6568f5d183e8c512812f49ce34c9373fee9761b2aa9b19756fa74295e"
+      "sha256": "0bb1115e09481a0b675392a85e3fda667468c57762b30c621bb237787cea2695"
     },
     {
       "path": "src/bounded-json.ts",
-      "sha256": "85d9c2a60503560737e283f05af7b3672ed02e754dc7f6d542bf49e2a3526500"
+      "sha256": "52297b8b50fea832979668a4c1601a12c38d298a18f22dc08795dcc9b2b9ea6c"
     },
     {
       "path": "src/maintenance.ts",
@@ -29,11 +29,11 @@
     },
     {
       "path": "src/index.ts",
-      "sha256": "4f3021b945a3cd63ce20eda24ad244fd9c23fef61d831b24a1e8dea6bbc4c7a5"
+      "sha256": "e6f856e257e9cda1fb67214f53106dac8f39f7e2a6153f373970c9e6f7d367e2"
     },
     {
       "path": "src/api.ts",
-      "sha256": "0364a750c0f2ff70698234c9eac63534a90446de55215ec9ec08c8827ad062a4"
+      "sha256": "41e4c783ebf10b7328097323e4a4d2b74af957d87018fe2cd4e776bb11b416a0"
     },
     {
       "path": "migrations/0001_mail.sql",
@@ -82,7 +82,7 @@
         "fullName": "a D1 failure after raw persistence is repaired from the original metadata",
         "status": "passed",
         "title": "a D1 failure after raw persistence is repaired from the original metadata",
-        "duration": 30,
+        "duration": 31,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -93,7 +93,7 @@
         "fullName": "queue outage and duplicate recovery preserve one message and one received event",
         "status": "passed",
         "title": "queue outage and duplicate recovery preserve one message and one received event",
-        "duration": 23,
+        "duration": 25,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -104,7 +104,7 @@
         "fullName": "failures before parsed storage and before ready commit retain the original and recover",
         "status": "passed",
         "title": "failures before parsed storage and before ready commit retain the original and recover",
-        "duration": 19,
+        "duration": 18,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -126,7 +126,7 @@
         "fullName": "orphaned inbox metadata is reported, retried and cleared after the inbox is restored",
         "status": "passed",
         "title": "orphaned inbox metadata is reported, retried and cleared after the inbox is restored",
-        "duration": 19,
+        "duration": 21,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -137,7 +137,7 @@
         "fullName": "cursor commit failure repeats safe inserts without downgrading ready messages",
         "status": "passed",
         "title": "cursor commit failure repeats safe inserts without downgrading ready messages",
-        "duration": 17,
+        "duration": 21,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -148,7 +148,7 @@
         "fullName": "failed inbound republishing does not prevent outbound republishing",
         "status": "passed",
         "title": "failed inbound republishing does not prevent outbound republishing",
-        "duration": 14,
+        "duration": 17,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -159,7 +159,7 @@
         "fullName": "failed attention persistence keeps the cursor before the poisoned original",
         "status": "passed",
         "title": "failed attention persistence keeps the cursor before the poisoned original",
-        "duration": 14,
+        "duration": 31,
         "failureMessages": [],
         "meta": {},
         "tags": [],

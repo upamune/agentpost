@@ -1,0 +1,25 @@
+---
+config:
+  markdownAutoWrap: false
+  state:
+    useMaxWidth: false
+---
+stateDiagram-v2
+  classDef group0 fill:#d6eaf8,stroke:#6b757c,color:#1b2631
+  state "Legend" as legend {
+    state "Within the checked rule" as legendGroup0
+  }
+  class legendGroup0 group0
+  state "Inbox disabled; stored<br/>update 2; old enable<br/>finished; new disable<br/>completed" as s0
+  state "Inbox disabled; stored<br/>update 2; old enable still<br/>in flight; new disable<br/>completed" as s1
+  state "Inbox enabled; stored<br/>update 0; old enable still<br/>in flight; new disable in<br/>flight" as s2
+  state "Inbox enabled; stored<br/>update 1; old enable<br/>finished; new disable in<br/>flight" as s3
+  [*] --> s2
+  s2 --> s1 : New disable commits
+  s2 --> s3 : Old enable arrives late
+  s1 --> s0 : Old enable arrives late
+  s3 --> s0 : New disable commits
+  class s0 group0
+  class s1 group0
+  class s2 group0
+  class s3 group0

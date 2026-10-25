@@ -5,12 +5,12 @@ description: Check agentpost outbound claims, actor ownership, inbox disabling, 
 
 # Verify outbound safety
 
-Run in the source checkout. Last synchronized with product commit `54b677e5f77962db60e3da0ce9a88b3fafdf9cf1`, following the original findings at `ed15d43123471a7de7c89be7f77f5380da136dc9`.
+Run in the source checkout. Last synchronized with product commit `ee8c98f11baf9eb04bf3e2c37c10a7aeb372e32f`, following the original findings at `ed15d43123471a7de7c89be7f77f5380da136dc9`.
 
 ## Covered code
 
 - `src/coordinator.ts`: `serialize` holds a per-inbox operation across awaits; `fence` synchronously checks ownership immediately before dispatch; `setActive` versions its D1 projection; `recover` rechecks stale state inside serialization.
-- `src/outbound.ts`: `processOutbound` conditionally claims a matching inbox/outbox, reads active state, fences and starts the provider in the same JavaScript turn, then conditionally saves the outcome. `cloudflareSend` classifies ambiguous acceptance and explicit rejection.
+- `src/outbound.ts`: `processOutbound` conditionally claims a matching inbox/outbox, reads active state, fences and starts the provider in the same JavaScript turn, then `settleSend` conditionally saves the outcome. `cloudflareSend` classifies ambiguous acceptance and explicit rejection.
 - `src/api.ts` inbox PATCH, `src/index.ts` queue and `src/maintenance.ts` stale recovery all route through the same named coordinator. `wrangler.jsonc` binds the class and SQLite migration.
 - `migrations/0001_mail.sql` preserves idempotency and claim state; `0004_inbox_active_version.sql` rejects old active-state projections.
 
