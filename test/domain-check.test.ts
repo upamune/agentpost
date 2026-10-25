@@ -65,6 +65,8 @@ beforeEach(async () => {
     { name: `_dmarc.${domain}`, type: "TXT", content: "v=DMARC1; p=reject;" },
   ];
   vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+    // Preserve workerd's Request validation even when upstream responses are mocked.
+    new Request(input, init);
     const url = new URL(String(input));
     calls.push({ url, init });
     const override = overrides?.(url, init);
@@ -131,7 +133,7 @@ test("checks the configured domain, provider expected records, and distinct send
   for (const call of calls) {
     expect(call.init?.method ?? "GET").toBe("GET");
     expect(call.init?.body).toBeUndefined();
-    expect(call.init?.redirect).toBe("error");
+    expect(call.init?.redirect).toBe("manual");
     expect(call.init?.signal).toBeInstanceOf(AbortSignal);
     const authorization = new Headers(call.init?.headers).get("Authorization");
     expect(authorization).toBe(

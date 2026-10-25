@@ -21,7 +21,7 @@ function keys(issuer: string) {
       cooldownDuration: 30_000,
       cacheMaxAge: 600_000,
       [customFetch]: async (url, options) => {
-        const response = await fetch(url, { ...options, redirect: "error" });
+        const response = await fetch(url, { ...options, redirect: "manual" });
         if (!response.ok || !response.body) throw new Error("Access key service unavailable");
         const body = await readBounded(response.body, 256 * 1024);
         return new Response(body, { headers: { "Content-Type": "application/json" } });

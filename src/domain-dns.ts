@@ -65,7 +65,9 @@ function txt(data: string): string {
 export async function diagnosticJson(url: URL, headers: HeadersInit, signal: AbortSignal) {
   const response = await fetch(url, {
     headers,
-    redirect: "error",
+    // workerd supports manual/follow, but rejects the standard "error" mode.
+    // Non-2xx responses below fail without following a Location header.
+    redirect: "manual",
     signal: AbortSignal.any([signal, AbortSignal.timeout(3500)]),
   });
   if (!response.ok || !response.body) {

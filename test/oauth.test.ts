@@ -45,7 +45,9 @@ beforeEach(async () => {
   await reset();
   await applyD1Migrations(bindings.DB, env.TEST_MIGRATIONS);
   keyRequests = [];
-  vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+    // Exercise edge Request constraints instead of accepting unsupported fetch options.
+    new Request(input, init);
     const url = String(input);
     keyRequests.push(url);
     if (url === `${issuer}/cdn-cgi/access/certs`) return Response.json({ keys: [publicJwk] });
@@ -377,6 +379,28 @@ test("JWKS unavailability is a generic 503 rather than token fallback", async ()
   expect(response.status).toBe(503);
   expect(await response.text()).not.toContain("synthetic");
   expect(keyRequests).toEqual(["https://offline-oauth.cloudflareaccess.com/cdn-cgi/access/certs"]);
+});
+
+test("JWKS redirects fail closed without following an untrusted location on workerd", async () => {
+  for (const status of [301, 302, 303, 307, 308]) {
+    const redirectedIssuer = `https://redirect-${status}.cloudflareaccess.com`;
+    const requests: string[] = [];
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      new Request(input, init);
+      requests.push(String(input));
+      expect(init?.redirect).toBe("manual");
+      return new Response("", {
+        status,
+        headers: { Location: "https://untrusted.invalid/private-keys" },
+      });
+    });
+    const response = await api("/v1/inboxes", {
+      assertion: await jwt("alice", { iss: redirectedIssuer }),
+      settings: { ...oauth, AGENTPOST_ACCESS_TEAM_DOMAIN: redirectedIssuer },
+    });
+    expect(response.status).toBe(503);
+    expect(requests).toEqual([`${redirectedIssuer}/cdn-cgi/access/certs`]);
+  }
 });
 
 test("a signed assertion is revalidated on each MCP event poll and expiration terminates the stream", async () => {
