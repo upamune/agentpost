@@ -1,5 +1,6 @@
 import { sha256 } from "./common";
 import { isOAuthMetadataPath } from "./oauth-metadata";
+import { isHttpsOrLoopbackHttp } from "./transport-url";
 import type { Env } from "./types";
 
 export function secureResponse(request: Request, response: Response): Response {
@@ -34,10 +35,7 @@ export async function enforceRateLimit(limiter: RateLimit, key: string): Promise
 
 export async function guardHttpRequest(request: Request, env: Env): Promise<Response | null> {
   const url = new URL(request.url);
-  if (
-    url.protocol !== "https:" &&
-    !(url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname))
-  )
+  if (!isHttpsOrLoopbackHttp(url))
     return Response.json({ error: "HTTPS required" }, { status: 403 });
   const origin = request.headers.get("Origin");
   const publicDiscovery =

@@ -11,6 +11,31 @@ export type SendResult =
   | { status: "retry"; error: string; delay: number }
   | { status: "failed" | "unknown"; error: string };
 
+function providerRetryDelay(retryAfter: string | null): number {
+  const seconds = retryAfter ? Number(retryAfter) : NaN;
+  const dateSeconds = retryAfter ? (Date.parse(retryAfter) - Date.now()) / 1000 : NaN;
+  const delay = Number.isFinite(seconds)
+    ? seconds
+    : Number.isFinite(dateSeconds)
+      ? dateSeconds
+      : 60;
+  return Math.min(3600, Math.max(30, delay));
+}
+
+async function providerAcceptance(response: Response): Promise<SendResult> {
+  try {
+    const parsed = providerResponse.safeParse(await response.json());
+    if (parsed.success && parsed.data.success)
+      return { status: "accepted", result: JSON.stringify(parsed.data.result ?? null) };
+  } catch {
+    // A truncated success response can follow a successful send.
+  }
+  return {
+    status: "unknown",
+    error: "Unrecognized provider response; check outcome before resending",
+  };
+}
+
 export async function cloudflareSend(
   env: Env,
   payload: SendPayload,
@@ -42,18 +67,10 @@ export async function cloudflareSend(
     };
   }
   if (response.status === 429) {
-    const retryAfter = response.headers.get("retry-after");
-    const seconds = retryAfter ? Number(retryAfter) : NaN;
-    const dateSeconds = retryAfter ? (Date.parse(retryAfter) - Date.now()) / 1000 : NaN;
-    const delay = Number.isFinite(seconds)
-      ? seconds
-      : Number.isFinite(dateSeconds)
-        ? dateSeconds
-        : 60;
     return {
       status: "retry",
       error: "Provider rate limit",
-      delay: Math.min(3600, Math.max(30, delay)),
+      delay: providerRetryDelay(response.headers.get("retry-after")),
     };
   }
   if ([400, 401, 403, 404, 413, 422].includes(response.status)) {
@@ -65,18 +82,7 @@ export async function cloudflareSend(
       error: `Provider returned HTTP ${response.status}; check outcome before resending`,
     };
   }
-  try {
-    const parsed = providerResponse.safeParse(await response.json());
-    if (parsed.success && parsed.data.success) {
-      return { status: "accepted", result: JSON.stringify(parsed.data.result ?? null) };
-    }
-  } catch {
-    // A truncated success response can follow a successful send.
-  }
-  return {
-    status: "unknown",
-    error: "Unrecognized provider response; check outcome before resending",
-  };
+  return providerAcceptance(response);
 }
 
 // Called only inside InboxCoordinator's serialized operation. The synchronous fence
@@ -108,8 +114,17 @@ export async function processOutbound(
   } else {
     result = { status: "failed", error: "Inbox is disabled" };
   }
-  if (result.status === "retry" && row.attempts < 8) {
-    const delay = Math.max(result.delay, Math.min(3600, 30 * 2 ** (row.attempts - 1)));
+  await settleSend(env, id, row.attempts, result);
+}
+
+async function settleSend(
+  env: Env,
+  id: string,
+  attempts: number,
+  result: SendResult,
+): Promise<void> {
+  if (result.status === "retry" && attempts < 8) {
+    const delay = Math.max(result.delay, Math.min(3600, 30 * 2 ** (attempts - 1)));
     await env.DB.prepare(
       "UPDATE outbox SET status = 'pending', available_at = ?, updated_at = ?, error = ? WHERE id = ? AND status = 'sending'",
     )

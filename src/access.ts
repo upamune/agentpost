@@ -11,6 +11,17 @@ const identitySchema = z.object({
   sub: z.string().max(256),
   common_name: z.string().max(256).optional(),
 });
+const invalidAssertionErrors = [
+  z.ZodError,
+  errors.JWTExpired,
+  errors.JWTClaimValidationFailed,
+  errors.JWSSignatureVerificationFailed,
+  errors.JWSInvalid,
+  errors.JWTInvalid,
+  errors.JWKSNoMatchingKey,
+  errors.JOSEAlgNotAllowed,
+  errors.JOSENotSupported,
+];
 
 function keys(issuer: string) {
   let result = keySets.get(issuer);
@@ -49,16 +60,7 @@ export async function authenticateAccess(
     });
     claims = identitySchema.parse(payload);
   } catch (error) {
-    const invalid =
-      error instanceof z.ZodError ||
-      error instanceof errors.JWTExpired ||
-      error instanceof errors.JWTClaimValidationFailed ||
-      error instanceof errors.JWSSignatureVerificationFailed ||
-      error instanceof errors.JWSInvalid ||
-      error instanceof errors.JWTInvalid ||
-      error instanceof errors.JWKSNoMatchingKey ||
-      error instanceof errors.JOSEAlgNotAllowed ||
-      error instanceof errors.JOSENotSupported;
+    const invalid = invalidAssertionErrors.some((type) => error instanceof type);
     return Response.json(
       { error: invalid ? "Invalid Access assertion" : "Access verification unavailable" },
       { status: invalid ? 401 : 503 },
