@@ -22,6 +22,8 @@ TypeScript の strict 設定、既存の formatter・linter、SHA 固定した A
 
 セキュリティ fuzzing は PR・main・毎日実行します。再現方法は[セキュリティ検査](docs/security-checks.ja.md)を参照してください。検出入力は合成データにし、回帰テストへ追加する前に最小化します。悪用できる指摘は、攻撃方法が分かる公開修正案を出す前に非公開で報告してください。
 
+`mise run ci` は、固定した [cccc](https://github.com/moznion/cccc) で認知的複雑度と循環的複雑度も検査します。ゲートは `mise run complexity`、全 JSON 測定結果は `mise run complexity:report` で確認できます。新しい関数識別子の上限は認知的複雑度15・循環的複雑度10です。既存の例外28関数は実測値を上限として保持し、改善時には記録値も下げます。基準値の変更はレビュー対象とし、通過のためだけに再生成・引き上げをしないでください。対象範囲、識別子、レポート、限界は[複雑度の検査](docs/complexity.ja.md)を参照してください。
+
 テストでは合成したプロバイダー応答とローカルストレージを使い、ビルドは dry-run です。本物のメール、API トークン、本番データを fixture に含めません。秘密情報の検査には全履歴を clone し、ステージ済み変更も `mise exec -- gitleaks git --staged --redact --no-banner` で確認します。
 
 MCP と Events の変更は[固定した仕様](docs/mcp-events.ja.md)に従います。生成証跡と vendor 化したファイルは元の言語を保持します。Undici・Zod の overrides は Cloudflare のテストツールが選ぶ脆弱な版を置き換えており、上流が修正版を採用したら見直します。[Undici](https://github.com/advisories/GHSA-xjj6-f33q-929c)、[Zod](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5) のアドバイザリも参照してください。

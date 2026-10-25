@@ -12,6 +12,16 @@ java = "temurin-21.0.11+10.0.LTS"
 "github:zizmorcore/zizmor" = "1.31.1"
 "github:google/osv-scanner" = "2.7.0"
 
+[tools."github:moznion/cccc"]
+version = "1.8.4"
+
+[tools."github:moznion/cccc".platforms]
+macos-arm64 = { asset_pattern = "cccc-v1.8.4-aarch64-apple-darwin.tar.gz", checksum = "sha256:f8f015ce3ec60db09bb6823aae9dc9e6bfdb13d79ae50a1bcfd3518357deeda9" }
+macos-x64 = { asset_pattern = "cccc-v1.8.4-x86_64-apple-darwin.tar.gz", checksum = "sha256:4fde0cf0eec82dc78a0587f1bfae5ecf154bfb2f3959cff9deba2b35d430c662" }
+linux-arm64 = { asset_pattern = "cccc-v1.8.4-aarch64-unknown-linux-musl.tar.gz", checksum = "sha256:caad978e8595db0ba07585aad6b63affdee0d28f191b620d1cfd02e51e31186b" }
+linux-x64 = { asset_pattern = "cccc-v1.8.4-x86_64-unknown-linux-musl.tar.gz", checksum = "sha256:64b3084e05cf2f75d4af57268a2b898526c04be7bc31d0a36708081b13a64f97" }
+windows-x64 = { asset_pattern = "cccc-v1.8.4-x86_64-pc-windows-msvc.zip", checksum = "sha256:37dd68e0446ef578c06ab56ed5ffbc8cf7f219a09676b91e1f8f2b43b68c96f8" }
+
 [tasks.dev]
 run = "bun run dev"
 
@@ -35,6 +45,12 @@ run = "bun run build"
 
 [tasks.fuzz]
 run = "bun run fuzz"
+
+[tasks.complexity]
+run = "bun run scripts/check-complexity.ts"
+
+[tasks."complexity:report"]
+run = "cccc --config cccc.toml --no-cache --pretty src scripts verification"
 
 [tasks."release:build"]
 run = "bun run scripts/build-release.ts"
@@ -82,5 +98,6 @@ depends = [
   "audit",
   "security:workflows",
   "fuzz",
+  "complexity",
   "verify",
 ]

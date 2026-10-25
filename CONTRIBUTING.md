@@ -22,6 +22,8 @@ Use strict TypeScript, the existing formatter/linter, SHA-pinned Actions, and En
 
 Security fuzzing runs on PRs, main, and daily. See [security checks](docs/security-checks.md) for replay instructions. Keep discovered inputs synthetic and minimize them before committing a regression. Report exploitable findings privately before proposing a public fix that reveals them.
 
+`mise run ci` also checks cognitive and cyclomatic complexity with pinned [cccc](https://github.com/moznion/cccc). Use `mise run complexity` for the gate or `mise run complexity:report` for the full JSON measurements. New function identities have limits of 15 cognitive / 10 cyclomatic; 28 existing exceptions retain their measured per-function caps and must shrink as code improves. Baseline changes require review; never regenerate or increase allowances just to pass. See [complexity checks](docs/complexity.md) for scope, identities, reports, and limitations.
+
 Tests use synthetic provider responses and local storage; builds are dry runs. Keep real mail, API tokens, and production data out of fixtures. Use a full-history clone for secret scanning and also inspect staged changes with `mise exec -- gitleaks git --staged --redact --no-banner`.
 
 MCP and Events changes follow the [pinned contracts](docs/mcp-events.md). Generated evidence and vendored files retain their original language. The Undici/Zod overrides replace vulnerable versions selected by Cloudflare test tooling; reconsider them when upstream adopts fixes: [Undici advisory](https://github.com/advisories/GHSA-xjj6-f33q-929c), [Zod advisory](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5).

@@ -82,3 +82,4 @@ yarn-error.log*
 !test/fixtures/*.eml
 *.private-key.pem
 .verification/
+.complexity/
