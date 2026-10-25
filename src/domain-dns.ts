@@ -24,7 +24,7 @@ export function dnsName(value: string): string {
 }
 
 /** Decode one TXT RR's quoted character-strings; do not merge separate RRs. */
-function txt(data: string): string {
+export function dnsTxt(data: string): string {
   let result = "";
   let offset = 0;
   let chunks = 0;
@@ -115,7 +115,9 @@ export function publicDns(signal: AbortSignal) {
           }
           if (!records.length && owner !== name) throw new Error("Incomplete DNS alias answer");
           return [
-            ...new Set(records.map((answer) => (type === "TXT" ? txt(answer.data) : answer.data))),
+            ...new Set(
+              records.map((answer) => (type === "TXT" ? dnsTxt(answer.data) : answer.data)),
+            ),
           ];
         }
         throw new Error("DNS alias limit");

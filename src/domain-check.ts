@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { diagnosticJson, dnsName, publicDns } from "./domain-dns";
+import { diagnosticJson, dnsName, dnsTxt, publicDns } from "./domain-dns";
 import type { Env } from "./types";
 
 type Status = "pass" | "warning" | "fail" | "unknown";
@@ -421,10 +421,20 @@ export async function checkDomain(env: Env) {
     ]);
     if (providerRecords) {
       await run("cloudflare_dns", domain, async () => {
-        const expected = providerRecords!.filter(
-          (record) =>
-            ["MX", "TXT"].includes(record.type) && !record.name.toLowerCase().startsWith("_dmarc."),
-        );
+        const expected = providerRecords!
+          .filter(
+            (record) =>
+              ["MX", "TXT"].includes(record.type) &&
+              !record.name.toLowerCase().startsWith("_dmarc."),
+          )
+          .map((record) => ({
+            ...record,
+            // The provider returns DNS presentation strings, including quoted TXT chunks.
+            content:
+              record.type === "TXT" && record.content.trimStart().startsWith('"')
+                ? dnsTxt(record.content)
+                : record.content,
+          }));
         let mismatch = false;
         let custom = false;
         if (

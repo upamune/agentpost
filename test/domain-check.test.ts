@@ -297,6 +297,20 @@ test("provider selectors and return paths are used and a stale but valid DKIM ke
   );
 });
 
+test("provider TXT values use DNS quoted strings and chunks without causing unknown diagnostics", async () => {
+  expected = expected.map((record) =>
+    record.type === "TXT" ? { ...record, content: JSON.stringify(record.content) } : record,
+  );
+  expected[1]!.content = `"v=DKIM1; k=rsa; p=" "${key}"`;
+  expect(status(await checkDomain(settings), "cloudflare_dns")).toBe("pass");
+  expected[1]!.content = '"v=DKIM1; k=rsa; p=AAAA"';
+  expect(status(await checkDomain(settings), "cloudflare_dns")).toBe("fail");
+  for (const malformed of ['"unclosed', '"v=DKIM1;"junk', '"bad\\999"']) {
+    expected[1]!.content = malformed;
+    expect(status(await checkDomain(settings), "cloudflare_dns")).toBe("unknown");
+  }
+});
+
 test("TXT chunks concatenate within one RR and DNS CNAMEs are followed only within the returned answer chain", async () => {
   overrides = (url) => {
     if (
