@@ -65,4 +65,6 @@ The first hosted scan found four CodeQL filesystem-race alerts in the synthetic 
 
 Scorecard results also report practice gaps, including the repository's young age, absent independent review history, missing continuous fuzzing, and no OpenSSF Best Practices registration. Those are not claims of exploitable application vulnerabilities. They remain visible rather than being dismissed or hidden to improve the badge.
 
+The hosted analyses for [PR #1](https://github.com/upamune/agentpost/pull/1), revision `cb871cb`, completed with zero CodeQL, OSV, and zizmor results. Dependency review also passed on the PR and on a manual main-branch comparison. Repository protection settings were read back from GitHub, and all seven README badge endpoints returned SVG images successfully. Remaining Scorecard practice findings are tracked openly.
+
 This is a source/publication audit. It does not prove whole-system absence of bugs, every MIME parser allocation bound, real Cloudflare platform isolation, backup restoration, mail deliverability, or safety of arbitrary agent actions based on hostile mail. Each operator must complete their own [deployment checks](deploy.md).
