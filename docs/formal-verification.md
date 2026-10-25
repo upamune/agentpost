@@ -85,6 +85,8 @@ mise run ci
 
 Individual tasks are `verify:outbound`, `verify:inbound`, and each area's `:selftest`. Normal checks return 0 on success, 1 on property/assertion failure, and 2 on tool/harness failure. Missing cases and runtime startup failures never count as success.
 
+Each TLC JVM receives a private `java.io.tmpdir` inside the runner's scratch directory. The pinned tool extracts standard modules by basename and deletes them on exit; sharing the system temporary directory caused a reproduced parser failure during parallel checks. Real-TLC regressions check inherited-file preservation and distinct extraction paths under concurrent execution. Models, properties, bounds, and failure handling remain unchanged.
+
 Selftests inspect scratch copies with conditional claims, serialization, fencing, version checks, poison continuation, original retention, parsed persistence, or attention persistence broken. A mutation passes only when both the model and real-code check detect it. Product files stay intact.
 
 GitHub Actions has separate outbound/inbound jobs for models, replays, and mutations. TLC's jar is SHA-256 checked, and Actions are SHA pinned. `.verification/outbound/` and `.verification/inbound/` results/logs are retained as CI artifacts for 14 days. Snapshots live in `verification/*/evidence/results.json`.

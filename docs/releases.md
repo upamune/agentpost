@@ -11,10 +11,10 @@ The separate [verified release workflow](../.github/workflows/release.yml) build
 Download the versioned archive, `SHA256SUMS`, `release-manifest.json`, and `provenance.sigstore.json` from the same [release](https://github.com/upamune/agentpost/releases). Verify provenance before extracting or running code:
 
 ```sh
-gh attestation verify agentpost-0.1.0.tar.gz --repo upamune/agentpost \
+gh attestation verify agentpost-0.1.1.tar.gz --repo upamune/agentpost \
   --bundle provenance.sigstore.json \
   --signer-workflow upamune/agentpost/.github/workflows/release.yml \
-  --source-ref refs/tags/v0.1.0 --deny-self-hosted-runners
+  --source-ref refs/tags/v0.1.1 --deny-self-hosted-runners
 sha256sum --check SHA256SUMS
 ```
 
@@ -73,5 +73,5 @@ On failure, check App installation, permissions, and credentials, then rerun tag
 ```sh
 git fetch origin --tags
 git tag --points-at origin/main
-gh release view v0.1.0 --repo upamune/agentpost
+gh release view v0.1.1 --repo upamune/agentpost
 ```
