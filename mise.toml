@@ -32,6 +32,12 @@ run = "bun run test"
 [tasks.build]
 run = "bun run build"
 
+[tasks.fuzz]
+run = "bun run fuzz"
+
+[tasks."release:build"]
+run = "bun run scripts/build-release.ts"
+
 [tasks.secrets]
 run = "gitleaks git --redact --no-banner --log-opts=--all"
 
@@ -74,5 +80,6 @@ depends = [
   "secrets",
   "audit",
   "security:workflows",
+  "fuzz",
   "verify",
 ]

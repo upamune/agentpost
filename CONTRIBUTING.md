@@ -2,19 +2,32 @@
 
 [English](CONTRIBUTING.md) | [日本語](CONTRIBUTING.ja.md)
 
-Use [Issues](https://github.com/upamune/agentpost/issues) for bugs and proposals. Follow [SECURITY.md](SECURITY.md) for vulnerability reports.
+Use [issues](https://github.com/upamune/agentpost/issues) for bugs and proposed features, and pull requests for changes. English and Japanese reports are welcome. For vulnerabilities, use the [private reporting channel](SECURITY.md), with synthetic mail and credentials in reproductions.
 
-Clone the repository and follow the [local setup](README.md#try-it-locally), then run:
+Before starting a large change, describe the problem, expected behavior, and compatibility impact in an issue. Keep each PR focused and explain the trigger, resulting behavior, and validation. Maintainers review proposed changes before merging. Independent review is encouraged; the current single-maintainer project cannot guarantee review by a second person.
+
+## Development checks
+
+Install the pinned tools and dependencies, then run the checks:
 
 ```sh
-mise run format
+mise trust
+mise install
+mise exec -- bun install --frozen-lockfile
 mise run ci
+mise run security:dependencies
 ```
 
-Tests use provider stubs and local storage. Keep real mail, real API tokens, and production data out of fixtures. Builds are dry runs. `mise run secrets` scans locally available Git history, so use a full-history clone; inspect staged changes with `mise exec -- gitleaks git --staged --redact --no-banner` as well.
+Use strict TypeScript, the existing formatter/linter, SHA-pinned Actions, and English code comments and application text. Update English and Japanese documentation together. Add regression tests for bug fixes and meaningful tests for new behavior; tests should exercise the public contract or security invariant. Run the relevant formal verification when changing inbox ownership, send claims, active-state fencing, persistence, parsing, or recovery; see [AGENTS.md](AGENTS.md) and [formal verification](docs/formal-verification.md).
 
-Describe the problem, resulting behavior, and validation in your PR. Mail changes must preserve [operations invariants](docs/operations.md) and follow the relevant inbound/outbound verification skill. MCP and Events changes must follow the [pinned contracts](docs/mcp-events.md).
+Security fuzzing runs on PRs, main, and daily. See [security checks](docs/security-checks.md) for replay instructions. Keep discovered inputs synthetic and minimize them before committing a regression. Report exploitable findings privately before proposing a public fix that reveals them.
 
-Write maintained documentation in English by default and provide the corresponding `*.ja.md` translation. Keep examples, limits, security guidance, and relative links consistent across both languages. Generated verification evidence and vendored upstream files retain their source language.
+Tests use synthetic provider responses and local storage; builds are dry runs. Keep real mail, API tokens, and production data out of fixtures. Use a full-history clone for secret scanning and also inspect staged changes with `mise exec -- gitleaks git --staged --redact --no-banner`.
 
-Audit dependency updates with `mise exec -- bun audit`. The overrides in `package.json` replace vulnerable Undici/Zod versions pinned by Miniflare and the Cloudflare Vitest plugin with patched versions of the same major. Reconsider them when upstream adopts the fixes: [Undici advisory](https://github.com/advisories/GHSA-xjj6-f33q-929c), [Zod advisory](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5).
+MCP and Events changes follow the [pinned contracts](docs/mcp-events.md). Generated evidence and vendored files retain their original language. The Undici/Zod overrides replace vulnerable versions selected by Cloudflare test tooling; reconsider them when upstream adopts fixes: [Undici advisory](https://github.com/advisories/GHSA-xjj6-f33q-929c), [Zod advisory](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5).
+
+## Compatibility and releases
+
+Preserve raw-first mail retention, per-inbox authorization, explicit token/OAuth modes, and conditional send claims. A provider acceptance is not proof of delivery; an uncertain send outcome must never cause an automatic replacement send. Each operator manages their own domain and Cloudflare account; test changes locally unless a real recipient and live operation were authorized.
+
+Only the maintainer publishes releases after required checks pass. Source archives have checksums and signed provenance; use the verification procedure in [releases](docs/releases.md). Changes to dependencies and development tooling receive the same review as runtime code. No automated dependency merge is enabled. Contributions remain under the repository's MIT license.

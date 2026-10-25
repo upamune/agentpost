@@ -5,4 +5,4 @@
     majorLabels = major,breaking
     minorLabels = minor,enhancement,feature
     changelog = true
-    release = true
+    release = draft

@@ -2,9 +2,35 @@
 
 [English](releases.md) | [日本語](releases.ja.md)
 
-Once configured, [tagpr](https://github.com/Songmu/tagpr) creates/updates a release PR on pushes to main. Review `package.json` and `CHANGELOG.md`; merging with a merge commit or squash creates a `v` tag and GitHub Release. CLI/MCP versions also come from `package.json`. A maintainer decides when to merge.
+Once configured, [tagpr](https://github.com/Songmu/tagpr) creates/updates a release PR on pushes to main. Review `package.json` and `CHANGELOG.md`; merging with a merge commit or squash creates a `v` tag and a draft GitHub Release. CLI/MCP versions also come from `package.json`. A maintainer decides when to merge.
 
-This releases source only. It does not publish npm packages, CLI binaries, or production deployments. Deploy/update a Worker using the [deployment guide](deploy.md).
+The separate [verified release workflow](../.github/workflows/release.yml) builds committed source archives, checksums, and signed SLSA provenance. It runs full CI and OSV before signing, verifies the downloaded draft assets, and then publishes. Immutable releases protect published tags and assets from replacement. This releases source only; it does not publish npm packages, CLI binaries, or production deployments. Deploy/update a Worker using the [deployment guide](deploy.md).
+
+## Verify a download
+
+Download the versioned archive, `SHA256SUMS`, `release-manifest.json`, and `provenance.sigstore.json` from the same [release](https://github.com/upamune/agentpost/releases). Verify provenance before extracting or running code:
+
+```sh
+gh attestation verify agentpost-0.1.0.tar.gz --repo upamune/agentpost \
+  --bundle provenance.sigstore.json \
+  --signer-workflow upamune/agentpost/.github/workflows/release.yml \
+  --source-ref refs/tags/v0.1.0 --deny-self-hosted-runners
+sha256sum --check SHA256SUMS
+```
+
+Use the actual version in the filenames and tag. On macOS, use `shasum -a 256 -c SHA256SUMS` for the checksum step. A checksum alone is not publisher authentication. The Sigstore bundle holds the signature and verification material; `provenance.intoto.jsonl` exposes the same signed DSSE envelope for SLSA consumers. A provenance signature establishes origin, not the absence of bugs or an independent SLSA certification.
+
+`mise run release:build` creates a deterministic archive of Git HEAD in `dist/release/`. Uncommitted changes, ignored files, and local deployment credentials are excluded. The archive regression test checks these exclusions and reproducibility.
+
+## Preview and retry
+
+Run a nonpublishing preview on main; it performs full checks and generates verifiable artifacts without creating a tag or release:
+
+```sh
+gh workflow run release.yml --repo upamune/agentpost --ref main
+```
+
+A tag push triggers publication. For recovery, run the same workflow on an existing version tag with `-f publish=true`. The tag must match `package.json` and point to a commit reachable from main. Use a new version for an already published immutable release; never move its tag or overwrite its assets. A failed run leaves an inspectable draft, not a partially published immutable release. The initial release may be bootstrapped by a maintainer creating the reviewed version tag while the App setup below is pending. The workflow itself never creates or moves tags.
 
 ## GitHub App setup
 
@@ -15,7 +41,7 @@ The tagpr job is skipped while `TAGPR_APP_CLIENT_ID` is unset. Adding the workfl
 1. [Create a GitHub App](https://github.com/settings/apps/new), or reuse an existing release App.
 2. Disable webhooks. Set repository permissions: Contents and Pull requests **Read and write**, Issues **Read-only**.
 3. Install it only on the intended repository and generate a private key.
-4. Register the key as an Actions secret, then the Client ID as an Actions variable. Keep the key out of Git and chat.
+4. Add the installed App's numeric App ID as an Integration bypass actor to the `version tag creators` creation-only ruleset. Keep `version tag integrity` update/deletion protection unchanged. Register the key as an Actions secret, then the Client ID as an Actions variable. Keep the key out of Git and chat.
 
 ```sh
 gh secret set TAGPR_APP_PRIVATE_KEY --env release-automation --repo upamune/agentpost < /absolute/path/to/app.private-key.pem

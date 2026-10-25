@@ -18,11 +18,25 @@ Agentpost combines static analysis, dependency and secret scanning, adversarial 
 | Gitleaks and GitHub secret protection | Reachable Git history and recognized accidentally committed credentials                                 | CI; server-side detection and push protection      | [CI](https://github.com/upamune/agentpost/actions/workflows/ci.yml), maintainer-only secret alerts                                                                              |
 | Tests and TLA+                        | Adversarial boundary regressions, inbound/outbound invariants, real-code replays and mutation selftests | Main pushes and PRs                                | CI and [formal verification](formal-verification.md)                                                                                                                            |
 
-CodeQL, OSV, zizmor and Scorecard upload SARIF to GitHub. Security workflows have read-only repository access and only the job permissions needed to publish reports. Scorecard alone receives an OIDC identity for authenticated publication of its public results; no production mail credential is involved. Workflows do not use `pull_request_target`, install third-party GitHub Apps, or send scan comments to PRs. Action references are SHA-pinned with pinact.
+CodeQL, OSV, zizmor and Scorecard upload SARIF to GitHub. Security workflows have read-only repository access and only the job permissions needed to publish reports. Scorecard uses OIDC for publication. The separate source-release workflow also uses OIDC to sign provenance, with a read-only source build, an attestation job, and a publisher holding only release write access. No production mail credential is involved. Workflows do not use `pull_request_target`, install third-party GitHub Apps, or send scan comments to PRs. Action references are SHA-pinned with pinact.
 
 A known OSV vulnerability or a reported low-or-higher zizmor finding fails its check. Dependency review blocks newly introduced advisories. CodeQL and Scorecard use GitHub's alert dashboard: a completed workflow alone does not mean their alert lists are empty. CodeQL/other code scanning alerts and repository rules must be reviewed as well. Findings must be investigated and fixed or given a narrowly documented, evidence-based disposition; do not add blanket ignores to obtain green badges.
 
 These SARIF workflows are gated to public repositories, where the GitHub security integration is available without enabling a paid private-repository product. Private forks still have local checks, Gitleaks, Bun audit, tests and formal verification. See the official [CodeQL guidance](https://docs.github.com/en/code-security/code-scanning/introduction-to-code-scanning/about-code-scanning), [OSV integration](https://google.github.io/osv-scanner/github-action/), [zizmor integration](https://docs.zizmor.sh/integrations/), and [Scorecard documentation](https://github.com/ossf/scorecard-action).
+
+## Generative security fuzzing
+
+[fast-check](https://github.com/dubzzz/fast-check) generates adversarial values and shrinks failures in `test/security.fuzz.ts`. Five properties exercise real JSON UTF-8 sizing (including lone surrogates), bounded streams and cancellation, bearer-token confinement, actual loopback redirects, and mailbox/header injection rejection. PRs and main run 10,000 cases per property; daily runs use 100,000. Local `mise run ci` includes the default 1,000 per property. No live service, mail recipient, or production secret is used.
+
+Reproduce a failure using the reported seed and shrinking path, selecting the same test:
+
+```sh
+AGENTPOST_FUZZ_RUNS=10000 AGENTPOST_FUZZ_SEED=123 \
+  AGENTPOST_FUZZ_PATH=0:1:2 mise exec -- bun test ./test/security.fuzz.ts \
+  --test-name-pattern 'JSON preflight'
+```
+
+Counts accept 1–100,000 and seeds accept signed 32-bit integers; invalid configuration fails. Keep the same lockfile and generators for replay. This is generative property testing, not coverage-guided fuzzing of the entire Worker. Authorization and recovery have separate adversarial tests and formal verification. An initial 500,000-case run passed without a new product defect.
 
 ## Local checks
 
@@ -41,9 +55,13 @@ Dependabot version updates wait seven days after an upstream release to reduce e
 
 The upstream repository is public. GitHub secret scanning, push protection, Dependabot alerts and security updates, and private vulnerability reporting are enabled. Actions require SHA-pinned references, use read-only default permissions, and require maintainer approval for workflows from all external contributors.
 
-The active `main security checks` ruleset requires a PR, a branch up to date with main, resolved review conversations, and fourteen passing GitHub Actions checks: formatting, lint, types, tests, build, action pins, secrets, both formal-verification jobs, Bun audit, OSV, zizmor, CodeQL, and dependency review. CodeQL findings at any severity also block merges through a separate code-scanning rule. Force pushes and branch deletion are blocked, with no configured bypass actors. The repository has one operator, so the rule requires zero external approvals; this does not provide independent human review.
+The active `main security checks` ruleset requires a PR, a branch up to date with main, resolved review conversations, and fifteen passing GitHub Actions checks: formatting, lint, types, tests, build, action pins, secrets, both formal-verification jobs, Bun audit, OSV, zizmor, CodeQL, dependency review, and security fuzzing. CodeQL findings at any severity also block merges through a separate code-scanning rule. Force pushes and branch deletion are blocked, with no configured bypass actors. The repository has one operator, so the rule requires zero external approvals; this does not provide independent human review.
 
 These are settings of the upstream GitHub repository, not settings automatically inherited by a clone or self-hosted deployment. Fork maintainers must configure their own repository protections.
+
+Version tags have separate creation and integrity rules. Only the repository owner can currently create `v*` tags; no actor can update/delete them through normal Git operations. The future release App must be explicitly added to the creation rule, never the update/deletion rule. This prevents ordinary repository writers from substituting an off-main signing workflow through a new tag. Published releases are immutable. The pipeline verifies the live tag target and all three attested subjects, enforces an exact five-asset inventory, verifies downloaded bytes, and checks the final immutable state. See [releases](releases.md).
+
+See [remaining scorecard conditions](scorecard-remediation.md) for evidence and prerequisites that cannot be manufactured by a code change.
 
 ## Reporting and triage
 
