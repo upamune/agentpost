@@ -1,0 +1,108 @@
+---
+config:
+  markdownAutoWrap: false
+  state:
+    useMaxWidth: false
+---
+stateDiagram-v2
+  classDef group0 fill:#d6eaf8,stroke:#6b757c,color:#1b2631
+  classDef group1 fill:#fdebd0,stroke:#7f7668,color:#1b2631
+  state "Legend" as legend {
+    state "Keys returned for both calls" as legendGroup0
+    state "Logical send operations" as legendGroup1
+  }
+  class legendGroup0 group0
+  class legendGroup1 group1
+  state "call 1" as g0 {
+    state "key selected before I/O,<br/>key 0, 0 request(s); call<br/>2: key selected before<br/>I/O, key 0, 0 request(s)" as s0
+    state "key selected before I/O,<br/>key 0, 0 request(s); call<br/>2: not started, key not<br/>selected, 0 request(s)" as s1
+    state "key selected before I/O,<br/>key 0, 0 request(s); call<br/>2: request in flight, key<br/>0, 1 request(s)" as s2
+    state "key selected before I/O,<br/>key 0, 0 request(s); call<br/>2: result returned, key 0,<br/>0 request(s), returned key<br/>0" as s3
+    state "key selected before I/O,<br/>key 0, 0 request(s); call<br/>2: result returned, key 0,<br/>1 request(s), returned key<br/>0" as s4
+    state "not started, key not<br/>selected, 0 request(s);<br/>call 2: key selected<br/>before I/O, key 0, 0<br/>request(s)" as s5
+    state "not started, key not<br/>selected, 0 request(s);<br/>call 2: not started, key<br/>not selected, 0 request(s)" as s6
+    state "not started, key not<br/>selected, 0 request(s);<br/>call 2: request in flight,<br/>key 0, 1 request(s)" as s7
+    state "not started, key not<br/>selected, 0 request(s);<br/>call 2: result returned,<br/>key 0, 0 request(s),<br/>returned key 0" as s8
+    state "not started, key not<br/>selected, 0 request(s);<br/>call 2: result returned,<br/>key 0, 1 request(s),<br/>returned key 0" as s9
+    state "request in flight, key 0,<br/>1 request(s); call 2: key<br/>selected before I/O, key<br/>0, 0 request(s)" as s10
+    state "request in flight, key 0,<br/>1 request(s); call 2: not<br/>started, key not selected,<br/>0 request(s)" as s11
+    state "request in flight, key 0,<br/>1 request(s); call 2:<br/>request in flight, key 0,<br/>1 request(s)" as s12
+    state "request in flight, key 0,<br/>1 request(s); call 2:<br/>result returned, key 0, 0<br/>request(s), returned key 0" as s13
+    state "request in flight, key 0,<br/>1 request(s); call 2:<br/>result returned, key 0, 1<br/>request(s), returned key 0" as s14
+    state "result returned, key 0, 0<br/>request(s), returned key<br/>0; call 2: key selected<br/>before I/O, key 0, 0<br/>request(s)" as s15
+    state "result returned, key 0, 0<br/>request(s), returned key<br/>0; call 2: not started,<br/>key not selected, 0<br/>request(s)" as s16
+    state "result returned, key 0, 0<br/>request(s), returned key<br/>0; call 2: request in<br/>flight, key 0, 1<br/>request(s)" as s17
+    state "result returned, key 0, 0<br/>request(s), returned key<br/>0; call 2: result<br/>returned, key 0, 0<br/>request(s), returned key 0" as s18
+    state "result returned, key 0, 0<br/>request(s), returned key<br/>0; call 2: result<br/>returned, key 0, 1<br/>request(s), returned key 0" as s19
+    state "result returned, key 0, 1<br/>request(s), returned key<br/>0; call 2: key selected<br/>before I/O, key 0, 0<br/>request(s)" as s20
+    state "result returned, key 0, 1<br/>request(s), returned key<br/>0; call 2: not started,<br/>key not selected, 0<br/>request(s)" as s21
+    state "result returned, key 0, 1<br/>request(s), returned key<br/>0; call 2: request in<br/>flight, key 0, 1<br/>request(s)" as s22
+    state "result returned, key 0, 1<br/>request(s), returned key<br/>0; call 2: result<br/>returned, key 0, 0<br/>request(s), returned key 0" as s23
+    state "result returned, key 0, 1<br/>request(s), returned key<br/>0; call 2: result<br/>returned, key 0, 1<br/>request(s), returned key 0" as s24
+  }
+  [*] --> s6
+  s6 --> s1 : Preserve the caller key or<br/>generate one before<br/>preparation
+  s6 --> s5 : Preserve the caller key or<br/>generate one before<br/>preparation
+  s1 --> s16 : Return a sanitized preparation<br/>error with the same key
+  s1 --> s11 : Send the request once using<br/>the selected key
+  s1 --> s0 : Preserve the caller key or<br/>generate one before<br/>preparation
+  s5 --> s0 : Preserve the caller key or<br/>generate one before<br/>preparation
+  s5 --> s8 : Return a sanitized preparation<br/>error with the same key
+  s5 --> s7 : Send the request once using<br/>the selected key
+  s16 --> s15 : Preserve the caller key or<br/>generate one before<br/>preparation
+  s11 --> s21 : Expose the same key in the<br/>result or transport failure
+  s11 --> s10 : Preserve the caller key or<br/>generate one before<br/>preparation
+  s0 --> s15 : Return a sanitized preparation<br/>error with the same key
+  s0 --> s10 : Send the request once using<br/>the selected key
+  s0 --> s3 : Return a sanitized preparation<br/>error with the same key
+  s0 --> s2 : Send the request once using<br/>the selected key
+  s8 --> s3 : Preserve the caller key or<br/>generate one before<br/>preparation
+  s7 --> s2 : Preserve the caller key or<br/>generate one before<br/>preparation
+  s7 --> s9 : Expose the same key in the<br/>result or transport failure
+  s15 --> s18 : Return a sanitized preparation<br/>error with the same key
+  s15 --> s17 : Send the request once using<br/>the selected key
+  s21 --> s20 : Preserve the caller key or<br/>generate one before<br/>preparation
+  s10 --> s20 : Expose the same key in the<br/>result or transport failure
+  s10 --> s13 : Return a sanitized preparation<br/>error with the same key
+  s10 --> s12 : Send the request once using<br/>the selected key
+  s3 --> s18 : Return a sanitized preparation<br/>error with the same key
+  s3 --> s13 : Send the request once using<br/>the selected key
+  s2 --> s17 : Return a sanitized preparation<br/>error with the same key
+  s2 --> s12 : Send the request once using<br/>the selected key
+  s2 --> s4 : Expose the same key in the<br/>result or transport failure
+  s9 --> s4 : Preserve the caller key or<br/>generate one before<br/>preparation
+  s17 --> s19 : Expose the same key in the<br/>result or transport failure
+  s20 --> s23 : Return a sanitized preparation<br/>error with the same key
+  s20 --> s22 : Send the request once using<br/>the selected key
+  s13 --> s23 : Expose the same key in the<br/>result or transport failure
+  s12 --> s22 : Expose the same key in the<br/>result or transport failure
+  s12 --> s14 : Expose the same key in the<br/>result or transport failure
+  s4 --> s19 : Return a sanitized preparation<br/>error with the same key
+  s4 --> s14 : Send the request once using<br/>the selected key
+  s22 --> s24 : Expose the same key in the<br/>result or transport failure
+  s14 --> s24 : Expose the same key in the<br/>result or transport failure
+  class s0 group1
+  class s1 group1
+  class s2 group1
+  class s3 group1
+  class s4 group1
+  class s5 group1
+  class s6 group1
+  class s7 group1
+  class s8 group1
+  class s9 group1
+  class s10 group1
+  class s11 group1
+  class s12 group1
+  class s13 group1
+  class s14 group1
+  class s15 group1
+  class s16 group1
+  class s17 group1
+  class s18 group0
+  class s19 group0
+  class s20 group1
+  class s21 group1
+  class s22 group1
+  class s23 group0
+  class s24 group0

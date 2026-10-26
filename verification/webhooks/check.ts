@@ -218,12 +218,18 @@ async function sourceHashes() {
     "src/coordinator.ts",
     "src/inbound.ts",
     "src/api.ts",
+    "src/events.ts",
+    "src/inbox-metadata.ts",
     "src/maintenance.ts",
+    "src/queue-jobs.ts",
+    "src/index.ts",
     "src/idempotency.ts",
     "src/client.ts",
     "src/outbound.ts",
     "src/dispatch-barrier.ts",
     "migrations/0006_inbox_webhooks.sql",
+    "migrations/0009_recovery_indexes.sql",
+    "wrangler.jsonc",
   ];
   return Promise.all(
     paths.map(async (path) => ({

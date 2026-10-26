@@ -1,0 +1,84 @@
+---
+config:
+  markdownAutoWrap: false
+  state:
+    useMaxWidth: false
+---
+stateDiagram-v2
+  classDef group0 fill:#d6eaf8,stroke:#6b757c,color:#1b2631
+  classDef group1 fill:#fdebd0,stroke:#7f7668,color:#1b2631
+  classDef group2 fill:#e8daef,stroke:#746d78,color:#1b2631
+  state "Legend" as legend {
+    state "Dispatch barrier protocol" as legendGroup0
+    state "Request started safely" as legendGroup1
+    state "Safely cancelled" as legendGroup2
+  }
+  class legendGroup0 group0
+  class legendGroup1 group1
+  class legendGroup2 group2
+  state "barrier; inbox enabled;<br/>worker 2; inbox update 0;<br/>old disable still in<br/>flight" as s0
+  state "cancelled; inbox disabled;<br/>worker 2; inbox update 1;<br/>no old disable in flight" as s1
+  state "cancelled; inbox disabled;<br/>worker 3; inbox update 1;<br/>no old disable in flight" as s2
+  state "cancelled; inbox disabled;<br/>worker 3; inbox update 3;<br/>no old disable in flight" as s3
+  state "cancelled; inbox enabled;<br/>worker 3; inbox update 2;<br/>no old disable in flight" as s4
+  state "done; inbox disabled;<br/>worker 3; inbox update 3;<br/>no old disable in flight" as s5
+  state "done; inbox enabled;<br/>worker 2; inbox update 2;<br/>no old disable in flight" as s6
+  state "done; inbox enabled;<br/>worker 3; inbox update 2;<br/>no old disable in flight" as s7
+  state "idle; inbox disabled;<br/>worker 1; inbox update 1;<br/>no old disable in flight" as s8
+  state "idle; inbox disabled;<br/>worker 2; inbox update 1;<br/>no old disable in flight" as s9
+  state "idle; inbox disabled;<br/>worker 3; inbox update 1;<br/>no old disable in flight" as s10
+  state "idle; inbox disabled;<br/>worker 3; inbox update 3;<br/>no old disable in flight" as s11
+  state "idle; inbox enabled;<br/>worker 1; inbox update 0;<br/>no old disable in flight" as s12
+  state "idle; inbox enabled;<br/>worker 1; inbox update 0;<br/>old disable still in<br/>flight" as s13
+  state "idle; inbox enabled;<br/>worker 2; inbox update 0;<br/>old disable still in<br/>flight" as s14
+  state "prepared; inbox disabled;<br/>worker 2; inbox update 1;<br/>no old disable in flight" as s15
+  state "prepared; inbox disabled;<br/>worker 3; inbox update 1;<br/>no old disable in flight" as s16
+  state "prepared; inbox disabled;<br/>worker 3; inbox update 3;<br/>no old disable in flight" as s17
+  state "prepared; inbox enabled;<br/>worker 2; inbox update 0;<br/>old disable still in<br/>flight" as s18
+  state "verified; inbox enabled;<br/>worker 2; inbox update 2;<br/>no old disable in flight" as s19
+  state "verified; inbox enabled;<br/>worker 2; inbox update 2;<br/>old disable still in<br/>flight" as s20
+  state "verified; inbox enabled;<br/>worker 3; inbox update 2;<br/>no old disable in flight" as s21
+  [*] --> s12
+  s12 --> s13 : An old worker starts an<br/>awaited inbox disable
+  s13 --> s14 : A replacement worker takes<br/>ownership
+  s13 --> s8 : The old inbox disable finally<br/>reaches D1
+  s14 --> s18 : Read inbox state and prepare<br/>the email provider payload
+  s14 --> s9 : The old inbox disable finally<br/>reaches D1
+  s18 --> s0 : Reserve an ownership sequence<br/>for the dispatch barrier
+  s18 --> s15 : The old inbox disable finally<br/>reaches D1
+  s9 --> s1 : Read inbox state and prepare<br/>the email provider payload
+  s9 --> s10 : Another replacement occurs<br/>during awaited preparation
+  s0 --> s20 : Confirm the snapshot and<br/>reject older pending writes<br/>atomically
+  s15 --> s16 : Another replacement occurs<br/>during awaited preparation
+  s1 --> s2 : Another replacement occurs<br/>during awaited preparation
+  s10 --> s11 : The newest worker disables the<br/>inbox
+  s20 --> s19 : The old inbox disable finally<br/>reaches D1
+  s16 --> s17 : The newest worker disables the<br/>inbox
+  s2 --> s3 : The newest worker disables the<br/>inbox
+  s19 --> s21 : Another replacement occurs<br/>during awaited preparation
+  s19 --> s6 : Fence current ownership and<br/>start the email provider<br/>request
+  s21 --> s4 : Stop the replaced worker<br/>before starting a request
+  s6 --> s7 : Another replacement occurs<br/>during awaited preparation
+  s7 --> s5 : The newest worker disables the<br/>inbox
+  class s0 group0
+  class s1 group2
+  class s2 group2
+  class s3 group2
+  class s4 group2
+  class s5 group1
+  class s6 group1
+  class s7 group1
+  class s8 group0
+  class s9 group0
+  class s10 group0
+  class s11 group0
+  class s12 group0
+  class s13 group0
+  class s14 group0
+  class s15 group0
+  class s16 group0
+  class s17 group0
+  class s18 group0
+  class s19 group0
+  class s20 group0
+  class s21 group0

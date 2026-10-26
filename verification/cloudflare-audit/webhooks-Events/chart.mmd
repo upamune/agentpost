@@ -1,0 +1,35 @@
+---
+config:
+  markdownAutoWrap: false
+  state:
+    useMaxWidth: false
+---
+stateDiagram-v2
+  classDef group0 fill:#d6eaf8,stroke:#6b757c,color:#1b2631
+  classDef group1 fill:#fdebd0,stroke:#7f7668,color:#1b2631
+  state "Legend" as legend {
+    state "Both inboxes have events" as legendGroup0
+    state "Readiness transitions" as legendGroup1
+  }
+  class legendGroup0 group0
+  class legendGroup1 group1
+  state "0 messages ready; 0<br/>webhook events; original<br/>configurations" as s0
+  state "0 messages ready; 0<br/>webhook events; own<br/>webhook replaced" as s1
+  state "1 messages ready; 1<br/>webhook events; original<br/>configurations" as s2
+  state "1 messages ready; 1<br/>webhook events; own<br/>webhook replaced" as s3
+  state "2 messages ready; 2<br/>webhook events; original<br/>configurations" as s4
+  state "2 messages ready; 2<br/>webhook events; own<br/>webhook replaced" as s5
+  [*] --> s0
+  s0 --> s2 : Commit message readiness and<br/>capture its inbox webhook<br/>atomically
+  s0 --> s1 : Replace this inbox's webhook<br/>without rewriting existing<br/>events
+  s2 --> s4 : Commit message readiness and<br/>capture its inbox webhook<br/>atomically
+  s2 --> s3 : Replace this inbox's webhook<br/>without rewriting existing<br/>events
+  s1 --> s3 : Commit message readiness and<br/>capture its inbox webhook<br/>atomically
+  s4 --> s5 : Replace this inbox's webhook<br/>without rewriting existing<br/>events
+  s3 --> s5 : Commit message readiness and<br/>capture its inbox webhook<br/>atomically
+  class s0 group1
+  class s1 group1
+  class s2 group1
+  class s3 group1
+  class s4 group0
+  class s5 group0

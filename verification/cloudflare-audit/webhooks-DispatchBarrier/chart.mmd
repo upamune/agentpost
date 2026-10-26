@@ -1,0 +1,108 @@
+---
+config:
+  markdownAutoWrap: false
+  state:
+    useMaxWidth: false
+---
+stateDiagram-v2
+  classDef group0 fill:#d6eaf8,stroke:#6b757c,color:#1b2631
+  classDef group1 fill:#fdebd0,stroke:#7f7668,color:#1b2631
+  classDef group2 fill:#e8daef,stroke:#746d78,color:#1b2631
+  state "Legend" as legend {
+    state "Dispatch barrier protocol" as legendGroup0
+    state "Request started safely" as legendGroup1
+    state "Safely cancelled" as legendGroup2
+  }
+  class legendGroup0 group0
+  class legendGroup1 group1
+  class legendGroup2 group2
+  state "barrier; inbox enabled;<br/>original webhook; worker<br/>2; config update 0; inbox<br/>update 0; old change still<br/>in flight" as s0
+  state "cancelled; inbox disabled;<br/>original webhook; worker<br/>2; config update 0; inbox<br/>update 1; no old change in<br/>flight" as s1
+  state "cancelled; inbox disabled;<br/>original webhook; worker<br/>3; config update 0; inbox<br/>update 1; no old change in<br/>flight" as s2
+  state "cancelled; inbox disabled;<br/>replacement webhook;<br/>worker 3; config update 3;<br/>inbox update 3; no old<br/>change in flight" as s3
+  state "cancelled; inbox enabled;<br/>original webhook; worker<br/>3; config update 2; inbox<br/>update 2; no old change in<br/>flight" as s4
+  state "cancelled; inbox enabled;<br/>replacement webhook;<br/>worker 2; config update 1;<br/>inbox update 0; no old<br/>change in flight" as s5
+  state "cancelled; inbox enabled;<br/>replacement webhook;<br/>worker 3; config update 1;<br/>inbox update 0; no old<br/>change in flight" as s6
+  state "done; inbox disabled;<br/>replacement webhook;<br/>worker 3; config update 3;<br/>inbox update 3; no old<br/>change in flight" as s7
+  state "done; inbox enabled;<br/>original webhook; worker<br/>2; config update 2; inbox<br/>update 2; no old change in<br/>flight" as s8
+  state "done; inbox enabled;<br/>original webhook; worker<br/>3; config update 2; inbox<br/>update 2; no old change in<br/>flight" as s9
+  state "idle; inbox disabled;<br/>original webhook; worker<br/>1; config update 0; inbox<br/>update 1; no old change in<br/>flight" as s10
+  state "idle; inbox disabled;<br/>original webhook; worker<br/>2; config update 0; inbox<br/>update 1; no old change in<br/>flight" as s11
+  state "idle; inbox disabled;<br/>original webhook; worker<br/>3; config update 0; inbox<br/>update 1; no old change in<br/>flight" as s12
+  state "idle; inbox disabled;<br/>replacement webhook;<br/>worker 3; config update 3;<br/>inbox update 3; no old<br/>change in flight" as s13
+  state "idle; inbox enabled;<br/>original webhook; worker<br/>1; config update 0; inbox<br/>update 0; no old change in<br/>flight" as s14
+  state "idle; inbox enabled;<br/>original webhook; worker<br/>1; config update 0; inbox<br/>update 0; old change still<br/>in flight" as s15
+  state "idle; inbox enabled;<br/>original webhook; worker<br/>2; config update 0; inbox<br/>update 0; old change still<br/>in flight" as s16
+  state "idle; inbox enabled;<br/>original webhook; worker<br/>3; config update 0; inbox<br/>update 0; old change still<br/>in flight" as s17
+  state "idle; inbox enabled;<br/>replacement webhook;<br/>worker 1; config update 1;<br/>inbox update 0; no old<br/>change in flight" as s18
+  state "idle; inbox enabled;<br/>replacement webhook;<br/>worker 2; config update 1;<br/>inbox update 0; no old<br/>change in flight" as s19
+  state "idle; inbox enabled;<br/>replacement webhook;<br/>worker 3; config update 1;<br/>inbox update 0; no old<br/>change in flight" as s20
+  state "prepared; inbox disabled;<br/>original webhook; worker<br/>2; config update 0; inbox<br/>update 1; no old change in<br/>flight" as s21
+  state "prepared; inbox disabled;<br/>original webhook; worker<br/>3; config update 0; inbox<br/>update 1; no old change in<br/>flight" as s22
+  state "prepared; inbox disabled;<br/>replacement webhook;<br/>worker 3; config update 3;<br/>inbox update 3; no old<br/>change in flight" as s23
+  state "prepared; inbox enabled;<br/>original webhook; worker<br/>2; config update 0; inbox<br/>update 0; old change still<br/>in flight" as s24
+  state "prepared; inbox enabled;<br/>original webhook; worker<br/>3; config update 0; inbox<br/>update 0; old change still<br/>in flight" as s25
+  state "prepared; inbox enabled;<br/>replacement webhook;<br/>worker 3; config update 1;<br/>inbox update 0; no old<br/>change in flight" as s26
+  state "verified; inbox enabled;<br/>original webhook; worker<br/>2; config update 2; inbox<br/>update 2; no old change in<br/>flight" as s27
+  state "verified; inbox enabled;<br/>original webhook; worker<br/>2; config update 2; inbox<br/>update 2; old change still<br/>in flight" as s28
+  state "verified; inbox enabled;<br/>original webhook; worker<br/>3; config update 2; inbox<br/>update 2; no old change in<br/>flight" as s29
+  [*] --> s14
+  s14 --> s15 : Old worker starts an awaited<br/>webhook change or inbox<br/>disable
+  s15 --> s16 : A replacement worker takes<br/>ownership
+  s15 --> s10 : The old configuration or inbox<br/>write finally reaches D1
+  s15 --> s18 : The old configuration or inbox<br/>write finally reaches D1
+  s16 --> s24 : Read and sign the captured<br/>original webhook
+  s16 --> s11 : The old configuration or inbox<br/>write finally reaches D1
+  s16 --> s17 : Another replacement occurs<br/>during awaited preparation
+  s16 --> s19 : The old configuration or inbox<br/>write finally reaches D1
+  s24 --> s0 : Reserve an ownership sequence<br/>for the dispatch barrier
+  s24 --> s21 : The old configuration or inbox<br/>write finally reaches D1
+  s24 --> s25 : Another replacement occurs<br/>during awaited preparation
+  s11 --> s1 : Read and sign the captured<br/>original webhook
+  s11 --> s12 : Another replacement occurs<br/>during awaited preparation
+  s19 --> s5 : Read and sign the captured<br/>original webhook
+  s17 --> s20 : The old configuration or inbox<br/>write finally reaches D1
+  s0 --> s28 : Confirm the snapshot and<br/>reject older pending writes<br/>atomically
+  s21 --> s22 : Another replacement occurs<br/>during awaited preparation
+  s1 --> s2 : Another replacement occurs<br/>during awaited preparation
+  s12 --> s13 : The newest worker replaces the<br/>webhook and disables the inbox
+  s25 --> s26 : The old configuration or inbox<br/>write finally reaches D1
+  s5 --> s6 : Another replacement occurs<br/>during awaited preparation
+  s28 --> s27 : The old configuration or inbox<br/>write finally reaches D1
+  s22 --> s23 : The newest worker replaces the<br/>webhook and disables the inbox
+  s2 --> s3 : The newest worker replaces the<br/>webhook and disables the inbox
+  s27 --> s29 : Another replacement occurs<br/>during awaited preparation
+  s27 --> s8 : Fence current ownership and<br/>start the captured request<br/>synchronously
+  s29 --> s4 : Stop the replaced worker<br/>before starting a request
+  s8 --> s9 : Another replacement occurs<br/>during awaited preparation
+  s9 --> s7 : The newest worker replaces the<br/>webhook and disables the inbox
+  class s0 group0
+  class s1 group2
+  class s2 group2
+  class s3 group2
+  class s4 group2
+  class s5 group2
+  class s6 group2
+  class s7 group1
+  class s8 group1
+  class s9 group1
+  class s10 group0
+  class s11 group0
+  class s12 group0
+  class s13 group0
+  class s14 group0
+  class s15 group0
+  class s16 group0
+  class s17 group0
+  class s18 group0
+  class s19 group0
+  class s20 group0
+  class s21 group0
+  class s22 group0
+  class s23 group0
+  class s24 group0
+  class s25 group0
+  class s26 group0
+  class s27 group0
+  class s28 group0
+  class s29 group0

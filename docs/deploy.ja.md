@@ -157,3 +157,7 @@ Email Routingの対象ドメインで、catch-allの宛先を**Worker `agentpost
 ## 受信メールの転送
 
 転送を無効のままにする場合も、今回のWorker更新前に`0007_forwarding.sql`を適用します。Cloudflare Email Routingで宛先を検証し、許可リストを非公開に保存してから、管理者のAPI・CLI・MCPで全体と個別の設定を行います。新たなキューや送信用bindingは不要です。稼働確認には許可された宛先で[転送の確認](forwarding.ja.md)を完了してください。
+
+## ストレージ・キューの更新
+
+Worker更新前に`0009_recovery_indexes.sql`を含む全D1 migrationを適用してください。キュー・bindingの追加は不要です。メールは1起動1件・並行数4、両キューのバッチ待機は最大1秒になります。既存inboxのcoordinatorによる直列化は維持します。[監査結果と運用上の制約](cloudflare-audit.ja.md)を確認し、Cron失敗・滞留時間・両DLQの監視を設定してください。

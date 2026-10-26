@@ -144,12 +144,17 @@ async function eventHead(env: Env): Promise<number> {
   );
 }
 
+function eventInboxFilter(inbox: string | null) {
+  return inbox === null ? { sql: "", values: [] } : { sql: " AND inbox_id = ?", values: [inbox] };
+}
+
 export async function pollEvents(
   env: Env,
   principal: Principal,
   query: EventQuery,
 ): Promise<EventPollPage> {
   const inboxId = await authorizeSubscription(env, principal, query);
+  const inboxFilter = eventInboxFilter(inboxId);
   const scope = await sha256(
     JSON.stringify({ principal: principal.tokenHash, name: query.name, inboxId }),
   );
@@ -173,16 +178,16 @@ export async function pollEvents(
   const floor = query.maxAgeMs === undefined ? null : Date.now() - query.maxAgeMs;
   if (floor !== null) {
     const skipped = await env.DB.prepare(
-      "SELECT 1 FROM events WHERE seq > ? AND seq <= ? AND name = ? AND (? IS NULL OR inbox_id = ?) AND created_at < ? LIMIT 1",
+      `SELECT 1 FROM events WHERE seq > ? AND seq <= ? AND name = ?${inboxFilter.sql} AND created_at < ? LIMIT 1`,
     )
-      .bind(position, head, query.name, inboxId, inboxId, floor)
+      .bind(position, head, query.name, ...inboxFilter.values, floor)
       .first();
     truncated ||= Boolean(skipped);
   }
   const rows = await env.DB.prepare(
-    "SELECT seq, id, name, data, created_at FROM events WHERE seq > ? AND seq <= ? AND name = ? AND (? IS NULL OR inbox_id = ?) AND (? IS NULL OR created_at >= ?) ORDER BY seq LIMIT ?",
+    `SELECT seq, id, name, data, created_at FROM events WHERE seq > ? AND seq <= ? AND name = ?${inboxFilter.sql} AND (? IS NULL OR created_at >= ?) ORDER BY seq LIMIT ?`,
   )
-    .bind(position, head, query.name, inboxId, inboxId, floor, floor, query.maxEvents + 1)
+    .bind(position, head, query.name, ...inboxFilter.values, floor, floor, query.maxEvents + 1)
     .all<StoredEvent>();
   const hasMore = rows.results.length > query.maxEvents;
   const delivered = rows.results.slice(0, query.maxEvents);

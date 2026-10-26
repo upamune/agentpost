@@ -187,12 +187,11 @@ test("failed queue publication retains ready mail and pending delivery for cron 
     "durable delivery retained",
   );
   expect((await delivery(id)).status).toBe("pending");
-  const send = vi.fn().mockResolvedValue(undefined);
-  await republishWebhooks({ ...bindings, AGENTPOST_WEBHOOK_JOBS: { send } } as unknown as Env);
-  expect(send).toHaveBeenCalledWith(
-    { kind: "webhook", id: (await delivery(id)).id },
-    { delaySeconds: 0 },
-  );
+  const sendBatch = vi.fn().mockResolvedValue(undefined);
+  await republishWebhooks({ ...bindings, AGENTPOST_WEBHOOK_JOBS: { sendBatch } } as unknown as Env);
+  expect(sendBatch).toHaveBeenCalledWith([
+    { body: { kind: "webhook", id: (await delivery(id)).id } },
+  ]);
   expect(await bindings.MAIL.get(`parsed/${id}.json`)).not.toBeNull();
 });
 

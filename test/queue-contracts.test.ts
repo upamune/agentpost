@@ -123,3 +123,55 @@ test("duplicate queue deliveries acknowledge independently and publish one recei
       .first("count"),
   ).toBe(1);
 });
+
+test("malformed queue bodies retry independently without interpreting or logging their payload", async () => {
+  const valid = await seedMessage("after poison jobs", "pending", true);
+  const error = vi.spyOn(console, "error").mockImplementation(() => {});
+  const bodies = [
+    null,
+    "secret",
+    { kind: "unexpected", id: valid.id },
+    { kind: "inbound", id: valid.id, secret: "private" },
+  ];
+  const batch = createMessageBatch<unknown>("fixture", [
+    ...bodies.map((body, index) => ({
+      id: `poison-${index}`,
+      body,
+      timestamp: new Date(),
+      attempts: 1,
+    })),
+    delivery("healthy", valid.id, 1),
+  ]);
+  await worker.queue(batch, bindings);
+  const result = await getQueueResult(batch, createExecutionContext());
+  expect(result.explicitAcks).toEqual(["healthy"]);
+  expect(result.retryMessages).toHaveLength(bodies.length);
+  expect((await messageStatus(valid.id))?.status).toBe("ready");
+  expect(JSON.stringify(error.mock.calls)).not.toMatch(/secret|private/);
+});
+
+test("failed attention persistence retries its item without preventing later acknowledgements", async () => {
+  const broken = await seedMessage("attention database outage", "pending", false);
+  const valid = await seedMessage("after attention outage", "pending", true);
+  const database = new Proxy(bindings.DB, {
+    get(target, key) {
+      if (key === "prepare")
+        return (sql: string) => {
+          if (sql.startsWith("UPDATE messages SET status = 'failed'"))
+            throw new Error("D1 unavailable");
+          return target.prepare(sql);
+        };
+      const value = Reflect.get(target, key);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+  const batch = createMessageBatch("fixture", [
+    delivery("broken", broken.id, 6),
+    delivery("healthy", valid.id, 1),
+  ]);
+  await worker.queue(batch, { ...bindings, DB: database });
+  const result = await getQueueResult(batch, createExecutionContext());
+  expect(result.explicitAcks).toEqual(["healthy"]);
+  expect(result.retryMessages).toEqual([{ msgId: "broken" }]);
+  expect((await messageStatus(broken.id))?.status).toBe("pending");
+});

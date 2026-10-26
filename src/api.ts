@@ -21,14 +21,14 @@ import { authConfiguration } from "./auth-config";
 import { inboxInputSchema, inboxMetadataSchema } from "./inbox-schema";
 import {
   inboxCreationMetadata,
+  listInboxMetadata,
   publicInbox,
-  publicInboxColumns,
   updateInboxMetadata,
 } from "./inbox-metadata";
-import type { PublicInboxRow } from "./inbox-metadata";
 import { randomMailboxName } from "./mailbox-name";
 import { MAX_REQUEST_BYTES, randomToken, readBounded, sha256 } from "./common";
 import { enqueue, parseMime } from "./inbound";
+import { readStoredMime, readStoredObject } from "./mail-storage";
 import { eventDescriptors, eventQuerySchema } from "./event-schema";
 import { EventQueryError, pollEvents } from "./events";
 import { enforceRateLimit } from "./http-security";
@@ -223,14 +223,10 @@ app.get("/v1/inboxes", async (context) => {
   if (!principal.admin && !principal.ownerId) throw new ApiError(403, "Inbox listing forbidden");
   const owner = principal.admin ? null : principal.ownerId!;
   const { limit, offset } = inboxPagination(context);
-  const rows = await context.env.DB.prepare(
-    `SELECT ${publicInboxColumns} FROM inboxes WHERE (? IS NULL OR owner_id = ?) ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
-  )
-    .bind(owner, owner, limit, offset)
-    .all<PublicInboxRow>();
+  const items = await listInboxMetadata(context.env, owner, limit, offset);
   return context.json({
-    items: rows.results.map(publicInbox),
-    next_offset: rows.results.length === limit ? offset + limit : null,
+    items,
+    next_offset: items.length === limit ? offset + limit : null,
   });
 });
 
@@ -439,7 +435,10 @@ async function findMessage(context: Context<Bindings>): Promise<Message> {
 app.get("/v1/inboxes/:inbox/messages/:message", async (context) => {
   const row = await findMessage(context);
   const object = await context.env.MAIL.get(`parsed/${row.id}.json`);
-  return context.json({ ...row, content: object ? await object.json() : null });
+  const content = object
+    ? JSON.parse(new TextDecoder().decode(await readStoredObject(object, 16 * 1024 * 1024)))
+    : null;
+  return context.json({ ...row, content });
 });
 
 app.get("/v1/inboxes/:inbox/messages/:message/raw", async (context) => {
@@ -460,7 +459,7 @@ app.get("/v1/inboxes/:inbox/messages/:message/attachments/:index", async (contex
   if (!Number.isInteger(index) || index < 0) throw new ApiError(400, "Invalid attachment index");
   const object = await context.env.MAIL.get(row.raw_key);
   if (!object) throw new ApiError(503, "Original MIME unavailable");
-  const parsed = await parseMime(await object.arrayBuffer());
+  const parsed = await parseMime(await readStoredMime(object));
   const attachment = parsed.attachments[index];
   if (!attachment) throw new ApiError(404, "Attachment not found");
   return new Response(attachment.content, {
@@ -630,7 +629,7 @@ app.post("/v1/inboxes/:inbox/messages/:message/reply", async (context) => {
   const input = await readJson(context, replyInput);
   const object = await context.env.MAIL.get(row.raw_key);
   if (!object) throw new ApiError(503, "Original MIME unavailable");
-  const parsed = await parseMime(await object.arrayBuffer());
+  const parsed = await parseMime(await readStoredMime(object));
   return queueSend(context, replyPayload(context.get("inbox").address, row, parsed, input));
 });
 

@@ -153,3 +153,7 @@ The current Wrangler configuration declares a separate `AGENTPOST_WEBHOOK_JOBS` 
 ## Incoming email forwarding
 
 Apply `0007_forwarding.sql` before this Worker upgrade, even when forwarding stays off. Verify destinations with Cloudflare Email Routing, privately set the destination allowlist, then use administrator API/CLI/MCP settings for the global default and inbox overrides. Native forwarding needs no new queue or sending binding. Complete the [forwarding checks](forwarding.md) with an authorized recipient before claiming it operational.
+
+## Storage and queue upgrade
+
+Apply all D1 migrations including `0009_recovery_indexes.sql` before upgrading the Worker. No new queue or binding is needed. Mail consumers now process one job per invocation with concurrency four; both queue batch timeouts are one second. Existing inbox coordination remains in force. Review the [audit and operational limits](cloudflare-audit.md), and configure Cron-failure, backlog-age and DLQ monitoring.

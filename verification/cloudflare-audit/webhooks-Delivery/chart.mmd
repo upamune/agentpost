@@ -1,0 +1,200 @@
+---
+config:
+  markdownAutoWrap: false
+  state:
+    useMaxWidth: false
+---
+stateDiagram-v2
+  classDef group0 fill:#d6eaf8,stroke:#6b757c,color:#1b2631
+  classDef group1 fill:#fdebd0,stroke:#7f7668,color:#1b2631
+  state "Legend" as legend {
+    state "Delivery in progress" as legendGroup0
+    state "Delivery settled" as legendGroup1
+  }
+  class legendGroup0 group0
+  class legendGroup1 group1
+  state "cancelled; inbox disabled;<br/>original webhook; owner 2;<br/>claim 1; worker 1" as g0 {
+    state "finished; worker 2: idle" as s0
+    state "idle; worker 2: finished" as s1
+  }
+  state "delivered; inbox disabled;<br/>original webhook; owner 2;<br/>claim 1; worker 1" as g1 {
+    state "finished; worker 2: idle" as s2
+    state "idle; worker 2: finished" as s3
+  }
+  state "delivered; inbox enabled;<br/>original webhook; owner 2;<br/>claim 1; worker 1" as g2 {
+    state "finished; worker 2: idle" as s4
+    state "idle; worker 2: finished" as s5
+  }
+  state "delivered; inbox enabled;<br/>webhook replaced or<br/>deleted; owner 2; claim 1;<br/>worker 1" as g3 {
+    state "finished; worker 2: idle" as s6
+    state "idle; worker 2: finished" as s7
+  }
+  state "sending; inbox disabled;<br/>original webhook; owner 1;<br/>claim 1; worker 1" as g4 {
+    state "configuration read; worker<br/>2: idle" as s8
+    state "delivery claimed; worker<br/>2: idle" as s9
+    state "response awaiting<br/>settlement; worker 2: idle" as s10
+  }
+  state "sending; inbox disabled;<br/>original webhook; owner 2;<br/>claim 1; worker 1" as g5 {
+    state "configuration read; worker<br/>2: idle" as s11
+    state "finished; worker 2: idle" as s12
+    state "idle; worker 2:<br/>configuration read" as s13
+    state "idle; worker 2: delivery<br/>claimed" as s14
+    state "idle; worker 2: response<br/>awaiting settlement" as s15
+    state "response awaiting<br/>settlement; worker 2: idle" as s16
+  }
+  state "sending; inbox disabled;<br/>original webhook; owner 2;<br/>claim 2; worker 1" as g6 {
+    state "finished; worker 2:<br/>configuration read" as s17
+    state "finished; worker 2:<br/>delivery claimed" as s18
+    state "finished; worker 2:<br/>response awaiting<br/>settlement" as s19
+  }
+  state "sending; inbox enabled;<br/>original webhook; owner 1;<br/>claim 1; worker 1" as g7 {
+    state "configuration read; worker<br/>2: idle" as s20
+    state "delivery claimed; worker<br/>2: idle" as s21
+    state "receiver request in<br/>flight; worker 2: idle" as s22
+    state "request signed; worker 2:<br/>idle" as s23
+    state "response awaiting<br/>settlement; worker 2: idle" as s24
+  }
+  state "sending; inbox enabled;<br/>original webhook; owner 2;<br/>claim 1; worker 1" as g8 {
+    state "configuration read; worker<br/>2: idle" as s25
+    state "finished; worker 2: idle" as s26
+    state "idle; worker 2:<br/>configuration read" as s27
+    state "idle; worker 2: delivery<br/>claimed" as s28
+    state "idle; worker 2: receiver<br/>request in flight" as s29
+    state "idle; worker 2: request<br/>signed" as s30
+    state "idle; worker 2: response<br/>awaiting settlement" as s31
+    state "request signed; worker 2:<br/>idle" as s32
+  }
+  state "sending; inbox enabled;<br/>original webhook; owner 2;<br/>claim 2; worker 1" as g9 {
+    state "finished; worker 2:<br/>configuration read" as s33
+    state "finished; worker 2:<br/>delivery claimed" as s34
+    state "finished; worker 2:<br/>receiver request in flight" as s35
+    state "finished; worker 2:<br/>request signed" as s36
+    state "finished; worker 2:<br/>response awaiting<br/>settlement" as s37
+  }
+  state "cancelled; inbox disabled;<br/>original webhook; owner 1;<br/>claim 1; worker 1:<br/>finished; worker 2: idle" as s38
+  state "cancelled; inbox disabled;<br/>original webhook; owner 2;<br/>claim 2; worker 1:<br/>finished; worker 2:<br/>finished" as s39
+  state "cancelled; inbox enabled;<br/>webhook replaced or<br/>deleted; owner 1; claim 0;<br/>worker 1: idle; worker 2:<br/>idle" as s40
+  state "cancelled; inbox enabled;<br/>webhook replaced or<br/>deleted; owner 2; claim 0;<br/>worker 1: idle; worker 2:<br/>idle" as s41
+  state "cancelled; inbox enabled;<br/>webhook replaced or<br/>deleted; owner 2; claim 1;<br/>worker 1: finished; worker<br/>2: idle" as s42
+  state "delivered; inbox disabled;<br/>original webhook; owner 1;<br/>claim 1; worker 1:<br/>finished; worker 2: idle" as s43
+  state "delivered; inbox disabled;<br/>original webhook; owner 2;<br/>claim 2; worker 1:<br/>finished; worker 2:<br/>finished" as s44
+  state "delivered; inbox enabled;<br/>original webhook; owner 1;<br/>claim 1; worker 1:<br/>finished; worker 2: idle" as s45
+  state "delivered; inbox enabled;<br/>original webhook; owner 2;<br/>claim 2; worker 1:<br/>finished; worker 2:<br/>finished" as s46
+  state "delivered; inbox enabled;<br/>webhook replaced or<br/>deleted; owner 1; claim 1;<br/>worker 1: finished; worker<br/>2: idle" as s47
+  state "delivered; inbox enabled;<br/>webhook replaced or<br/>deleted; owner 2; claim 2;<br/>worker 1: finished; worker<br/>2: finished" as s48
+  state "pending; inbox disabled;<br/>original webhook; owner 1;<br/>claim 0; worker 1: idle;<br/>worker 2: idle" as s49
+  state "pending; inbox disabled;<br/>original webhook; owner 2;<br/>claim 0; worker 1: idle;<br/>worker 2: idle" as s50
+  state "pending; inbox disabled;<br/>original webhook; owner 2;<br/>claim 1; worker 1:<br/>finished; worker 2: idle" as s51
+  state "pending; inbox enabled;<br/>original webhook; owner 1;<br/>claim 0; worker 1: idle;<br/>worker 2: idle" as s52
+  state "pending; inbox enabled;<br/>original webhook; owner 2;<br/>claim 0; worker 1: idle;<br/>worker 2: idle" as s53
+  state "pending; inbox enabled;<br/>original webhook; owner 2;<br/>claim 1; worker 1:<br/>finished; worker 2: idle" as s54
+  [*] --> s52
+  s52 --> s21 : Atomically claim a pending<br/>delivery
+  s52 --> s53 : Cloudflare replaces the<br/>coordinator worker
+  s52 --> s40 : Replace/delete the webhook or<br/>disable the inbox
+  s52 --> s49 : Replace/delete the webhook or<br/>disable the inbox
+  s21 --> s20 : Read enabled inbox and<br/>matching configuration
+  s53 --> s28 : Atomically claim a pending<br/>delivery
+  s53 --> s41 : Replace/delete the webhook or<br/>disable the inbox
+  s53 --> s50 : Replace/delete the webhook or<br/>disable the inbox
+  s49 --> s9 : Atomically claim a pending<br/>delivery
+  s20 --> s23 : Decrypt the captured<br/>destination and sign the<br/>immutable event
+  s20 --> s25 : Cloudflare replaces the<br/>coordinator worker
+  s28 --> s27 : Read enabled inbox and<br/>matching configuration
+  s50 --> s14 : Atomically claim a pending<br/>delivery
+  s9 --> s8 : Read enabled inbox and<br/>matching configuration
+  s23 --> s22 : Fence actor ownership and<br/>start the HTTP request
+  s23 --> s32 : Cloudflare replaces the<br/>coordinator worker
+  s25 --> s11 : Replace/delete the webhook or<br/>disable the inbox
+  s27 --> s30 : Decrypt the captured<br/>destination and sign the<br/>immutable event
+  s14 --> s13 : Read enabled inbox and<br/>matching configuration
+  s8 --> s10 : Decrypt the captured<br/>destination and sign the<br/>immutable event
+  s22 --> s24 : The receiver returns its<br/>result
+  s32 --> s26 : Reject a replaced worker<br/>before making a request
+  s11 --> s16 : Decrypt the captured<br/>destination and sign the<br/>immutable event
+  s30 --> s29 : Fence actor ownership and<br/>start the HTTP request
+  s13 --> s15 : Decrypt the captured<br/>destination and sign the<br/>immutable event
+  s10 --> s38 : Record the result only for the<br/>matching sending claim
+  s24 --> s45 : Record the result only for the<br/>matching sending claim
+  s26 --> s42 : Replace/delete the webhook or<br/>disable the inbox
+  s26 --> s12 : Replace/delete the webhook or<br/>disable the inbox
+  s26 --> s54 : Retry a stale webhook using<br/>the same event identity
+  s16 --> s0 : Record the result only for the<br/>matching sending claim
+  s29 --> s31 : The receiver returns its<br/>result
+  s15 --> s1 : Record the result only for the<br/>matching sending claim
+  s45 --> s4 : Cloudflare replaces the<br/>coordinator worker
+  s45 --> s47 : Replace/delete the webhook or<br/>disable the inbox
+  s45 --> s43 : Replace/delete the webhook or<br/>disable the inbox
+  s12 --> s51 : Retry a stale webhook using<br/>the same event identity
+  s54 --> s34 : Atomically claim a pending<br/>delivery
+  s31 --> s5 : Record the result only for the<br/>matching sending claim
+  s4 --> s6 : Replace/delete the webhook or<br/>disable the inbox
+  s16 --> s2 : Record the result only for the<br/>matching sending claim
+  s51 --> s18 : Atomically claim a pending<br/>delivery
+  s34 --> s33 : Read enabled inbox and<br/>matching configuration
+  s5 --> s7 : Replace/delete the webhook or<br/>disable the inbox
+  s5 --> s3 : Replace/delete the webhook or<br/>disable the inbox
+  s18 --> s17 : Read enabled inbox and<br/>matching configuration
+  s33 --> s36 : Decrypt the captured<br/>destination and sign the<br/>immutable event
+  s17 --> s19 : Decrypt the captured<br/>destination and sign the<br/>immutable event
+  s36 --> s35 : Fence actor ownership and<br/>start the HTTP request
+  s19 --> s39 : Record the result only for the<br/>matching sending claim
+  s35 --> s37 : The receiver returns its<br/>result
+  s37 --> s46 : Record the result only for the<br/>matching sending claim
+  s46 --> s48 : Replace/delete the webhook or<br/>disable the inbox
+  s46 --> s44 : Replace/delete the webhook or<br/>disable the inbox
+  class s38 group1
+  class s0 group1
+  class s1 group1
+  class s39 group1
+  class s40 group1
+  class s41 group1
+  class s42 group1
+  class s43 group1
+  class s2 group1
+  class s3 group1
+  class s44 group1
+  class s45 group1
+  class s4 group1
+  class s5 group1
+  class s46 group1
+  class s47 group1
+  class s6 group1
+  class s7 group1
+  class s48 group1
+  class s49 group0
+  class s50 group0
+  class s51 group0
+  class s52 group0
+  class s53 group0
+  class s54 group0
+  class s8 group0
+  class s9 group0
+  class s10 group0
+  class s11 group0
+  class s12 group0
+  class s13 group0
+  class s14 group0
+  class s15 group0
+  class s16 group0
+  class s17 group0
+  class s18 group0
+  class s19 group0
+  class s20 group0
+  class s21 group0
+  class s22 group0
+  class s23 group0
+  class s24 group0
+  class s25 group0
+  class s26 group0
+  class s27 group0
+  class s28 group0
+  class s29 group0
+  class s30 group0
+  class s31 group0
+  class s32 group0
+  class s33 group0
+  class s34 group0
+  class s35 group0
+  class s36 group0
+  class s37 group0
