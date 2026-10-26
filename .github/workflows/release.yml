@@ -334,6 +334,10 @@ jobs:
             const integrity = 'sha512-' + createHash('sha512').update(bytes).digest('base64');
             if (metadata.name !== '@upamune/agentpost' || metadata.version !== version || metadata.dist?.integrity !== integrity)
               throw new Error('Existing npm version differs from the verified release; never overwrite it');
+            if (process.argv[2] === 'verify' && !metadata.dist.attestations?.url) {
+              console.error('npm provenance is still processing');
+              process.exit(75);
+            }
             if (!metadata.dist.attestations?.url || metadata.dist.attestations.provenance?.predicateType !== 'https://slsa.dev/provenance/v1')
               throw new Error('npm version has no SLSA provenance');
             const target = new URL(metadata.dist.tarball);
@@ -352,7 +356,10 @@ jobs:
             }
             exists = true;
           }
-          if (process.argv[2] === 'verify' && !exists) throw new Error('Published npm version is missing');
+          if (process.argv[2] === 'verify' && !exists) {
+            console.error('npm publication is still processing');
+            process.exit(75);
+          }
           if (process.argv[2] === 'inspect') appendFileSync(process.env.GITHUB_OUTPUT, `exists=${exists}\n`);
           NODE
           node "$RUNNER_TEMP/verify-npm.mjs" inspect
@@ -368,10 +375,15 @@ jobs:
       - name: Verify npm provenance and installed package
         run: |
           set -euo pipefail
-          for attempt in 1 2 3 4 5; do
-            if node "$RUNNER_TEMP/verify-npm.mjs" verify; then break; fi
-            [[ "$attempt" -lt 5 ]] || exit 1
-            sleep 2
+          for ((attempt=1; attempt<=60; attempt++)); do
+            if node "$RUNNER_TEMP/verify-npm.mjs" verify; then
+              break
+            else
+              result=$?
+            fi
+            [[ "$result" -eq 75 ]] || exit "$result"
+            [[ "$attempt" -lt 60 ]] || exit 75
+            sleep 5
           done
           npm ci --prefix "$RUNNER_TEMP/npm-consumer" --ignore-scripts --no-audit --no-fund \
             --registry=https://registry.npmjs.org/
