@@ -1,0 +1,68 @@
+name: Project website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      [
+        "website/**",
+        "assets/brand/**",
+        "scripts/build-site.ts",
+        "mise.toml",
+        ".github/workflows/pages.yml",
+      ]
+  pull_request:
+    paths:
+      [
+        "website/**",
+        "assets/brand/**",
+        "scripts/build-site.ts",
+        "mise.toml",
+        ".github/workflows/pages.yml",
+      ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: project-pages-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MISE_TASK_RUN_AUTO_INSTALL: "false"
+
+jobs:
+  build:
+    name: site build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        with:
+          version: 2026.10.17
+          install_args: bun
+      - run: mise run site:build
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        with:
+          path: dist/site
+          retention-days: 1
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # Deployment uses Pages/OIDC only. No repository write token or mail credentials.
+    permissions:
+      pages: write # Publish the reviewed static artifact to this repository's Pages site.
+      id-token: write # Attest the main-branch deployment identity to GitHub Pages.
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
+        id: deployment

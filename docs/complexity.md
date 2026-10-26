@@ -16,7 +16,7 @@ mise run complexity:report
 mise run ci
 ```
 
-The gate scans `src/`, `scripts/`, and `verification/` using the explicit `cccc.toml`. It includes the complexity checker itself and formal-check tooling. TypeScript test fixtures (`*.test.ts`, `*.bun.ts`, `*.fuzz.ts`) are excluded; their large synthetic cases are tested separately. Other directories, private operator files, dependencies, build output, and unsupported extensions are outside this scope. Caching and top-N/minimum filtering are disabled for the gate.
+The gate scans `src/`, `scripts/`, `verification/`, and `website/` using the explicit `cccc.toml`. It includes the complexity checker itself and formal-check tooling. TypeScript test fixtures (`*.test.ts`, `*.bun.ts`, `*.fuzz.ts`) are excluded; their large synthetic cases are tested separately. Other directories, private operator files, dependencies, build output, and unsupported extensions are outside this scope. Caching and top-N/minimum filtering are disabled for the gate.
 
 ## Limits and eliminated debt
 
