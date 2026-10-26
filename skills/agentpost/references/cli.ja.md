@@ -36,6 +36,18 @@ agentpost message attachment INBOX_UUID MESSAGE_ID 0 --output /absolute/path/to/
 
 名前を選ぶ場合は`inbox create --local-part research --label task-name`を使い、省略時はランダムに発行します。ドメインはWorkerの設定を使います。名前は1〜64文字のASCII英数字、`_`、`+`、`-`、途中の単独ドットで、小文字に統一します。完全なアドレス、空白、Unicode、先頭・末尾・連続ドットは無効です。ドットと`+`以降も別の名前として扱います。同名は無効化済みでも409で拒否し、既存のトークン変更やアドレスの再割り当ては行いません。競合時はタスク状態や既存一覧を確認し、自動的に別の発行・トークン再発行へ進みません。
 
+## 受信箱の用途や登録先を編集する
+
+作成時に任意の `--notes TEXT` と複数の `--site-url URL` を付けられます。既存の情報は次のように編集できます。
+
+```sh
+agentpost inbox edit INBOX_UUID --notes-file /absolute/path/to/task/registration.md
+agentpost inbox edit INBOX_UUID --site-url https://shop.example/account --site-url https://shop.example/billing
+agentpost inbox edit INBOX_UUID --notes '' --clear-urls
+```
+
+トークン方式のCLIでの編集には管理者トークンが必要です。受信箱トークンでは `inbox get` で参照できますが編集できず、拒否を別の資格情報への置き換えで回避しません。省略項目は維持し、URLを指定すると一覧全体を置き換えます。`--url` はAPIの接続先、`--site-url` は自動アクセスしない参照先です。メモは上限付きのUTF-8ファイルから読み、タスク内の絶対パスを使います。上限と移行手順は https://github.com/upamune/agentpost/blob/main/docs/inbox-metadata.ja.md を確認してください。
+
 ## 送信と返信
 
 承認された宛先・目的に対し、一つの論理メールに一つの冪等キーを用意し、受信箱ID・内容とともに送信前に保存します。別メールには新しいキー、同じ要求の再試行には元のキーを使います。429では`Retry-After`（現在60秒）以上待ち、キーを維持します。受信箱トークンは送信も可能で、管理者トークンは発行・管理に限定します。

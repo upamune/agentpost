@@ -21,6 +21,7 @@ APIは選択した[認証方式](authentication.ja.md)を使います。トー�
 | GET    | `/v1/inboxes?limit=25&offset=0`                              | 受信箱一覧（管理者は全体・OAuth agentは自分の所有分）     |
 | GET    | `/v1/inboxes/{inbox}`                                        | 受信箱の詳細                                              |
 | PATCH  | `/v1/inboxes/{inbox}`                                        | `{"active":false}`などで有効状態を変更（管理者）          |
+| PATCH  | `/v1/inboxes/{inbox}/metadata`                               | ラベル・メモ・URLを編集（管理者 / OAuth所有者）           |
 | POST   | `/v1/inboxes/{inbox}/token`                                  | 受信箱トークンの再発行（管理者）                          |
 | GET    | `/v1/inboxes/{inbox}/messages?limit=25&cursor=...`           | 受信一覧                                                  |
 | GET    | `/v1/inboxes/{inbox}/messages/{message}`                     | 本文と添付情報                                            |
@@ -69,6 +70,10 @@ curl "$AGENTPOST_API_URL/v1/inboxes" \
 発行には管理者またはOAuth `agent`権限が必要です。OAuthでの新規発行には発行元と本人に紐付く所有者を記録します。D1の原子的なINSERTで名前を確保し、明示した名前の同名要求・同時発行・無効化済みの名前は409で拒否します。既存の受信箱やトークンを変更・返却せず、発行による名前の再割り当ても行いません。既存の受信箱を確認・管理し、競合をトークン再発行の承認とは解釈しないでください。従来のランダム受信箱にmigrationは不要です。
 
 CLIでは`inbox create --local-part research.team+1`、MCPでは`create_inbox`の`local_part`に指定します。どちらも省略時はランダム発行です。
+
+## 受信箱のメタデータ
+
+作成時は `label`・`local_part` と合わせて、任意の `notes`（自由記述）と `urls`（HTTP/HTTPS URLの配列）を指定できます。作成・取得・一覧の結果に含み、省略時は順に `""` と `[]` になります。`PATCH /v1/inboxes/{inbox}/metadata` はラベル・メモ・URLの1項目以上を更新します。省略項目は維持し、空の値で消し、URLを指定すると一覧全体を置き換えます。編集は管理者またはOAuth所有者に限定し、受信箱トークンでは参照だけ可能です。URLへの自動アクセスは行いません。[使用例・上限・必須のD1マイグレーション](inbox-metadata.ja.md)を確認してください。
 
 ## 送信と返信
 

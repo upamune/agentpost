@@ -64,11 +64,13 @@ The CLI and stdio MCP retain their environment-token workflow. This change adds 
 
 ## Authorization
 
-| Identity                    | Allowed operations                                                                                                                     |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Admin token / OAuth `admin` | All inboxes, provisioning, token management when enabled, disabling/enabling, health, domain diagnostics, and reconciliation           |
-| Inbox token                 | Read/send/reply/events for that active inbox; cannot provision/list all inboxes or administer                                          |
-| OAuth `agent`               | Provision owned inboxes, list own inbox metadata, read/send/reply on active owned inboxes; events require an explicit owned `inbox_id` |
+| Identity                    | Allowed operations                                                                                                                                   |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Admin token / OAuth `admin` | All inboxes, provisioning, inbox metadata editing, token management when enabled, disabling/enabling, health, domain diagnostics, and reconciliation |
+| Inbox token                 | Read/send/reply/events for that active inbox; cannot provision/list all inboxes or administer                                                        |
+| OAuth `agent`               | Provision owned inboxes, list own inbox metadata, edit metadata/read/send/reply on active owned inboxes; events require an explicit owned `inbox_id` |
+
+[Inbox metadata](inbox-metadata.md) includes label, free-form notes, and site URLs. Authorized inbox readers can see it; editing requires admin or OAuth ownership and cannot change identity, activity, or credentials.
 
 OAuth agent grants do not permit disabling/enabling, token rotation, health, or reconciliation. Inbox creation records a stable, issuer-bound owner hash in D1. JWT refreshes preserve ownership and event cursor scope. Changing a principal's role invalidates its existing cursors. All MCP tools and internal event polling go through the same API authorization checks; inbound SMTP, queues, and Cron are not HTTP OAuth clients.
 

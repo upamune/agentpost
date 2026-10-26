@@ -47,6 +47,8 @@ For OAuth or both mode, complete [authentication setup](authentication.md) befor
 
 Register the renamed Worker secrets before deployment, and update CLI/MCP configuration and `.dev.vars`. Without `AGENTPOST_CURSOR_KEY`, token-only mode derives the cursor key from the admin secret; changing it invalidates cursors. OAuth/both require an independent cursor secret. The encrypted cursor format also rejects legacy signed cursors; see [cursor migration](mcp-events.md#cursor-migration).
 
+For the optional inbox notes and URL fields, apply all D1 migrations including `0008_inbox_metadata.sql` before updating the Worker. Existing inboxes receive empty metadata without changing identity, credentials, or mail. [Metadata upgrade](inbox-metadata.md#upgrade).
+
 ## 1. Account and domain
 
 1. Enable Workers Paid, D1, R2, Queues, and SQLite-backed Durable Objects.

@@ -9,6 +9,9 @@ Configuration: AGENTPOST_API_URL and AGENTPOST_API_TOKEN (admin or inbox token).
 Use --url to override the URL. Credentials are read from the environment.
 
   inbox create [--local-part NAME] [--label LABEL]
+       [--notes TEXT | --notes-file FILE] [--site-url URL ...]
+  inbox edit INBOX_ID [--label LABEL] [--notes TEXT | --notes-file FILE]
+       [--site-url URL ... | --clear-urls]
   inbox list [--limit N] [--offset N]
   inbox get|enable|disable|rotate-token INBOX_ID
   message list INBOX_ID [--limit N] [--cursor CURSOR]
@@ -40,6 +43,10 @@ Forwarding: administrator only. Omit INBOX_ID for global defaults; per-inbox
 settings inherit, override, or disable forwarding. Targets must be operator-allowed
 and Cloudflare-verified. Changes apply to future admissions; no stored-mail replay.
 Inbox create: omit --local-part for three random English words joined by hyphens.
+Inbox metadata: optional notes (10,000 characters), up to 20 HTTP(S) site URLs.
+Edit requires administrator or OAuth owner access; omitted fields stay unchanged.
+Use --notes '' to clear notes, --clear-urls to clear URLs. URLs replace the whole list,
+are never fetched, and cannot include credentials. --url selects the API server.
 Send/reply: repeat --attach FILE or --attachment-id ID (max 10).
 Files: PDF, PNG/JPEG/GIF/WebP, UTF-8 text/CSV/JSON/Markdown; max 3 MiB combined content.
 Uploads are private, inbox-scoped, retained in R2, and not virus-scanned.

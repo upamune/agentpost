@@ -36,6 +36,18 @@ Downloads require an unused output path and create files with permissions 0600. 
 
 Choose a name with `inbox create --local-part research --label task-name`; omit `--local-part` for three random English words joined by hyphens, e.g. `cedar-moon-river@example.com`. The domain comes from the Worker configuration. Names use 1–64 ASCII letters/digits, `_`, `+`, `-`, and single internal dots and are stored lowercase. A full address, whitespace, Unicode, leading/trailing dots, or consecutive dots is invalid. Dots and plus suffixes identify distinct inboxes. Existing names return 409 even when disabled; provisioning never changes their credentials or reassigns the address. Inspect existing task state/inbox listings after a conflict instead of creating or rotating another inbox automatically.
 
+## Edit inbox context
+
+When the user requests registration notes or links, create with `--notes TEXT` and repeated `--site-url URL`, or edit existing metadata:
+
+```sh
+agentpost inbox edit INBOX_UUID --notes-file /absolute/path/to/task/registration.md
+agentpost inbox edit INBOX_UUID --site-url https://shop.example/account --site-url https://shop.example/billing
+agentpost inbox edit INBOX_UUID --notes '' --clear-urls
+```
+
+These token-authenticated CLI edits require an administrator token. An inbox token can read context with `inbox get`, but cannot edit it; keep the existing credential scope on a rejection. Omitted fields are preserved and supplied URL lists replace existing lists. `--url` selects the API server; `--site-url` stores references without contacting them. The notes file is bounded UTF-8 text; use an absolute task path. See https://github.com/upamune/agentpost/blob/main/docs/inbox-metadata.md for limits and migration requirements.
+
 ## Send or reply
 
 After the user has authorized the recipient and purpose, choose one idempotency key for that logical message and persist it with the task's inbox ID and payload before calling send. Use a new key for a different message, and the original key for a retry of the same request.

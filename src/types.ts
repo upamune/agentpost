@@ -33,6 +33,8 @@ export interface Inbox {
   id: string;
   address: string;
   label: string;
+  notes: string;
+  urls_json: string;
   token_hash: string;
   active: number;
   active_version: number;
