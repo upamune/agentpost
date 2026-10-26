@@ -38,7 +38,7 @@ Run admin [domain diagnostics](domain-diagnostics.md) on demand to inspect sendi
 
 MCP Events and CLI watch follow the [event contract](mcp-events.md). D1 triggers commit state and events together. Cursors are encrypted and scoped by inbox, token, and event type. Consumers must tolerate redelivery and deduplicate by `eventId`.
 
-`GET /v1/health` checks D1/R2 access, presence of sending credentials, unresolved failed/unknown sends, parsing failures, raw-index recovery failures, and pending work older than 15 minutes. Problems return 503. This endpoint does not verify credential validity, Cron execution, queue delivery, DNS, or actual email reachability.
+`GET /v1/health` checks D1/R2 access, presence of sending credentials, unresolved failed/unknown sends, parsing failures, raw-index recovery failures, and pending work older than 15 minutes. It also reports 503 for `sending` requests whose last update is older than 15 minutes, even if recovery has stopped. The response includes `oldest_sending` (the oldest `sending.updated_at`, or null). Any of these problems returns 503. Health only observes state; it neither resolves nor resends a stuck request. This endpoint does not verify credential validity, Cron execution, queue delivery, DNS, or actual email reachability.
 
 Configure an authenticated external monitor and also watch Cloudflare dashboards for:
 

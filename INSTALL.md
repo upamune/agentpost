@@ -67,6 +67,8 @@ mise exec --cd /absolute/path/to/agentpost -- bun run src/cli.ts --help
 ```
 
 This command changes the working directory to the checkout. Use absolute paths for message files, attachments, and cursor files that belong to a different project.
+Text/HTML input files must be regular files of at most 512 KiB each; the combined request, including UTF-8 and JSON escaping, must also fit 512 KiB. Cursor checkpoint files are limited to 16 KiB and a 2048-character cursor. Invalid checkpoints stop monitoring and remain available for investigation.
+
 Raw email and attachment downloads create new files with permissions 0600; choose an unused output path. Existing files and symlinks are refused. POSIX modes apply where supported; on Windows, use a private user directory with suitable ACLs.
 
 ## Install a verified release archive
@@ -119,14 +121,14 @@ Clients supporting Streamable HTTP with preconfigured Bearer authentication can 
 
 The distributable skill lives in [`skills/agentpost`](skills/agentpost/SKILL.md). It describes inbox access, safe send retries, delivery states, and resumable event monitoring. Installing the skill does not install the CLI, configure credentials, or deploy a Worker. The default instructions are English, with a bundled [Japanese guide](skills/agentpost/references/guide.ja.md).
 
-Run this in the project that should use the skill. The example targets Codex; replace `codex` with `claude-code` for Claude Code, or select the actual client supported by the installer. Use project scope unless the user requests a global installation.
+With Node.js 22.20+ (the pinned skill installer's requirement), run this in the project that should use the skill. The CLI itself still supports Node.js 22.14+. The example targets Codex; replace `codex` with `claude-code` for Claude Code, or select the actual client supported by the installer. Use project scope unless the user requests a global installation.
 
 ```sh
-mise exec bun@1.4.4 -- bunx skills@1.7.4 add upamune/agentpost \
-  --skill agentpost --agent codex --yes
+npm exec --yes --ignore-scripts --package=skills@1.7.4 -- \
+  skills add upamune/agentpost --skill agentpost --agent codex --yes
 ```
 
-If a local checkout is already available, replace `upamune/agentpost` with its absolute path. `--skill agentpost` selects the consumer skill and excludes this repository's development skills. Confirm the installed skill and its references are present in the target project. The installer does not receive API tokens.
+If Bun/mise is already available, `mise exec bun@1.4.4 -- bunx skills@1.7.4 add upamune/agentpost --skill agentpost --agent codex --yes` remains an alternative. If a local checkout is already available, replace `upamune/agentpost` with its absolute path. `--skill agentpost` selects the consumer skill and excludes this repository's development skills. Confirm the installed skill and its references are present in the target project. The installer does not receive API tokens.
 
 ## Verify a local Worker
 

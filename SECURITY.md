@@ -39,7 +39,7 @@ Sender and Reply-To headers are claims made by an external sender, not proof of 
 
 Before production use, verify private R2 access, API-token permissions, DNS, external monitoring, backup/restore procedures, and actual mail delivery in that environment. Code checks alone do not establish production readiness.
 
-See the [2026-10-25 adversarial audit](docs/security-audit.md) for exercised boundaries, remediated findings, and unverified areas.
+See the [2026-10-26 security/reliability review](docs/security-review-2026-10-26.md) and [2026-10-25 adversarial audit](docs/security-audit.md) for exercised boundaries, remediated findings, and unverified areas.
 
 ## Diagnostic egress
 

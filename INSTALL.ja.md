@@ -66,7 +66,9 @@ mise exec -- bun run cli --help
 mise exec --cd /absolute/path/to/agentpost -- bun run src/cli.ts --help
 ```
 
-このコマンドは作業ディレクトリをcheckout先に変えます。別プロジェクトの本文・添付・カーソルファイルは絶対パスで指定してください。原文と添付のダウンロードは0600で新しいファイルを作ります。既存ファイルやシンボリックリンクは拒否するため、未使用の保存先を選びます。Windowsの権限はディレクトリのACLに従うため、利用者専用の非公開ディレクトリを使います。
+このコマンドは作業ディレクトリをcheckout先に変えます。別プロジェクトの本文・添付・カーソルファイルは絶対パスで指定してください。本文・HTMLの入力には各512 KiB以下の通常ファイルを使います。UTF-8とJSONエスケープを含む要求全体も512 KiB以内が必要です。カーソルのチェックポイントファイルは16 KiB、カーソルは2048文字までです。不正なチェックポイントでは監視を停止し、調査用にファイルを保持します。
+
+原文と添付のダウンロードは0600で新しいファイルを作ります。既存ファイルやシンボリックリンクは拒否するため、未使用の保存先を選びます。Windowsの権限はディレクトリのACLに従うため、利用者専用の非公開ディレクトリを使います。
 
 ## 検証付きリリースアーカイブから導入する
 
@@ -118,14 +120,14 @@ Bearer認証付きStreamable HTTP対応クライアントは`https://YOUR_WORKER
 
 配布用スキルは[`skills/agentpost`](skills/agentpost/SKILL.md)です。受信箱操作、冪等な再要求、送信状態、再開可能な監視を説明します。スキルの導入だけではCLIのインストール・認証設定・Workerのデプロイは行いません。英語を既定とし、同梱の[日本語ガイド](skills/agentpost/references/guide.ja.md)も参照できます。
 
-スキルを使うプロジェクトで実行してください。以下はCodex向けです。Claude Codeでは`codex`を`claude-code`に変え、ほかのクライアントはinstallerの対応名を使います。グローバル導入の指定がなければプロジェクト単位で導入します。
+固定したスキルinstallerはNode.js 22.20以降が必要です。CLI本体は引き続き22.14以降に対応します。スキルを使うプロジェクトで実行してください。以下はCodex向けです。Claude Codeでは`codex`を`claude-code`に変え、ほかのクライアントはinstallerの対応名を使います。グローバル導入の指定がなければプロジェクト単位で導入します。
 
 ```sh
-mise exec bun@1.4.4 -- bunx skills@1.7.4 add upamune/agentpost \
-  --skill agentpost --agent codex --yes
+npm exec --yes --ignore-scripts --package=skills@1.7.4 -- \
+  skills add upamune/agentpost --skill agentpost --agent codex --yes
 ```
 
-既存checkoutがあれば`upamune/agentpost`を絶対パスに置き換えます。`--skill agentpost`で利用者向けスキルだけを選び、開発用スキルを除外します。導入先にスキルと参照ファイルがあることを確認します。installerへAPIトークンは渡しません。
+Bun/miseが導入済みなら、`mise exec bun@1.4.4 -- bunx skills@1.7.4 add upamune/agentpost --skill agentpost --agent codex --yes`も使えます。既存checkoutがあれば`upamune/agentpost`を絶対パスに置き換えます。`--skill agentpost`で利用者向けスキルだけを選び、開発用スキルを除外します。導入先にスキルと参照ファイルがあることを確認します。installerへAPIトークンは渡しません。
 
 ## ローカルWorkerを検証する
 

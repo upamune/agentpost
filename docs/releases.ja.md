@@ -20,8 +20,8 @@ npmアーカイブもGitHub Releaseのチェックサムと署名の対象です
 初期設定はメンテナーが行います。
 
 1. GitHubの `npm-publish` Environmentを作り、デプロイ対象を `v*` タグだけに制限します。
-2. 初回は、2FAを有効にしたnpmログインで、`0.0.0-bootstrap.0` のように正式版と異なる予約用パッケージを `npm stage publish` します。このstageは保留のまま保持します。npmが公開元設定に必要なパッケージ情報を作り、正式版は別途OIDCから公開します。
-3. npmのパッケージ設定でGitHub Trusted Publisherを登録します。ownerは `upamune`、repositoryは `agentpost`、workflow filenameは `release.yml`、environmentは `npm-publish` とし、直接の `npm publish` を許可します。公開アクセスは「Require two-factor authentication and disallow tokens」にします。
+2. 初回は、2FAを有効にしたnpmログインで、`0.0.0-bootstrap.0` のように正式版と異なる予約用パッケージを `npm stage publish --tag bootstrap` します。独立したdist-tagを使い、予約版が`latest`にならないようにします。このstageは保留のまま保持します。npmが公開元設定に必要なパッケージ情報を作り、正式版は別途OIDCから公開します。
+3. npmのパッケージ設定でGitHub Trusted Publisherを登録します。ownerは `upamune`、repositoryは `agentpost`、workflow filenameは `release.yml`、environmentは `npm-publish` とし、直接の `npm publish` を許可します。公開アクセスは「Require two-factor authentication and disallow bypass-2FA tokens」にします。
 4. 正式版の初回OIDC公開と検証が成功してから、予約用stageを承認せず破棄します。初回の正式公開より先に唯一のstageを破棄すると、npmがパッケージ情報と公開元設定も削除することがあります。その後、初期ログインの一時セッションを失効させます。
 5. 準備後に `AGENTPOST_NPM_PUBLISH_ENABLED=true` をGitHubリポジトリ変数へ登録します。初期設定前のnpmジョブと、mainの公開なしプレビューではnpmへ公開しません。
 
@@ -82,7 +82,7 @@ if ((Get-FileHash -Algorithm SHA256 $Asset).Hash.ToLowerInvariant() -ne $Expecte
 
 チェックサムだけでは配布元を認証できません。bundleには署名と検証資料を含み、`provenance.intoto.jsonl` は同じ署名付きDSSE envelopeをSLSA向けに公開します。署名は配布元の証明であり、バグ不在や独立したSLSA認証の証明ではありません。`release-manifest.json` にソースのコミット、バージョン、Bunのバージョン、全payloadのサイズとdigestを記録します。一部だけ取得した場合は選んだチェックサムの行を検証し、全payloadを取得した場合は `SHA256SUMS` 全体を検証できます。
 
-`mise run release:build` はGit HEADのアーカイブを `dist/release/` に作り、未コミットの変更、無視されたファイル、ローカルの導入用資格情報を含めません。`mise run cli:build PLATFORM --verify-reproducible` は `dist/executables/` に実行ファイルを作ります。PLATFORMには `windows-x64` のように `.exe` を付けないターゲットIDを指定し、ソース・package・lockfile・TypeScriptとツールの設定・ビルドスクリプトのコミットを必須にします。検査済みの7ビルドとnpmアーカイブを集め、`mise run release:finalize` で不足・余分・空・symlinkの成果物を拒否してチェックサムとmanifestをまとめます。ソースの本人性と元アーカイブのdigestも確認します。PR・mainのCIも同じ共通ワークフローで全ターゲットのビルド・起動確認を行います。
+`mise run release:build` はGit HEADのアーカイブを `dist/release/` に作り、未コミットの変更、無視されたファイル、ローカルの導入用資格情報を含めません。`mise run cli:build PLATFORM --verify-reproducible` は `dist/executables/` に実行ファイルを作ります。PLATFORMには `windows-x64` のように `.exe` を付けないターゲットIDを指定し、ソース・package・lockfile・TypeScriptとツールの設定・ビルドスクリプトのコミットを必須にします。検査済みの7ビルドと対象バージョンのnpmアーカイブを集め、`mise run release:finalize` で不足・余分・空・symlinkの成果物を拒否してチェックサムとmanifestをまとめます。ソースの本人性と元アーカイブのdigestも確認します。PR・mainのCIも同じ共通ワークフローで全ターゲットのビルド・起動確認を行いますが、実行ファイルのartifactはアップロードしません。配布ファイルを組み立てるverified-releaseからの呼び出しだけが保存を有効にし、非公開のリリースプレビューでも検証経路を維持します。
 
 ## プレビューと再実行
 

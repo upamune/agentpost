@@ -2,6 +2,12 @@
 
 [English](CHANGELOG.md) | [日本語](CHANGELOG.ja.md)
 
+## 0.1.4
+
+- Bound local mail and checkpoint file reads, reject devices/FIFOs, and enforce the complete serialized API request limit before submission. Preserve Unicode mail and stop on invalid saved checkpoints.
+- Report stale `sending` requests through authenticated health without changing their outcomes or resending mail.
+- Retain executable CI artifacts only for release assembly, select the exact npm archive version, and document Node-only skill installation.
+
 ## 0.1.3
 
 - Fix the npm publisher's local archive path so npm does not interpret it as a GitHub shorthand. Add an actual offline npm publish dry-run regression using the workflow's maintained file argument.

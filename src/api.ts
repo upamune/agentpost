@@ -177,6 +177,7 @@ interface HealthTotals {
   failed_messages: number;
   raw_recovery_failures: number;
   oldest_outbound: number | null;
+  oldest_sending: number | null;
   oldest_inbound: number | null;
 }
 function noHealthFailures(totals: HealthTotals | null): boolean {
@@ -190,7 +191,7 @@ function noHealthFailures(totals: HealthTotals | null): boolean {
 }
 
 function staleHealthTotals(totals: HealthTotals | null): boolean {
-  return [totals?.oldest_outbound, totals?.oldest_inbound].some(
+  return [totals?.oldest_outbound, totals?.oldest_sending, totals?.oldest_inbound].some(
     (time) => time != null && time < Date.now() - 15 * 60_000,
   );
 }
@@ -199,7 +200,7 @@ app.get("/v1/health", async (context) => {
   requireAdmin(context);
   await context.env.MAIL.list({ limit: 1 });
   const totals = await context.env.DB.prepare(
-    "SELECT (SELECT count(*) FROM outbox WHERE status = 'unknown' AND resolved_at IS NULL) AS unknown_sends, (SELECT count(*) FROM outbox WHERE status = 'failed' AND resolved_at IS NULL) AS failed_sends, (SELECT count(*) FROM messages WHERE status = 'failed') AS failed_messages, (SELECT count(*) FROM raw_recovery_failures) AS raw_recovery_failures, (SELECT min(created_at) FROM outbox WHERE status = 'pending') AS oldest_outbound, (SELECT min(created_at) FROM messages WHERE status = 'pending') AS oldest_inbound",
+    "SELECT (SELECT count(*) FROM outbox WHERE status = 'unknown' AND resolved_at IS NULL) AS unknown_sends, (SELECT count(*) FROM outbox WHERE status = 'failed' AND resolved_at IS NULL) AS failed_sends, (SELECT count(*) FROM messages WHERE status = 'failed') AS failed_messages, (SELECT count(*) FROM raw_recovery_failures) AS raw_recovery_failures, (SELECT min(created_at) FROM outbox WHERE status = 'pending') AS oldest_outbound, (SELECT min(updated_at) FROM outbox WHERE status = 'sending') AS oldest_sending, (SELECT min(created_at) FROM messages WHERE status = 'pending') AS oldest_inbound",
   ).first<HealthTotals>();
   const sendConfigured = Boolean(
     context.env.AGENTPOST_CF_ACCOUNT_ID && context.env.AGENTPOST_CF_EMAIL_API_TOKEN,

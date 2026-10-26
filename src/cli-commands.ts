@@ -1,10 +1,11 @@
 import { parseArgs } from "node:util";
-import { open, readFile } from "node:fs/promises";
+import { open } from "node:fs/promises";
 import { z } from "zod";
-import { MAX_MAIL_BYTES, readBounded } from "./common";
+import { MAX_MAIL_BYTES, MAX_REQUEST_BYTES, readBounded } from "./common";
 import { MailClient } from "./client";
 import { inboxInputSchema } from "./inbox-schema";
 import { watchEvents } from "./watch";
+import { readLocalText } from "./local-file";
 
 export function parseCliArgs(args: string[]) {
   return parseArgs({
@@ -55,9 +56,11 @@ async function mailBody(values: Values) {
     throw new Error("Choose --text or --text-file");
   return {
     text: values["text-file"]
-      ? await readFile(values["text-file"], "utf8")
+      ? await readLocalText(values["text-file"], MAX_REQUEST_BYTES)
       : required(values.text, "--text or --text-file"),
-    ...(values["html-file"] ? { html: await readFile(values["html-file"], "utf8") } : {}),
+    ...(values["html-file"]
+      ? { html: await readLocalText(values["html-file"], MAX_REQUEST_BYTES) }
+      : {}),
   };
 }
 

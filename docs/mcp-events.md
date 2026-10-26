@@ -102,6 +102,8 @@ mise exec -- bun run cli events watch --inbox YOUR_INBOX_UUID \
   --cursor-file .agentpost/received.cursor.json
 ```
 
+Checkpoint input must be a regular file of at most 16 KiB, with a cursor of at most 2048 characters. Invalid input stops monitoring without discarding or replacing the saved checkpoint.
+
 Watch emits NDJSON to stdout and atomically renames a temporary checkpoint after output is flushed. Restart resumes from that position. A crash between output and checkpoint can replay an event; downstream consumers must deduplicate by `eventId`.
 
 Errors go to stderr. Authorization failures and invalid cursors are not skipped automatically. SIGINT/SIGTERM stop monitoring. Use one process per subscription/checkpoint file; never let multiple watchers write the same file.

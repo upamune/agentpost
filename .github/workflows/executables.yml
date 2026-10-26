@@ -7,6 +7,11 @@ on:
         description: Exact validated source revision, or the caller's commit
         required: false
         type: string
+      upload_artifacts:
+        description: Retain verified executables for release assembly
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -68,6 +73,7 @@ jobs:
             oven/bun:1.4.4-alpine@sha256:4cf82f5686b196504fe119db3fcd9185b191f82ece82c40680e597228ec6070a \
             bun run scripts/smoke-executable.ts --platform "$AGENTPOST_BUILD_PLATFORM"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: inputs.upload_artifacts
         with:
           name: executable-${{ matrix.platform }}
           path: dist/executables/*
