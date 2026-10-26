@@ -1,0 +1,7 @@
+# actionlint 1.7.12 predates GitHub's July 2026 self-repository syntax.
+# Remove this exact parser compatibility filter when actionlint supports it.
+# https://github.blog/changelog/2026-07-30-reference-same-repository-actions-with-self-repository-syntax/
+paths:
+  .github/workflows/{ci,release}.yml:
+    ignore:
+      - '^reusable workflow call "\$/\.github/workflows/executables\.yml" at "uses" is not following the format '
