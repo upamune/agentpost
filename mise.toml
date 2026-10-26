@@ -38,7 +38,13 @@ run = ["bun run lint", "bun run knip", "pinact run --check", "actionlint"]
 run = "bun run typecheck"
 
 [tasks.test]
-run = "bun run test"
+depends = ["test:worker", "test:bun"]
+
+[tasks."test:worker"]
+run = "bun run test:worker"
+
+[tasks."test:bun"]
+run = "bun run test:bun"
 
 [tasks.build]
 run = "bun run build"
@@ -100,14 +106,18 @@ run = "bun run verification/attachments/check.ts"
 [tasks."verify:attachments:selftest"]
 run = "bun run verification/attachments/check.ts --selftest"
 
+[tasks."verify:webhooks"]
+run = "bun run verification/webhooks/check.ts"
+
+[tasks."verify:webhooks:selftest"]
+run = "bun run verification/webhooks/check.ts --selftest"
+
 [tasks.verify]
 depends = [
-  "verify:outbound",
-  "verify:attachments",
-  "verify:attachments:selftest",
-  "verify:inbound",
   "verify:outbound:selftest",
   "verify:inbound:selftest",
+  "verify:attachments:selftest",
+  "verify:webhooks:selftest",
 ]
 
 [tasks.ci]

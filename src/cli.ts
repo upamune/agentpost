@@ -17,11 +17,13 @@ Use --url to override the URL. Credentials are read from the environment.
   message attachment INBOX_ID MESSAGE_ID INDEX --output FILE
   attachment upload INBOX_ID FILE
   send INBOX_ID --to ADDRESS [--to ADDRESS] --subject SUBJECT
-       (--text TEXT | --text-file FILE) [--html-file FILE] --idempotency-key KEY
-  reply INBOX_ID MESSAGE_ID (--text TEXT | --text-file FILE) --idempotency-key KEY
+       (--text TEXT | --text-file FILE) [--html-file FILE] [--idempotency-key KEY]
+  reply INBOX_ID MESSAGE_ID (--text TEXT | --text-file FILE) [--idempotency-key KEY]
   outbox list INBOX_ID [--limit N] [--offset N]
   outbox get INBOX_ID SEND_ID
   outbox resolve INBOX_ID SEND_ID --outcome accepted|failed --note EVIDENCE
+  webhook get|delete|deliveries INBOX_ID
+  webhook set INBOX_ID --webhook-url HTTPS_URL
   events list
   events poll|watch [--name message.received] [--inbox INBOX_ID]
        [--cursor CURSOR] [--max-age-ms N] [--limit N]
@@ -33,9 +35,13 @@ Use --url to override the URL. Credentials are read from the environment.
 Send/reply: repeat --attach FILE or --attachment-id ID (max 10).
 Files: PDF, PNG/JPEG/GIF/WebP, UTF-8 text/CSV/JSON/Markdown; max 3 MiB combined content.
 Uploads are private, inbox-scoped, retained in R2, and not virus-scanned.
+Webhook set returns a signing secret once; save the JSON privately. Configuration
+requires an operator-approved HTTPS origin. Replacement rotates the signing secret.
 
 JSON to stdout; watch emits NDJSON. A send returns its durable outbox state,
-not proof of delivery. Reuse the same key when retrying the same send.
+not proof of delivery. Missing keys generate UUIDv4 before uploads/submission.
+Success output and send errors include the key: save and reuse it for the unchanged
+request. Repeating without --idempotency-key creates a NEW send; no automatic retries.
 Events watch starts from now unless a cursor is supplied. --cursor-file
 checkpoints after output is flushed. Replay is at-least-once; dedupe by eventId.
 `;

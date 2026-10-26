@@ -163,3 +163,9 @@ After hosting setup, or when investigating authentication/deliverability, use MC
 ## Send and reply with attachments
 
 Repeat `--attach /absolute/path/report.pdf` on `send` or `reply`. Use `attachment upload INBOX_ID FILE` to upload first, then `--attachment-id ID` to reuse saved IDs. MCP uses `upload_attachment` followed by `send_email` or `reply_email`. Both the Worker and client must support attachments. Read [formats, limits, retention, and retries](docs/outbound-attachments.md). Real recipients and content still require the user's authorization.
+
+## Send keys and inbox webhooks
+
+CLI `--idempotency-key` and MCP `idempotency_key` are optional: omission generates UUIDv4 before submission and exposes it in success results and send failures. Save that key with the exact request and pass it explicitly for retries. Repeating without a key creates a new send. Preassigning and persisting a key before the first call remains preferable for crash-resilient agent workflows.
+
+Use `webhook set INBOX_UUID --webhook-url HTTPS_URL` or MCP `set_webhook` only when the user authorized that receiver and the operator already configured its allowed origin, encryption key and dedicated queue. Save the returned signing secret privately; receivers must verify signatures and deduplicate. Installing the skill does not authorize a new external notification destination. Follow [webhook installation and verification](docs/webhooks.md); configuration alone does not prove receiver connectivity.

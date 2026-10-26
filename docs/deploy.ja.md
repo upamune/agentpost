@@ -27,6 +27,8 @@ CLIとstdioのMCPはプロセスの環境変数を読み、Workerは`wrangler.js
 | `AGENTPOST_ACCESS_PRINCIPALS`          | Worker vars              | 本人IDとロールのJSON対応表                                              |
 | `AGENTPOST_OAUTH_RESOURCE_URL`         | Worker vars              | `/mcp`で終わる正規のHTTPS URL                                           |
 | `AGENTPOST_OAUTH_AUTHORIZATION_SERVER` | Worker vars              | Accessメタデータにある正確なAS issuer                                   |
+| `AGENTPOST_WEBHOOK_ENCRYPTION_KEY`     | Worker Secret            | 任意。Webhook設定の暗号化に使う32バイト・64文字16進数の独立鍵           |
+| `AGENTPOST_WEBHOOK_ALLOWED_ORIGINS`    | Worker vars              | 任意。信頼する公開HTTPS originの完全一致JSON配列                        |
 | `AGENTPOST_LOCAL_URL`                  | ローカル受信テスト       | `smoke:local`の接続先。既定値は`http://127.0.0.1:8787`                  |
 
 OAuthまたはbothでは、デプロイ前に[認証設定](authentication.ja.md)を行います。既定のtoken専用ではAccessアプリは不要です。
@@ -77,6 +79,8 @@ mise exec -- bun run wrangler d1 create agentpost
 mise exec -- bun run wrangler r2 bucket create agentpost
 mise exec -- bun run wrangler queues create agentpost
 mise exec -- bun run wrangler queues create agentpost-dlq
+mise exec -- bun run wrangler queues create agentpost-webhooks
+mise exec -- bun run wrangler queues create agentpost-webhooks-dlq
 mise exec -- bun run wrangler d1 migrations apply DB --remote
 ```
 
@@ -142,3 +146,7 @@ Email Routingの対象ドメインで、catch-allの宛先を**Worker `agentpost
 受信・送信の外部テストを定期的に行う場合は、専用の宛先と実行間隔を決めてから設定する。単なるHTTPヘルスチェックではDNS、メール受信、到達性の障害を検出できない。
 
 [運用設計](operations.ja.md)の復旧手順をステージングで実施する。D1のTime TravelとR2の保存原文を使って復旧できることを確認する。バックアップの確認や復旧訓練が済むまでは、安定稼働を検証済みと扱わない。
+
+## 受信Webhookを有効にする
+
+現在のWrangler設定はメール処理とは別の`AGENTPOST_WEBHOOK_JOBS`キューとDLQを宣言します。既存環境の更新時も専用キューを作成し、`0006_inbox_webhooks.sql`を適用してください。通知の有効化には独立した暗号鍵と信頼するorigin許可リストが必要です。各受信箱の通知先は既定では未設定です。[Webhook設定・署名検証・復旧](webhooks.ja.md)に従い、許可された通知先で受信確認してから稼働を報告します。メール本文や資格情報を通知に含めません。

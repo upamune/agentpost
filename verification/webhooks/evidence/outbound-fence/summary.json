@@ -1,0 +1,129 @@
+{
+  "view": "customer",
+  "second": {
+    "role": "against",
+    "label": "Guarded implementation",
+    "lacks": []
+  },
+  "modelStates": 43,
+  "modelTransitions": 62,
+  "chartStates": 24,
+  "chartTransitions": 24,
+  "chartStatus": {
+    "works": 37,
+    "wrong": 1,
+    "fixed": 2,
+    "mixed": 0,
+    "after": 0
+  },
+  "mixedStatus": [],
+  "cover": {
+    "drawn": true,
+    "states": 40,
+    "transitions": 65,
+    "leftOutStates": [
+      "barrier; inbox disabled; worker 2; inbox update 1; no old disable in flight",
+      "barrier; inbox disabled; worker 3; inbox update 1; no old disable in flight",
+      "barrier; inbox disabled; worker 3; inbox update 3; no old disable in flight",
+      "barrier; inbox disabled; worker 3; inbox update 3; old disable still in flight",
+      "barrier; inbox enabled; worker 3; inbox update 0; old disable still in flight",
+      "cancelled; inbox disabled; worker 3; inbox update 3; old disable still in flight",
+      "cancelled; inbox enabled; worker 3; inbox update 2; old disable still in flight",
+      "done; inbox disabled; worker 3; inbox update 3; old disable still in flight",
+      "done; inbox enabled; worker 2; inbox update 2; old disable still in flight",
+      "done; inbox enabled; worker 3; inbox update 2; old disable still in flight",
+      "idle; inbox disabled; worker 3; inbox update 3; old disable still in flight",
+      "idle; inbox enabled; worker 3; inbox update 0; old disable still in flight",
+      "prepared; inbox disabled; worker 3; inbox update 3; old disable still in flight",
+      "prepared; inbox enabled; worker 3; inbox update 0; old disable still in flight",
+      "verified; inbox disabled; worker 3; inbox update 3; no old disable in flight",
+      "verified; inbox disabled; worker 3; inbox update 3; old disable still in flight"
+    ],
+    "leftOutTransitions": [
+      "barrier; inbox disabled; worker 2; inbox update 1; no old disable in flight --> barrier; inbox disabled; worker 3; inbox update 1; no old disable in flight: Another replacement occurs during awaited preparation",
+      "barrier; inbox disabled; worker 2; inbox update 1; no old disable in flight --> cancelled; inbox disabled; worker 2; inbox update 1; no old disable in flight: Confirm the snapshot and reject older pending writes atomically",
+      "barrier; inbox disabled; worker 3; inbox update 1; no old disable in flight --> barrier; inbox disabled; worker 3; inbox update 3; no old disable in flight: The newest worker disables the inbox",
+      "barrier; inbox disabled; worker 3; inbox update 1; no old disable in flight --> cancelled; inbox disabled; worker 3; inbox update 1; no old disable in flight: Confirm the snapshot and reject older pending writes atomically",
+      "barrier; inbox disabled; worker 3; inbox update 3; no old disable in flight --> cancelled; inbox disabled; worker 3; inbox update 3; no old disable in flight: Confirm the snapshot and reject older pending writes atomically",
+      "barrier; inbox disabled; worker 3; inbox update 3; old disable still in flight --> barrier; inbox disabled; worker 3; inbox update 3; no old disable in flight: The old inbox disable finally reaches D1",
+      "barrier; inbox disabled; worker 3; inbox update 3; old disable still in flight --> cancelled; inbox disabled; worker 3; inbox update 3; old disable still in flight: Confirm the snapshot and reject older pending writes atomically",
+      "barrier; inbox enabled; worker 2; inbox update 0; old disable still in flight --> barrier; inbox disabled; worker 2; inbox update 1; no old disable in flight: The old inbox disable finally reaches D1",
+      "barrier; inbox enabled; worker 2; inbox update 0; old disable still in flight --> barrier; inbox enabled; worker 3; inbox update 0; old disable still in flight: Another replacement occurs during awaited preparation",
+      "barrier; inbox enabled; worker 3; inbox update 0; old disable still in flight --> barrier; inbox disabled; worker 3; inbox update 1; no old disable in flight: The old inbox disable finally reaches D1",
+      "barrier; inbox enabled; worker 3; inbox update 0; old disable still in flight --> barrier; inbox disabled; worker 3; inbox update 3; old disable still in flight: The newest worker disables the inbox",
+      "barrier; inbox enabled; worker 3; inbox update 0; old disable still in flight --> verified; inbox enabled; worker 3; inbox update 2; old disable still in flight: Confirm the snapshot and reject older pending writes atomically",
+      "cancelled; inbox disabled; worker 3; inbox update 3; old disable still in flight --> cancelled; inbox disabled; worker 3; inbox update 3; no old disable in flight: The old inbox disable finally reaches D1",
+      "cancelled; inbox enabled; worker 3; inbox update 2; no old disable in flight --> cancelled; inbox disabled; worker 3; inbox update 3; no old disable in flight: in Guarded implementation, The newest worker disables the inbox",
+      "cancelled; inbox enabled; worker 3; inbox update 2; old disable still in flight --> cancelled; inbox disabled; worker 3; inbox update 3; old disable still in flight: in Guarded implementation, The newest worker disables the inbox",
+      "cancelled; inbox enabled; worker 3; inbox update 2; old disable still in flight --> cancelled; inbox enabled; worker 3; inbox update 2; no old disable in flight: in Guarded implementation, The old inbox disable finally reaches D1",
+      "done; inbox disabled; worker 3; inbox update 3; old disable still in flight --> done; inbox disabled; worker 3; inbox update 3; no old disable in flight: The old inbox disable finally reaches D1",
+      "done; inbox enabled; worker 2; inbox update 2; old disable still in flight --> done; inbox enabled; worker 2; inbox update 2; no old disable in flight: The old inbox disable finally reaches D1",
+      "done; inbox enabled; worker 2; inbox update 2; old disable still in flight --> done; inbox enabled; worker 3; inbox update 2; old disable still in flight: Another replacement occurs during awaited preparation",
+      "done; inbox enabled; worker 3; inbox update 2; old disable still in flight --> done; inbox disabled; worker 3; inbox update 3; old disable still in flight: The newest worker disables the inbox",
+      "done; inbox enabled; worker 3; inbox update 2; old disable still in flight --> done; inbox enabled; worker 3; inbox update 2; no old disable in flight: The old inbox disable finally reaches D1",
+      "idle; inbox disabled; worker 3; inbox update 3; old disable still in flight --> idle; inbox disabled; worker 3; inbox update 3; no old disable in flight: The old inbox disable finally reaches D1",
+      "idle; inbox enabled; worker 2; inbox update 0; old disable still in flight --> idle; inbox enabled; worker 3; inbox update 0; old disable still in flight: Another replacement occurs during awaited preparation",
+      "idle; inbox enabled; worker 3; inbox update 0; old disable still in flight --> idle; inbox disabled; worker 3; inbox update 1; no old disable in flight: The old inbox disable finally reaches D1",
+      "idle; inbox enabled; worker 3; inbox update 0; old disable still in flight --> idle; inbox disabled; worker 3; inbox update 3; old disable still in flight: The newest worker disables the inbox",
+      "prepared; inbox disabled; worker 2; inbox update 1; no old disable in flight --> barrier; inbox disabled; worker 2; inbox update 1; no old disable in flight: Reserve an ownership sequence for the dispatch barrier",
+      "prepared; inbox disabled; worker 3; inbox update 3; old disable still in flight --> prepared; inbox disabled; worker 3; inbox update 3; no old disable in flight: The old inbox disable finally reaches D1",
+      "prepared; inbox enabled; worker 2; inbox update 0; old disable still in flight --> prepared; inbox enabled; worker 3; inbox update 0; old disable still in flight: Another replacement occurs during awaited preparation",
+      "prepared; inbox enabled; worker 3; inbox update 0; old disable still in flight --> prepared; inbox disabled; worker 3; inbox update 1; no old disable in flight: The old inbox disable finally reaches D1",
+      "prepared; inbox enabled; worker 3; inbox update 0; old disable still in flight --> prepared; inbox disabled; worker 3; inbox update 3; old disable still in flight: The newest worker disables the inbox",
+      "verified; inbox disabled; worker 3; inbox update 3; no old disable in flight --> A disabled inbox or replaced worker started an email request: Fence current ownership and start the email provider request",
+      "verified; inbox disabled; worker 3; inbox update 3; no old disable in flight --> cancelled; inbox disabled; worker 3; inbox update 3; no old disable in flight: in Guarded implementation, Stop the replaced worker before starting a request",
+      "verified; inbox disabled; worker 3; inbox update 3; old disable still in flight --> A disabled inbox or replaced worker started an email request: Fence current ownership and start the email provider request",
+      "verified; inbox disabled; worker 3; inbox update 3; old disable still in flight --> cancelled; inbox disabled; worker 3; inbox update 3; old disable still in flight: in Guarded implementation, Stop the replaced worker before starting a request",
+      "verified; inbox disabled; worker 3; inbox update 3; old disable still in flight --> verified; inbox disabled; worker 3; inbox update 3; no old disable in flight: The old inbox disable finally reaches D1",
+      "verified; inbox enabled; worker 2; inbox update 2; old disable still in flight --> done; inbox enabled; worker 2; inbox update 2; old disable still in flight: Fence current ownership and start the email provider request",
+      "verified; inbox enabled; worker 3; inbox update 2; no old disable in flight --> A disabled inbox or replaced worker started an email request: Fence current ownership and start the email provider request",
+      "verified; inbox enabled; worker 3; inbox update 2; no old disable in flight --> verified; inbox disabled; worker 3; inbox update 3; no old disable in flight: The newest worker disables the inbox",
+      "verified; inbox enabled; worker 3; inbox update 2; old disable still in flight --> cancelled; inbox enabled; worker 3; inbox update 2; old disable still in flight: in Guarded implementation, Stop the replaced worker before starting a request",
+      "verified; inbox enabled; worker 3; inbox update 2; old disable still in flight --> verified; inbox disabled; worker 3; inbox update 3; old disable still in flight: The newest worker disables the inbox",
+      "verified; inbox enabled; worker 3; inbox update 2; old disable still in flight --> verified; inbox enabled; worker 3; inbox update 2; no old disable in flight: The old inbox disable finally reaches D1"
+    ]
+  },
+  "chartGroups": [
+    {
+      "name": "Dispatch barrier protocol",
+      "color": "#d6eaf8",
+      "states": 16
+    },
+    {
+      "name": "Request started safely",
+      "color": "#fdebd0",
+      "states": 3
+    },
+    {
+      "name": "Safely cancelled",
+      "color": "#e8daef",
+      "states": 4
+    },
+    {
+      "name": "Unsafe request started",
+      "color": "#fcf3cf",
+      "states": 1
+    }
+  ],
+  "mixedGroups": [],
+  "classes": [
+    {
+      "n": 1,
+      "end": "A disabled inbox or replaced worker started an email request",
+      "invariant": "NoObsoleteDispatch",
+      "rule": "Neither a delayed old projection nor a new owner can invalidate a dispatched snapshot.",
+      "cause": null,
+      "readerSteps": 7,
+      "modelSteps": 8,
+      "counterexamples": 4,
+      "lastSteps": ["Fence current ownership and start the email provider request"],
+      "startsHere": false,
+      "against": "verified; inbox enabled; worker 3; inbox update 2; old disable still in flight"
+    }
+  ],
+  "codeLike": [],
+  "uncited": {
+    "/var/folders/75/w10zw62d4q358y5km7gh3d0m0000gn/T/agentpost-barrier-red-1slOCW/outbound-fence/DispatchBarrier.tla": []
+  },
+  "brokenProperties": []
+}

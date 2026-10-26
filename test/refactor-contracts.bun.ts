@@ -183,7 +183,9 @@ for (const scenario of commands) {
         return Response.json({ ok: true });
       },
     });
-    expect(await executeCli(client, parseCliArgs(scenario.args))).toEqual({ result: { ok: true } });
+    expect(await executeCli(client, parseCliArgs(scenario.args))).toEqual({
+      result: { ok: true, ...(scenario.key ? { idempotency_key: scenario.key } : {}) },
+    });
     expect(requests).toEqual([
       {
         method: scenario.method,

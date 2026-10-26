@@ -3,9 +3,60 @@ import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promi
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { tlcCommand } from "../verification/tlc";
+import { groupedOutcomes, modelOutcome } from "../verification/model-results";
 
 const checkout = resolve(import.meta.dir, "..");
 const modules = ["Naturals", "FiniteSets", "Sequences"];
+const complete = { code: 0, log: "Model checking completed. No error has been found" };
+
+test("a successful grouped traversal certifies every named property without extra traversals", async () => {
+  let reruns = 0;
+  const results = await groupedOutcomes(["TypeOK", "Safe"], [], complete, async () => {
+    reruns++;
+    return complete;
+  });
+  expect(results).toEqual([
+    { check: "TypeOK", outcome: "passed" },
+    { check: "Safe", outcome: "passed" },
+  ]);
+  expect(reruns).toBe(0);
+});
+
+test("a first grouped failure cannot mark unvisited properties as passing", async () => {
+  const checked: string[] = [];
+  const results = await groupedOutcomes(
+    ["TypeOK", "Safe", "EventuallyReady"],
+    ["EventuallyReady"],
+    { code: 12, log: "Invariant Safe is violated" },
+    async (check) => {
+      checked.push(check);
+      if (check === "Safe") return { code: 12, log: "Invariant Safe is violated" };
+      if (check === "EventuallyReady")
+        return { code: 13, log: "Temporal properties were violated" };
+      return complete;
+    },
+  );
+  expect(checked).toEqual(["TypeOK", "Safe", "EventuallyReady"]);
+  expect(results.map((result) => result.outcome)).toEqual(["passed", "violated", "violated"]);
+});
+
+test("tool failures and incomplete TLC output never become passing grouped evidence", async () => {
+  await expect(
+    groupedOutcomes(["Safe"], [], { code: 1, log: "Cannot parse model" }, async () => complete),
+  ).rejects.toThrow("could not run");
+  await expect(
+    groupedOutcomes(["Safe"], [], { code: 0, log: "Starting TLC" }, async () => complete),
+  ).rejects.toThrow("Missing TLC completion");
+  await expect(
+    groupedOutcomes(["Safe"], [], { code: 12, log: "Invariant Safe is violated" }, async () => ({
+      code: 1,
+      log: "JVM failed",
+    })),
+  ).rejects.toThrow("could not run");
+  expect(() => modelOutcome("Safe", { code: 12, log: "Invariant Other is violated" }, [])).toThrow(
+    "could not run",
+  );
+});
 const model = `---- MODULE TempIsolation ----
 EXTENDS Naturals, FiniteSets, Sequences
 VARIABLE x

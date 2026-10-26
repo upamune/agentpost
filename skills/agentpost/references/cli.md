@@ -76,3 +76,11 @@ With authorized admin access, run `agentpost domain check`. Add `--strict` to fa
 ## Attachments
 
 Repeat `--attach /absolute/path/report.pdf` on send/reply, or upload first with `attachment upload INBOX_ID FILE` and reuse the saved ID with `--attachment-id ID`. Read [attachment workflow](attachments.md) for limits, file policy, retention, and retries.
+
+## Automatic send keys
+
+`--idempotency-key` may be omitted: UUIDv4 is generated before reading files or uploading attachments. Successful JSON contains `idempotency_key`; failures include the same key in stderr. Save it and reuse it explicitly with the unchanged request. Omitted-key repetition requests a different send. A process crash can prevent recording output; choose and save a key before the first command when crash recovery matters. The CLI never automatically retries a send.
+
+## Inbox webhook commands
+
+For an authorized receiver, follow [webhook workflow](webhooks.md). `webhook set INBOX_UUID --webhook-url HTTPS_URL` returns a signing secret once; save the response privately. Use `webhook get`, `webhook deliveries`, and `webhook delete` with the same inbox UUID. `--url` continues to select the Agentpost API, so use `--webhook-url` for the receiver.

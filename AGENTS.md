@@ -16,4 +16,4 @@ Issue random or custom-named email addresses on the operator's own domain and le
 - Keep repository-wide agent instructions in this English `AGENTS.md` only.
 - Write maintained product documentation in English by default and provide Japanese `*.ja.md` counterparts. Update both when behavior, examples, or limits change; preserve upstream and generated artifact languages.
 
-For send, disable, or recovery changes, follow `.agents/skills/verify-outbound-safety/SKILL.md`. For raw persistence, index repair, parsing order, or republishing changes, follow `.agents/skills/verify-inbound-recovery/SKILL.md`. Run `mise run verify`, or `mise run ci` for verification plus the regular checks.
+For send, disable, or recovery changes, follow `.agents/skills/verify-outbound-safety/SKILL.md`. For raw persistence, index repair, parsing order, or republishing changes, follow `.agents/skills/verify-inbound-recovery/SKILL.md`. For webhook configuration, dispatch barriers, notification delivery, or generated idempotency keys, follow `.agents/skills/verify-webhook-safety/SKILL.md`. Run `mise run verify`, or `mise run ci` for verification plus the regular checks.

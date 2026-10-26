@@ -62,7 +62,9 @@ CLI: `inbox create --local-part research.team+1`. MCP: `create_inbox` with `loca
 
 ## Send and reply
 
-Both operations require `Idempotency-Key`. Retry the same logical message in the same inbox with the same key and payload. Reusing a key with different content returns 409.
+`Idempotency-Key` is optional. When omitted, the API generates UUIDv4 and returns it in the `Idempotency-Key` response header and the successful outbox JSON `idempotency_key`. Explicit keys accept 1–128 ASCII letters, digits, or `_.:-`; empty/invalid keys return 400. Retry the same logical message in the same inbox with its saved key and exact payload; different content under that key returns 409.
+
+CLI and MCP generate the key **before** preparation or network submission, then expose it in success results and send errors (MCP also uses `structuredContent.idempotency_key`). Save it with task state. Repeating without a key creates a new send; there are no automatic client retries. Direct HTTP callers should generate and persist their own key before submission when recovery after a lost response matters: a server-generated key cannot reach a caller whose response was lost. Inspect outbox history before deciding what to do if the key is unavailable.
 
 ```sh
 curl "$AGENTPOST_API_URL/v1/inboxes/INBOX_ID/send" \
@@ -85,3 +87,7 @@ Disabling waits for earlier send processing and persists the disabled state befo
 ## Attachment uploads
 
 `POST /v1/inboxes/{inbox}/attachments` accepts `application/octet-stream` and a percent-encoded `Agentpost-Filename`, returning a private attachment ID. Send and reply accept an optional `attachments` array of IDs. Binary content is not included in the send JSON. See [limits, idempotency, and file policy](outbound-attachments.md).
+
+## Received-email webhooks
+
+Use `GET`, `PUT`, and `DELETE /v1/inboxes/{inbox}/webhook` for configuration, and `GET /v1/inboxes/{inbox}/webhook/deliveries` for the latest 50 states (a fixed limit, separate from ordinary list pagination). `PUT` accepts `{"url":"https://hooks.example.com/mail"}` and returns a signing secret once. Read [hosting controls, receiver verification, and delivery semantics](webhooks.md).

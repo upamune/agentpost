@@ -108,3 +108,11 @@ Apply both D1 migrations and Wrangler Durable Object migrations. When upgrading 
 ## Outbound attachment retention
 
 [Outbound attachments](outbound-attachments.md) are immutable R2 objects under `outbound-attachments/`; outbox rows reference only their IDs. Unused uploads are not automatically deleted. Back up and restore D1 and attachment objects together; do not delete objects referenced by pending sends. Dispatch verifies content before contacting the provider. Transient storage errors can retry only before provider initiation; missing/corrupt files fail, and crashes after claiming retain the existing unknown-outcome reconciliation policy. Format checks are not antivirus scanning.
+
+## Received-email webhooks
+
+Webhook notification rows commit with the parsed-message ready transition. Queue failures retain pending rows for Cron recovery. The dedicated webhook queue prevents receiver retries from consuming the mail queue, while the same per-inbox coordinator serializes configuration, disabling, webhook dispatch and mail dispatch; slow receivers can still delay that inbox. Webhook HTTP attempts time out after ten seconds, and interrupted claims can be recovered after two minutes.
+
+[Webhook operations](webhooks.md) define signature verification, stable-ID deduplication, eight-attempt limits, terminal failures, and encrypted configuration backups. Unlike unknown mail sends, uncertain webhook attempts may repeat because receivers must deduplicate. Replacing/removing a webhook cancels old pending work, and historical messages are not replayed automatically. Inspect `failed_webhooks` and `oldest_webhook` in authenticated health and reconcile missing notifications against message history.
+
+For automatic send keys, save the `idempotency_key` returned by CLI/MCP success or failure and reuse it with the unchanged request. A lost direct-API response also loses a server-generated key: preassign a key when durable recovery matters. Omitting a key on another invocation requests another logical send.

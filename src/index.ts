@@ -1,6 +1,8 @@
 import app from "./api";
 import { oauthMetadata } from "./oauth-metadata";
 import { parseMessage, receive } from "./inbound";
+import { publishMessageWebhooks } from "./webhook-store";
+import { deliverWebhook } from "./webhooks";
 import { maintain } from "./maintenance";
 import { deliver } from "./coordinator";
 import { handleMcp } from "./mcp-http";
@@ -36,8 +38,7 @@ export default {
 
 async function handleQueueMessage(message: Message<Job>, env: Env): Promise<void> {
   try {
-    if (message.body.kind === "outbound") await deliver(env, message.body.id);
-    else await parseMessage(env, message.body.id);
+    await dispatchJob(env, message.body);
     message.ack();
   } catch {
     console.error(
@@ -57,4 +58,11 @@ async function handleQueueMessage(message: Message<Job>, env: Env): Promise<void
     }
     message.retry({ delaySeconds: Math.min(300, 30 * 2 ** (message.attempts - 1)) });
   }
+}
+
+async function dispatchJob(env: Env, job: Job): Promise<void> {
+  if (job.kind === "outbound") return deliver(env, job.id);
+  if (job.kind === "webhook") return deliverWebhook(env, job.id);
+  await parseMessage(env, job.id);
+  await publishMessageWebhooks(env, job.id);
 }

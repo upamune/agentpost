@@ -132,7 +132,7 @@ After deployment, point `AGENTPOST_API_URL` at the Worker's HTTPS URL. Supplying
 
 ### Send a message
 
-Persist one **idempotency key** for each logical message. Reuse that key when retrying the same request.
+Omit the **idempotency key** to generate UUIDv4 automatically; success results and send errors include it. Save it with the exact message, and supply it explicitly when retrying. Repeating without a key creates a new send. For durable agent workflows, choosing and saving the key before the first call remains supported.
 
 ```sh
 mise exec -- bun run cli send YOUR_INBOX_UUID \
@@ -145,6 +145,10 @@ mise exec -- bun run cli outbox get YOUR_INBOX_UUID YOUR_SEND_UUID
 ```
 
 The send response contains an outbox ID for checking progress. `accepted` means Cloudflare accepted the request; it does not prove recipient delivery. An `unknown` outcome needs operator reconciliation and is never automatically resent.
+
+## Webhooks per inbox
+
+Use `agentpost webhook set INBOX_UUID --webhook-url https://hooks.example.com/mail` for signed, metadata-only notifications after received mail is parsed. Hosting requires an explicit origin allowlist and encryption key. See [webhook setup](docs/webhooks.md) for secret storage, deduplication and retries.
 
 ## Connect over MCP
 

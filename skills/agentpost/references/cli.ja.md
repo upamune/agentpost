@@ -72,3 +72,11 @@ agentpost events watch \
 ## 添付付き送信・返信
 
 `--attach /absolute/path/report.pdf` をsend/replyに繰り返し指定できます。再試行に備える場合は `attachment upload INBOX_ID FILE` のIDを保存し、`--attachment-id ID` で再利用します。[添付の手順](attachments.ja.md)で上限・危険ファイル・保持方針を確認してください。
+
+## 送信キーの自動採番
+
+`--idempotency-key`を省略すると、ファイル読み取り・添付アップロードの前にUUIDv4を生成します。成功JSONは`idempotency_key`、失敗はstderrに同じキーを含めます。保存し、同じ要求の再試行では明示してください。省略したままの再実行は別送信です。プロセス停止で出力を保存できない場合もあるため、停止からの復旧が必要なら初回前にキーを決めて保存します。CLIは送信を自動再試行しません。
+
+## 受信箱Webhookのコマンド
+
+許可された通知先に対し、[Webhookの手順](webhooks.ja.md)に従います。`webhook set INBOX_UUID --webhook-url HTTPS_URL`は署名秘密鍵を一度だけ返すため、応答を非公開に保存します。確認・履歴・削除は同じ受信箱UUIDで`webhook get`・`webhook deliveries`・`webhook delete`を使います。`--url`はAgentpost APIの接続先なので、通知先には`--webhook-url`を使ってください。

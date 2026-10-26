@@ -76,6 +76,8 @@ OAuth-authenticated provisioning never returns an inbox token, including in both
 
 Ownership is per Access identity, not per MCP client or task. Multiple agents logged in as the same user share that user's owned inboxes. Use distinct identities or separate inbox tokens when tasks need stronger separation. Access/OAuth scopes are not invented to substitute for application roles.
 
+Inbox-authorized identities can also read, replace, or remove that inbox's [receive webhook](webhooks.md) and inspect its delivery states. Destinations must satisfy the operator's trusted-origin policy. A webhook is persistent inbox configuration: rotating a token or revoking an OAuth grant does not remove it. Remove its webhook or disable the inbox when revoking trust in a former owner or receiver.
+
 ## Both-mode ingress and revocation
 
 An Access login barrier also applies to requests carrying an agentpost static token; selecting `both` in the Worker does not bypass Access at the edge. A straightforward deployment uses an Access-protected OAuth hostname and a separate token hostname routed to the same Worker. Secure both with HTTPS and their intended policies. Missing signed assertions on an OAuth-only Worker never authorize a direct `workers.dev` request.

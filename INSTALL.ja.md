@@ -164,3 +164,9 @@ GitHub ActionsはmainへのpushとPRで検査とWorkerのdry-runビルドを行�
 ## 添付付き送信・返信
 
 `send`・`reply` に `--attach /absolute/path/report.pdf` を繰り返し指定できます。事前アップロードは `attachment upload INBOX_ID FILE`、保存済みIDの再利用は `--attachment-id ID` です。MCPは `upload_attachment` の結果を `send_email`・`reply_email` に渡します。対応するWorkerとクライアントの両方が必要です。[対応形式・サイズ・保持・再試行](docs/outbound-attachments.ja.md)を確認してください。実メールの宛先と内容は利用者の承認が必要です。
+
+## 送信キーと受信Webhook
+
+CLIの`--idempotency-key`とMCPの`idempotency_key`は省略時に要求前にUUIDv4を生成し、成功結果・送信エラーで返します。そのキーと正確な要求を保存し、再要求時に明示してください。省略したまま繰り返すと別送信になります。障害に備えるエージェント処理では、初回前にキーを保存する方法も推奨します。
+
+受信箱ごとの通知には`webhook set INBOX_UUID --webhook-url HTTPS_URL`またはMCP `set_webhook`を使えます。利用者が通知先を許可し、運用者がorigin許可・暗号鍵・専用キューを設定済みの場合に限ります。一度だけ返る署名秘密鍵は非公開に保存し、受信側で検証・重複排除を行います。スキル導入は外部通知先の新設を許可しません。[Webhookの導入・確認手順](docs/webhooks.ja.md)を参照し、実際の受信確認前に接続済みと報告しないでください。

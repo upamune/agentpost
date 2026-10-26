@@ -1,0 +1,255 @@
+{
+  "bounds": {
+    "inboxes": 2,
+    "coordinatorIncarnations": 3,
+    "configurationWrites": 2,
+    "deliveryClaims": 2,
+    "messagesPerInbox": 1,
+    "logicalSendCalls": 2
+  },
+  "assumptions": [
+    "Atomic D1 writes, triggers, uniqueness and conditional updates",
+    "Monotonic SQLite ownership fences; no await between fence and fetch initiation",
+    "Webhook retries are at-least-once and preserve their delivery identity; receivers deduplicate",
+    "Distinct generated UUIDv4 values are collision-free within this finite model",
+    "Cryptography, exact-origin validation, HTTP behavior and elapsed timeout arithmetic require real-code tests",
+    "The existing outbound model independently protects email unknown-outcome non-retry"
+  ],
+  "sourceMutations": [
+    {
+      "name": "configuration-version",
+      "baseline": "passed",
+      "mutation": "assertion-failed"
+    },
+    {
+      "name": "conditional-claim",
+      "baseline": "passed",
+      "mutation": "assertion-failed"
+    },
+    {
+      "name": "ownership-fence",
+      "baseline": "passed",
+      "mutation": "assertion-failed"
+    },
+    {
+      "name": "claim-token",
+      "baseline": "passed",
+      "mutation": "assertion-failed"
+    },
+    {
+      "name": "dispatch-barrier",
+      "baseline": "passed",
+      "mutation": "assertion-failed"
+    }
+  ],
+  "realCodeReplays": 8,
+  "checks": [
+    {
+      "name": "outbound-dispatch-barrier",
+      "checks": [
+        {
+          "check": "TypeOK",
+          "outcome": "passed"
+        },
+        {
+          "check": "NoObsoleteDispatch",
+          "outcome": "passed"
+        }
+      ],
+      "generatedStates": 61,
+      "distinctStates": 39
+    },
+    {
+      "name": "dispatch-barrier",
+      "checks": [
+        {
+          "check": "TypeOK",
+          "outcome": "passed"
+        },
+        {
+          "check": "NoObsoleteDispatch",
+          "outcome": "passed"
+        }
+      ],
+      "generatedStates": 121,
+      "distinctStates": 77
+    },
+    {
+      "name": "configuration",
+      "checks": [
+        {
+          "check": "TypeOK",
+          "outcome": "passed"
+        },
+        {
+          "check": "NoStaleConfiguration",
+          "outcome": "passed"
+        }
+      ],
+      "generatedStates": 5,
+      "distinctStates": 4
+    },
+    {
+      "name": "delivery",
+      "checks": [
+        {
+          "check": "TypeOK",
+          "outcome": "passed"
+        },
+        {
+          "check": "NoObsoleteDispatch",
+          "outcome": "passed"
+        },
+        {
+          "check": "ImmutableDestination",
+          "outcome": "passed"
+        },
+        {
+          "check": "ConditionalClaim",
+          "outcome": "passed"
+        },
+        {
+          "check": "ClaimBoundSettlement",
+          "outcome": "passed"
+        }
+      ],
+      "generatedStates": 310,
+      "distinctStates": 177
+    },
+    {
+      "name": "events",
+      "checks": [
+        {
+          "check": "TypeOK",
+          "outcome": "passed"
+        },
+        {
+          "check": "InboxIsolation",
+          "outcome": "passed"
+        },
+        {
+          "check": "ImmutableEventIdentity",
+          "outcome": "passed"
+        },
+        {
+          "check": "OneEventPerTransition",
+          "outcome": "passed"
+        }
+      ],
+      "generatedStates": 14,
+      "distinctStates": 10
+    },
+    {
+      "name": "generated-key",
+      "checks": [
+        {
+          "check": "TypeOK",
+          "outcome": "passed"
+        },
+        {
+          "check": "KeyRetained",
+          "outcome": "passed"
+        },
+        {
+          "check": "NoImplicitRetry",
+          "outcome": "passed"
+        },
+        {
+          "check": "RequestKeyBound",
+          "outcome": "passed"
+        },
+        {
+          "check": "SelectionPolicy",
+          "outcome": "passed"
+        }
+      ],
+      "generatedStates": 41,
+      "distinctStates": 25
+    },
+    {
+      "name": "explicit-key",
+      "checks": [
+        {
+          "check": "TypeOK",
+          "outcome": "passed"
+        },
+        {
+          "check": "KeyRetained",
+          "outcome": "passed"
+        },
+        {
+          "check": "NoImplicitRetry",
+          "outcome": "passed"
+        },
+        {
+          "check": "RequestKeyBound",
+          "outcome": "passed"
+        },
+        {
+          "check": "SelectionPolicy",
+          "outcome": "passed"
+        }
+      ],
+      "generatedStates": 41,
+      "distinctStates": 25
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/webhook-delivery.ts",
+      "sha256": "cb7c87a0a97ec70f586d99a4d79c3a121543f1dfe3aad75d735c05b5a2ca6c38"
+    },
+    {
+      "path": "src/webhooks.ts",
+      "sha256": "a037427514b79180415bd888b49e8c41f18a4537ec5f345a50ea980e563a6aa4"
+    },
+    {
+      "path": "src/webhook-policy.ts",
+      "sha256": "68dc17d668f4162b6d3f3a46373e33e9257f573612848383fcb0021a2a5f684a"
+    },
+    {
+      "path": "src/webhook-crypto.ts",
+      "sha256": "ea7f2ee6e47c12621644b2d0496679869f12b6abb1d11f8e85a85f9ee3d03596"
+    },
+    {
+      "path": "src/webhook-store.ts",
+      "sha256": "b5056e53c6aacd00c5f330206e44eca46db7153c68fa2b134900834c7a1f019d"
+    },
+    {
+      "path": "src/coordinator.ts",
+      "sha256": "3eead6e30132df24273821c65840d8170c9e62cda123c3de9815f318276b9ebf"
+    },
+    {
+      "path": "src/inbound.ts",
+      "sha256": "d7e4bfeeb2aea3536257f6666e94bedbd375a19b3bc5c87cdda9477652c74ed4"
+    },
+    {
+      "path": "src/api.ts",
+      "sha256": "dda3093c1428e94c022aab18e6c9e173960ad5c74d22ff95f92fddb8473fa392"
+    },
+    {
+      "path": "src/maintenance.ts",
+      "sha256": "7aaa23b99e2771bf99b47ade452cf2a2e4149cb5d279753077484d4a0703d448"
+    },
+    {
+      "path": "src/idempotency.ts",
+      "sha256": "2edd6fe7d50f78d8fe57daad2926d90365b35fd1eefcf572b965d2132c899c41"
+    },
+    {
+      "path": "src/client.ts",
+      "sha256": "1506442906598936865fdd6da6a47d0e1281fce25e33b4195deba1070c74f823"
+    },
+    {
+      "path": "src/outbound.ts",
+      "sha256": "d2c0f60acf99a6488076d663937bc732a724703a614eaef6b1996a1bbab4cf02"
+    },
+    {
+      "path": "src/dispatch-barrier.ts",
+      "sha256": "0a096c0ea4716b910b4c8cb6764621676cd3005adcf76e936d27755503fee65d"
+    },
+    {
+      "path": "migrations/0006_inbox_webhooks.sql",
+      "sha256": "f7502d26e44c92427b4415d27eb2f2c67c798739b8bbdd2f02e24df404fd52f2"
+    }
+  ]
+}

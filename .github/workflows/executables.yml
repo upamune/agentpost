@@ -55,7 +55,8 @@ jobs:
         with:
           version: 2026.10.17
           install_args: bun node
-          cache: false
+          # Cache pinned tool downloads for PRs; release builders stay uncached.
+          cache: ${{ !inputs.upload_artifacts }}
       - run: bun install --frozen-lockfile --ignore-scripts
       - run: mise run cli:build "$AGENTPOST_BUILD_PLATFORM" --verify-reproducible
       - name: Smoke test the standalone CLI and MCP on the native platform

@@ -1,0 +1,46 @@
+---
+config:
+  markdownAutoWrap: false
+  state:
+    useMaxWidth: false
+---
+stateDiagram-v2
+  %% second model (against): Guarded implementation
+  classDef plainWrong fill:#f4f6f7,stroke:#c0392b,stroke-width:4px,color:#7b241c
+  classDef group0 fill:#d6eaf8,stroke:#6b757c,color:#1b2631
+  classDef group0Path fill:#d6eaf8,stroke:#1f3a93,stroke-width:4px,color:#1b2631
+  classDef group3 fill:#fcf3cf,stroke:#7e7a68,color:#1b2631
+  classDef group3Wrong fill:#fcf3cf,stroke:#c0392b,stroke-width:4px,color:#7b241c
+  state "Legend" as legend {
+    state "Dispatch barrier protocol" as legendGroup0
+    state "Unsafe request started" as legendGroup3
+    state "Breaks a rule" as legendWrong
+  }
+  class legendGroup0 group0
+  class legendGroup3 group3
+  class legendWrong plainWrong
+  state "An obsolete or replaced<br/>worker started the webhook<br/>request" as s0
+  state "barrier; inbox enabled;<br/>original webhook; worker<br/>2; config update 0; inbox<br/>update 0; old change still<br/>in flight" as s1
+  state "idle; inbox enabled;<br/>original webhook; worker<br/>1; config update 0; inbox<br/>update 0; no old change in<br/>flight" as s2
+  state "idle; inbox enabled;<br/>original webhook; worker<br/>1; config update 0; inbox<br/>update 0; old change still<br/>in flight" as s3
+  state "idle; inbox enabled;<br/>original webhook; worker<br/>2; config update 0; inbox<br/>update 0; old change still<br/>in flight" as s4
+  state "prepared; inbox enabled;<br/>original webhook; worker<br/>2; config update 0; inbox<br/>update 0; old change still<br/>in flight" as s5
+  state "verified; inbox enabled;<br/>original webhook; worker<br/>2; config update 2; inbox<br/>update 2; old change still<br/>in flight" as s6
+  state "verified; inbox enabled;<br/>original webhook; worker<br/>3; config update 2; inbox<br/>update 2; old change still<br/>in flight" as s7
+  [*] --> s2
+  s2 --> s3 : 1. Old worker starts an<br/>awaited webhook change or<br/>inbox disable
+  s3 --> s4 : 2. A replacement worker takes<br/>ownership
+  s4 --> s5 : 3. Read and sign the captured<br/>original webhook
+  s5 --> s1 : 4. Reserve an ownership<br/>sequence for the dispatch<br/>barrier
+  s1 --> s6 : 5. Confirm the snapshot and<br/>reject older pending writes<br/>atomically
+  s6 --> s7 : 6. Another replacement occurs<br/>during awaited preparation
+  s7 --> s0 : 7. Fence current ownership and<br/>start the captured request<br/>synchronously
+  s7 --> s7 : in Guarded implementation,<br/>Fence current ownership and<br/>start the captured request<br/>synchronously cannot happen at<br/>step 7
+  class s0 group3Wrong
+  class s1 group0Path
+  class s2 group0Path
+  class s3 group0Path
+  class s4 group0Path
+  class s5 group0Path
+  class s6 group0Path
+  class s7 group0Path

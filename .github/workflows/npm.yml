@@ -28,7 +28,7 @@ jobs:
         with:
           version: 2026.10.17
           install_args: bun node@22.23.4
-          cache: false
+          cache: true
       - run: mise exec node@22.23.4 -- bun install --frozen-lockfile --ignore-scripts
       - run: mise exec node@22.23.4 -- bun run scripts/build-npm.ts --verify-reproducible
       - run: mise exec node@22.23.4 -- bun run scripts/smoke-npm.ts

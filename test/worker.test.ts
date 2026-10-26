@@ -310,7 +310,7 @@ describe("API and inbox isolation", () => {
     expect(incoming.rejected).toEqual(["Unknown or disabled recipient"]);
   });
 
-  test("rejects sender override, header injection, missing keys, invalid pagination and oversized bodies", async () => {
+  test("rejects sender override, header injection, invalid keys, invalid pagination and oversized bodies", async () => {
     const box = await inbox();
     const path = `/v1/inboxes/${box.id}/send`;
     const body = { to: ["a@example.net"], subject: "test", text: "body" };
@@ -332,7 +332,7 @@ describe("API and inbox isolation", () => {
         })
       ).status,
     ).toBe(400);
-    expect((await request(path, { method: "POST", body })).status).toBe(400);
+    expect((await request(path, { method: "POST", body, key: "invalid key" })).status).toBe(400);
     expect((await request(`/v1/inboxes/${box.id}/messages?limit=-1`)).status).toBe(400);
     expect(
       (

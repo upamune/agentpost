@@ -1,0 +1,141 @@
+{
+  "view": "customer",
+  "second": {
+    "role": "against",
+    "label": "Guarded implementation",
+    "lacks": []
+  },
+  "modelStates": 85,
+  "modelTransitions": 124,
+  "chartStates": 32,
+  "chartTransitions": 32,
+  "chartStatus": {
+    "works": 46,
+    "wrong": 1,
+    "fixed": 2,
+    "mixed": 0,
+    "after": 0
+  },
+  "mixedStatus": [],
+  "cover": {
+    "drawn": true,
+    "states": 49,
+    "transitions": 84,
+    "leftOutStates": [
+      "barrier; inbox disabled; original webhook; worker 2; config update 0; inbox update 1; no old change in flight",
+      "barrier; inbox disabled; original webhook; worker 3; config update 0; inbox update 1; no old change in flight",
+      "barrier; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; no old change in flight",
+      "barrier; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight",
+      "barrier; inbox enabled; original webhook; worker 3; config update 0; inbox update 0; old change still in flight",
+      "barrier; inbox enabled; replacement webhook; worker 2; config update 1; inbox update 0; no old change in flight",
+      "barrier; inbox enabled; replacement webhook; worker 3; config update 1; inbox update 0; no old change in flight",
+      "cancelled; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight",
+      "cancelled; inbox enabled; original webhook; worker 3; config update 2; inbox update 2; old change still in flight",
+      "done; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight",
+      "done; inbox enabled; original webhook; worker 2; config update 2; inbox update 2; old change still in flight",
+      "done; inbox enabled; original webhook; worker 3; config update 2; inbox update 2; old change still in flight",
+      "idle; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight",
+      "prepared; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight",
+      "prepared; inbox enabled; replacement webhook; worker 2; config update 1; inbox update 0; no old change in flight",
+      "verified; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; no old change in flight",
+      "verified; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight"
+    ],
+    "leftOutTransitions": [
+      "barrier; inbox disabled; original webhook; worker 2; config update 0; inbox update 1; no old change in flight --> barrier; inbox disabled; original webhook; worker 3; config update 0; inbox update 1; no old change in flight: Another replacement occurs during awaited preparation",
+      "barrier; inbox disabled; original webhook; worker 2; config update 0; inbox update 1; no old change in flight --> cancelled; inbox disabled; original webhook; worker 2; config update 0; inbox update 1; no old change in flight: Confirm the snapshot and reject older pending writes atomically",
+      "barrier; inbox disabled; original webhook; worker 3; config update 0; inbox update 1; no old change in flight --> barrier; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; no old change in flight: The newest worker replaces the webhook and disables the inbox",
+      "barrier; inbox disabled; original webhook; worker 3; config update 0; inbox update 1; no old change in flight --> cancelled; inbox disabled; original webhook; worker 3; config update 0; inbox update 1; no old change in flight: Confirm the snapshot and reject older pending writes atomically",
+      "barrier; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; no old change in flight --> cancelled; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; no old change in flight: Confirm the snapshot and reject older pending writes atomically",
+      "barrier; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight --> barrier; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; no old change in flight: The old configuration or inbox write finally reaches D1",
+      "barrier; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight --> cancelled; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight: Confirm the snapshot and reject older pending writes atomically",
+      "barrier; inbox enabled; original webhook; worker 2; config update 0; inbox update 0; old change still in flight --> barrier; inbox disabled; original webhook; worker 2; config update 0; inbox update 1; no old change in flight: The old configuration or inbox write finally reaches D1",
+      "barrier; inbox enabled; original webhook; worker 2; config update 0; inbox update 0; old change still in flight --> barrier; inbox enabled; original webhook; worker 3; config update 0; inbox update 0; old change still in flight: Another replacement occurs during awaited preparation",
+      "barrier; inbox enabled; original webhook; worker 2; config update 0; inbox update 0; old change still in flight --> barrier; inbox enabled; replacement webhook; worker 2; config update 1; inbox update 0; no old change in flight: The old configuration or inbox write finally reaches D1",
+      "barrier; inbox enabled; original webhook; worker 3; config update 0; inbox update 0; old change still in flight --> barrier; inbox disabled; original webhook; worker 3; config update 0; inbox update 1; no old change in flight: The old configuration or inbox write finally reaches D1",
+      "barrier; inbox enabled; original webhook; worker 3; config update 0; inbox update 0; old change still in flight --> barrier; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight: The newest worker replaces the webhook and disables the inbox",
+      "barrier; inbox enabled; original webhook; worker 3; config update 0; inbox update 0; old change still in flight --> barrier; inbox enabled; replacement webhook; worker 3; config update 1; inbox update 0; no old change in flight: The old configuration or inbox write finally reaches D1",
+      "barrier; inbox enabled; original webhook; worker 3; config update 0; inbox update 0; old change still in flight --> verified; inbox enabled; original webhook; worker 3; config update 2; inbox update 2; old change still in flight: Confirm the snapshot and reject older pending writes atomically",
+      "barrier; inbox enabled; replacement webhook; worker 2; config update 1; inbox update 0; no old change in flight --> barrier; inbox enabled; replacement webhook; worker 3; config update 1; inbox update 0; no old change in flight: Another replacement occurs during awaited preparation",
+      "barrier; inbox enabled; replacement webhook; worker 2; config update 1; inbox update 0; no old change in flight --> cancelled; inbox enabled; replacement webhook; worker 2; config update 1; inbox update 0; no old change in flight: Confirm the snapshot and reject older pending writes atomically",
+      "barrier; inbox enabled; replacement webhook; worker 3; config update 1; inbox update 0; no old change in flight --> barrier; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; no old change in flight: The newest worker replaces the webhook and disables the inbox",
+      "barrier; inbox enabled; replacement webhook; worker 3; config update 1; inbox update 0; no old change in flight --> cancelled; inbox enabled; replacement webhook; worker 3; config update 1; inbox update 0; no old change in flight: Confirm the snapshot and reject older pending writes atomically",
+      "cancelled; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight --> cancelled; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; no old change in flight: The old configuration or inbox write finally reaches D1",
+      "cancelled; inbox enabled; original webhook; worker 3; config update 2; inbox update 2; no old change in flight --> cancelled; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; no old change in flight: in Guarded implementation, The newest worker replaces the webhook and disables the inbox",
+      "cancelled; inbox enabled; original webhook; worker 3; config update 2; inbox update 2; old change still in flight --> cancelled; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight: in Guarded implementation, The newest worker replaces the webhook and disables the inbox",
+      "cancelled; inbox enabled; original webhook; worker 3; config update 2; inbox update 2; old change still in flight --> cancelled; inbox enabled; original webhook; worker 3; config update 2; inbox update 2; no old change in flight: in Guarded implementation, The old configuration or inbox write finally reaches D1",
+      "cancelled; inbox enabled; replacement webhook; worker 3; config update 1; inbox update 0; no old change in flight --> cancelled; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; no old change in flight: The newest worker replaces the webhook and disables the inbox",
+      "done; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight --> done; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; no old change in flight: The old configuration or inbox write finally reaches D1",
+      "done; inbox enabled; original webhook; worker 2; config update 2; inbox update 2; old change still in flight --> done; inbox enabled; original webhook; worker 2; config update 2; inbox update 2; no old change in flight: The old configuration or inbox write finally reaches D1",
+      "done; inbox enabled; original webhook; worker 2; config update 2; inbox update 2; old change still in flight --> done; inbox enabled; original webhook; worker 3; config update 2; inbox update 2; old change still in flight: Another replacement occurs during awaited preparation",
+      "done; inbox enabled; original webhook; worker 3; config update 2; inbox update 2; old change still in flight --> done; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight: The newest worker replaces the webhook and disables the inbox",
+      "done; inbox enabled; original webhook; worker 3; config update 2; inbox update 2; old change still in flight --> done; inbox enabled; original webhook; worker 3; config update 2; inbox update 2; no old change in flight: The old configuration or inbox write finally reaches D1",
+      "idle; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight --> idle; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; no old change in flight: The old configuration or inbox write finally reaches D1",
+      "idle; inbox enabled; original webhook; worker 3; config update 0; inbox update 0; old change still in flight --> idle; inbox disabled; original webhook; worker 3; config update 0; inbox update 1; no old change in flight: The old configuration or inbox write finally reaches D1",
+      "idle; inbox enabled; original webhook; worker 3; config update 0; inbox update 0; old change still in flight --> idle; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight: The newest worker replaces the webhook and disables the inbox",
+      "idle; inbox enabled; replacement webhook; worker 2; config update 1; inbox update 0; no old change in flight --> idle; inbox enabled; replacement webhook; worker 3; config update 1; inbox update 0; no old change in flight: Another replacement occurs during awaited preparation",
+      "idle; inbox enabled; replacement webhook; worker 3; config update 1; inbox update 0; no old change in flight --> idle; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; no old change in flight: The newest worker replaces the webhook and disables the inbox",
+      "prepared; inbox disabled; original webhook; worker 2; config update 0; inbox update 1; no old change in flight --> barrier; inbox disabled; original webhook; worker 2; config update 0; inbox update 1; no old change in flight: Reserve an ownership sequence for the dispatch barrier",
+      "prepared; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight --> prepared; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; no old change in flight: The old configuration or inbox write finally reaches D1",
+      "prepared; inbox enabled; original webhook; worker 2; config update 0; inbox update 0; old change still in flight --> prepared; inbox enabled; replacement webhook; worker 2; config update 1; inbox update 0; no old change in flight: The old configuration or inbox write finally reaches D1",
+      "prepared; inbox enabled; original webhook; worker 3; config update 0; inbox update 0; old change still in flight --> prepared; inbox disabled; original webhook; worker 3; config update 0; inbox update 1; no old change in flight: The old configuration or inbox write finally reaches D1",
+      "prepared; inbox enabled; original webhook; worker 3; config update 0; inbox update 0; old change still in flight --> prepared; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight: The newest worker replaces the webhook and disables the inbox",
+      "prepared; inbox enabled; replacement webhook; worker 2; config update 1; inbox update 0; no old change in flight --> barrier; inbox enabled; replacement webhook; worker 2; config update 1; inbox update 0; no old change in flight: Reserve an ownership sequence for the dispatch barrier",
+      "prepared; inbox enabled; replacement webhook; worker 2; config update 1; inbox update 0; no old change in flight --> prepared; inbox enabled; replacement webhook; worker 3; config update 1; inbox update 0; no old change in flight: Another replacement occurs during awaited preparation",
+      "prepared; inbox enabled; replacement webhook; worker 3; config update 1; inbox update 0; no old change in flight --> prepared; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; no old change in flight: The newest worker replaces the webhook and disables the inbox",
+      "verified; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; no old change in flight --> An obsolete or replaced worker started the webhook request: Fence current ownership and start the captured request synchronously",
+      "verified; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; no old change in flight --> cancelled; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; no old change in flight: in Guarded implementation, Stop the replaced worker before starting a request",
+      "verified; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight --> An obsolete or replaced worker started the webhook request: Fence current ownership and start the captured request synchronously",
+      "verified; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight --> cancelled; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight: in Guarded implementation, Stop the replaced worker before starting a request",
+      "verified; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight --> verified; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; no old change in flight: The old configuration or inbox write finally reaches D1",
+      "verified; inbox enabled; original webhook; worker 2; config update 2; inbox update 2; old change still in flight --> done; inbox enabled; original webhook; worker 2; config update 2; inbox update 2; old change still in flight: Fence current ownership and start the captured request synchronously",
+      "verified; inbox enabled; original webhook; worker 3; config update 2; inbox update 2; no old change in flight --> An obsolete or replaced worker started the webhook request: Fence current ownership and start the captured request synchronously",
+      "verified; inbox enabled; original webhook; worker 3; config update 2; inbox update 2; no old change in flight --> verified; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; no old change in flight: The newest worker replaces the webhook and disables the inbox",
+      "verified; inbox enabled; original webhook; worker 3; config update 2; inbox update 2; old change still in flight --> cancelled; inbox enabled; original webhook; worker 3; config update 2; inbox update 2; old change still in flight: in Guarded implementation, Stop the replaced worker before starting a request",
+      "verified; inbox enabled; original webhook; worker 3; config update 2; inbox update 2; old change still in flight --> verified; inbox disabled; replacement webhook; worker 3; config update 3; inbox update 3; old change still in flight: The newest worker replaces the webhook and disables the inbox",
+      "verified; inbox enabled; original webhook; worker 3; config update 2; inbox update 2; old change still in flight --> verified; inbox enabled; original webhook; worker 3; config update 2; inbox update 2; no old change in flight: The old configuration or inbox write finally reaches D1"
+    ]
+  },
+  "chartGroups": [
+    {
+      "name": "Dispatch barrier protocol",
+      "color": "#d6eaf8",
+      "states": 22
+    },
+    {
+      "name": "Request started safely",
+      "color": "#fdebd0",
+      "states": 3
+    },
+    {
+      "name": "Safely cancelled",
+      "color": "#e8daef",
+      "states": 6
+    },
+    {
+      "name": "Unsafe request started",
+      "color": "#fcf3cf",
+      "states": 1
+    }
+  ],
+  "mixedGroups": [],
+  "classes": [
+    {
+      "n": 1,
+      "end": "An obsolete or replaced worker started the webhook request",
+      "invariant": "NoObsoleteDispatch",
+      "rule": "Neither a delayed old projection nor a new owner can invalidate a dispatched snapshot.",
+      "cause": null,
+      "readerSteps": 7,
+      "modelSteps": 8,
+      "counterexamples": 8,
+      "lastSteps": ["Fence current ownership and start the captured request synchronously"],
+      "startsHere": false,
+      "against": "verified; inbox enabled; original webhook; worker 3; config update 2; inbox update 2; old change still in flight"
+    }
+  ],
+  "codeLike": [],
+  "uncited": {
+    "/var/folders/75/w10zw62d4q358y5km7gh3d0m0000gn/T/agentpost-barrier-red-1slOCW/webhook-fence/DispatchBarrier.tla": []
+  },
+  "brokenProperties": []
+}

@@ -87,7 +87,13 @@ test("immutable inbox-scoped uploads round-trip through the actual provider requ
   const request = vi
     .spyOn(globalThis, "fetch")
     .mockResolvedValue(Response.json({ success: true, result: { id: "provider-1" } }));
-  await processOutbound(bindings, row.id, box.id, () => {});
+  await processOutbound(
+    bindings,
+    row.id,
+    box.id,
+    () => {},
+    async () => true,
+  );
   const payload = JSON.parse(String(request.mock.calls[0]?.[1]?.body)) as SendPayload;
   expect(payload.attachments).toEqual([
     {
@@ -97,7 +103,13 @@ test("immutable inbox-scoped uploads round-trip through the actual provider requ
       content: encodeAttachment(bytes),
     },
   ]);
-  await processOutbound(bindings, row.id, box.id, () => {});
+  await processOutbound(
+    bindings,
+    row.id,
+    box.id,
+    () => {},
+    async () => true,
+  );
   expect(request).toHaveBeenCalledTimes(1);
   expect((await send(box, [file.id])).status).toBe(200);
   expect(
@@ -156,7 +168,14 @@ test("an existing outbox retry does not depend on attachment storage", async () 
   await bindings.MAIL.delete(`outbound-attachments/${box.id}/${file.id}`);
   expect((await send(box, [file.id])).status).toBe(202);
   const sender = vi.fn();
-  await processOutbound(bindings, row.id, box.id, () => {}, sender);
+  await processOutbound(
+    bindings,
+    row.id,
+    box.id,
+    () => {},
+    async () => true,
+    sender,
+  );
   expect(sender).not.toHaveBeenCalled();
   expect(
     await bindings.DB.prepare("SELECT status FROM outbox WHERE id = ?").bind(row.id).first(),
@@ -174,7 +193,7 @@ test("corrupt stored bytes are rejected before dispatch or fencing", async () =>
   });
   const sender = vi.fn();
   const fence = vi.fn();
-  await processOutbound(bindings, row.id, box.id, fence, sender);
+  await processOutbound(bindings, row.id, box.id, fence, async () => true, sender);
   expect(sender).not.toHaveBeenCalled();
   expect(fence).not.toHaveBeenCalled();
   expect(
@@ -200,7 +219,14 @@ test("storage failures before dispatch are safely retryable, but fence failures 
       },
     }),
   };
-  await processOutbound(unavailable, row.id, box.id, () => {}, sender);
+  await processOutbound(
+    unavailable,
+    row.id,
+    box.id,
+    () => {},
+    async () => true,
+    sender,
+  );
   expect(sender).not.toHaveBeenCalled();
   expect(
     await bindings.DB.prepare("SELECT status FROM outbox WHERE id = ?").bind(row.id).first(),
@@ -214,6 +240,7 @@ test("storage failures before dispatch are safely retryable, but fence failures 
       () => {
         throw new Error("ownership lost");
       },
+      async () => true,
       sender,
     ),
   ).rejects.toThrow("ownership lost");

@@ -252,7 +252,7 @@ test("OAuth agents provision and access only their own inboxes, including throug
   ).toBe(400);
   const list = await api("/v1/inboxes", { assertion: alice });
   expect(await list.json()).toMatchObject({ items: [{ id: a.id }] });
-  for (const suffix of ["", "/messages", "/outbox"]) {
+  for (const suffix of ["", "/messages", "/outbox", "/webhook", "/webhook/deliveries"]) {
     expect((await api(`/v1/inboxes/${a.id}${suffix}`, { assertion: alice })).status).toBe(200);
     expect((await api(`/v1/inboxes/${b.id}${suffix}`, { assertion: alice })).status).toBe(404);
   }
@@ -264,7 +264,22 @@ test("OAuth agents provision and access only their own inboxes, including throug
         assertion: alice,
       })
     ).status,
-  ).toBe(400); // missing idempotency key, not authorization
+  ).toBe(202); // Server generates a UUID when the key is omitted.
+  const webhook = { url: "https://receiver.example.org/oauth" };
+  expect(
+    (await api(`/v1/inboxes/${a.id}/webhook`, { method: "PUT", body: webhook, assertion: alice }))
+      .status,
+  ).toBe(200);
+  expect(
+    (await api(`/v1/inboxes/${b.id}/webhook`, { method: "PUT", body: webhook, assertion: alice }))
+      .status,
+  ).toBe(404);
+  expect(
+    (await api(`/v1/inboxes/${b.id}/webhook`, { method: "DELETE", assertion: alice })).status,
+  ).toBe(404);
+  expect(
+    (await api(`/v1/inboxes/${a.id}/webhook`, { method: "DELETE", assertion: await jwt() })).status,
+  ).toBe(200);
   const queued = await api(`/v1/inboxes/${a.id}/send`, {
     method: "POST",
     body: { to: ["recipient@example.net"], subject: "OAuth send", text: "Body" },
