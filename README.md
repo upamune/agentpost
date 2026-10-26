@@ -1,4 +1,9 @@
-# agentpost
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/svg/logo-dark.svg">
+    <img src="assets/brand/svg/logo.svg" alt="agentpost" width="420">
+  </picture>
+</h1>
 
 [![npm](https://img.shields.io/npm/v/%40upamune%2Fagentpost)](https://www.npmjs.com/package/@upamune/agentpost)
 

@@ -994,3 +994,36 @@ tasks:
       push_comments: false
     created_at: 2026-10-26T03:04:56.125Z
     updated_at: 2026-10-26T03:38:12.108Z
+  - id: task_034
+    title: Adopt the supplied Agentpost logo
+    description: Preserve the supplied logo asset kit, use light/dark logos in
+      English/Japanese READMEs, and bundle self-contained skill icons.
+    source_links: []
+    status: done
+    priority: P2
+    labels: []
+    repo_targets: []
+    acceptance_criteria:
+      - Supplied graphics are preserved byte-for-byte
+      - Both README themes display the supplied logo
+      - Installed skill icons resolve without a source checkout
+      - Formatting and asset references are verified
+    dependencies: []
+    planning:
+      split_status: pending
+      risk: medium
+    execution_defaults:
+      manual_approval_required: false
+      auto_commit: true
+      push_when_done: true
+      create_pr: false
+      merge_pr: false
+      worktree_mode: direct
+      preferred_agents: []
+      max_subagents: 5
+    sync:
+      source_of_truth: backlog
+      push_status: false
+      push_comments: false
+    created_at: 2026-10-26T04:00:52.388Z
+    updated_at: 2026-10-26T04:03:40.127Z

@@ -121,6 +121,8 @@ Clients supporting Streamable HTTP with preconfigured Bearer authentication can 
 
 The distributable skill lives in [`skills/agentpost`](skills/agentpost/SKILL.md). It describes inbox access, safe send retries, delivery states, and resumable event monitoring. Installing the skill does not install the CLI, configure credentials, or deploy a Worker. The default instructions are English, with a bundled [Japanese guide](skills/agentpost/references/guide.ja.md).
 
+The bundled skill includes its own Agentpost icons. Keep its `assets/` directory when copying the skill; icon paths resolve within the installed skill.
+
 With Node.js 22.20+ (the pinned skill installer's requirement), run this in the project that should use the skill. The CLI itself still supports Node.js 22.14+. The example targets Codex; replace `codex` with `claude-code` for Claude Code, or select the actual client supported by the installer. Use project scope unless the user requests a global installation.
 
 ```sh

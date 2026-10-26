@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="ja">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  /><title>agentpost</title
+  ><style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: #eef1f7;
+      color: #151a24;
+      font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
+    }
+    main {
+      max-width: 1180px;
+      margin: auto;
+      padding: 48px 36px;
+    }
+    header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+    h1 {
+      font-size: 32px;
+      letter-spacing: -1px;
+      margin: 0;
+    }
+    header p {
+      font-size: 14px;
+      color: #667085;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      min-height: 190px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      border: 1px solid #dde3ed;
+    }
+    .card span {
+      font-size: 12px;
+      align-self: flex-start;
+      color: #667085;
+    }
+    .logo {
+      width: 100%;
+      max-width: 440px;
+      height: auto;
+    }
+    .dark {
+      background: #0f1420;
+      border-color: #0f1420;
+      color: white;
+    }
+    .dark span,
+    .dark code {
+      color: #abb6ca;
+    }
+    code {
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+      color: #667085;
+    }
+    .symbols {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 18px;
+    }
+    .symbol {
+      min-height: 200px;
+    }
+    .symbol img {
+      width: 145px;
+      height: 145px;
+    }
+    .bottom {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-top: 18px;
+    }
+    .sizes {
+      display: flex;
+      align-items: center;
+      gap: 38px;
+      height: 90px;
+    }
+    .sizes div {
+      display: flex;
+      align-items: center;
+      flex-direction: column;
+      justify-content: center;
+      gap: 14px;
+    }
+    .apps {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+    }
+    .apps img {
+      width: 90px;
+      height: 90px;
+      border-radius: 19px;
+      border: 1px solid #e6eaf2;
+    }
+    .social {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-top: 18px;
+    }
+    .social img {
+      width: 100%;
+      border-radius: 16px;
+      border: 1px solid #dde3ed;
+    }
+    footer {
+      margin-top: 22px;
+      color: #667085;
+      font-size: 12px;
+    }
+    @media (max-width: 700px) {
+      main {
+        padding: 24px 16px;
+      }
+      .grid,
+      .bottom,
+      .social {
+        grid-template-columns: 1fr;
+      }
+      .symbols {
+        grid-template-columns: 1fr 1fr;
+      }
+      .symbol img {
+        width: 100px;
+        height: 100px;
+      }
+      header p {
+        display: none;
+      }
+    }
+  </style>
+  <main>
+    <header>
+      <h1>agentpost</h1>
+      <p>SVG / PNG / favicon / app icons / OGP</p>
+    </header>
+    <section class="grid">
+      <article class="card">
+        <span>横長・カラー</span><img class="logo" src="svg/logo.svg" alt="agentpost" /><code
+          >svg/logo.svg</code
+        >
+      </article>
+      <article class="card dark">
+        <span>横長・暗い背景用</span
+        ><img class="logo" src="svg/logo-dark.svg" alt="agentpost" /><code>svg/logo-dark.svg</code>
+      </article>
+      <article class="card">
+        <span>横長・単色</span><img class="logo" src="svg/logo-black.svg" alt="agentpost" /><code
+          >svg/logo-black.svg</code
+        >
+      </article>
+      <article class="card dark">
+        <span>横長・白抜き</span><img class="logo" src="svg/logo-white.svg" alt="agentpost" /><code
+          >svg/logo-white.svg</code
+        >
+      </article>
+    </section>
+    <section class="symbols">
+      <article class="card symbol">
+        <img src="svg/symbol.svg" alt="agentpost" /><code>symbol.svg</code>
+      </article>
+      <article class="card symbol">
+        <img src="svg/symbol-black.svg" alt="agentpost" /><code>symbol-black.svg</code>
+      </article>
+      <article class="card symbol dark">
+        <img src="svg/symbol-white.svg" alt="agentpost" /><code>symbol-white.svg</code>
+      </article>
+    </section>
+    <section class="bottom">
+      <article class="card">
+        <span>favicon・実寸</span>
+        <div class="sizes">
+          <div>
+            <img src="favicon/favicon-16.png" width="16" height="16" alt="agentpost" /><code
+              >16px</code
+            >
+          </div>
+          <div>
+            <img src="favicon/favicon-32.png" width="32" height="32" alt="agentpost" /><code
+              >32px</code
+            >
+          </div>
+          <div>
+            <img src="favicon/favicon-48.png" width="48" height="48" alt="agentpost" /><code
+              >48px</code
+            >
+          </div>
+        </div>
+        <code>16 / 32 / 48 px</code>
+      </article>
+      <article class="card">
+        <span>ホーム画面・maskable</span>
+        <div class="apps">
+          <img src="icons/apple-touch-icon.png" alt="agentpost" /><img
+            src="icons/maskable-icon-192.png"
+            alt="agentpost"
+          />
+        </div>
+        <code>Apple / maskable</code>
+      </article>
+    </section>
+    <section class="social">
+      <img src="social/og-image-light.png" alt="agentpost" /><img
+        src="social/og-image-dark.png"
+        alt="agentpost"
+      />
+    </section>
+    <footer>使い方は README.md を参照してください。</footer>
+  </main>
+</html>

@@ -1,4 +1,9 @@
-# Agentpost
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/upamune/agentpost/main/assets/brand/svg/logo-dark.svg">
+    <img src="https://raw.githubusercontent.com/upamune/agentpost/main/assets/brand/svg/logo.svg" alt="agentpost" width="420">
+  </picture>
+</h1>
 
 Create as many email addresses as your AI agents need. Send and receive mail on your own domain with a self-hosted Cloudflare API, CLI, and MCP server.
 

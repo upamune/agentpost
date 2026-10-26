@@ -120,6 +120,8 @@ Bearer認証付きStreamable HTTP対応クライアントは`https://YOUR_WORKER
 
 配布用スキルは[`skills/agentpost`](skills/agentpost/SKILL.md)です。受信箱操作、冪等な再要求、送信状態、再開可能な監視を説明します。スキルの導入だけではCLIのインストール・認証設定・Workerのデプロイは行いません。英語を既定とし、同梱の[日本語ガイド](skills/agentpost/references/guide.ja.md)も参照できます。
 
+同梱スキルにはAgentpostのアイコンも含みます。スキルをコピーする場合は `assets/` ディレクトリも保持してください。アイコンのパスはインストール先のスキル内で解決します。
+
 固定したスキルinstallerはNode.js 22.20以降が必要です。CLI本体は引き続き22.14以降に対応します。スキルを使うプロジェクトで実行してください。以下はCodex向けです。Claude Codeでは`codex`を`claude-code`に変え、ほかのクライアントはinstallerの対応名を使います。グローバル導入の指定がなければプロジェクト単位で導入します。
 
 ```sh
