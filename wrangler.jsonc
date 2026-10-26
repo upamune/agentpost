@@ -41,14 +41,16 @@
       {
         "queue": "agentpost-webhooks",
         "max_batch_size": 5,
+        "max_batch_timeout": 1,
         "max_concurrency": 4,
         "max_retries": 5,
         "dead_letter_queue": "agentpost-webhooks-dlq",
       },
       {
         "queue": "agentpost",
-        "max_batch_size": 5,
-        "max_concurrency": 1,
+        "max_batch_size": 1,
+        "max_batch_timeout": 1,
+        "max_concurrency": 4,
         "max_retries": 5,
         "dead_letter_queue": "agentpost-dlq",
       },

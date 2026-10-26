@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { prepareAttachments } from "./attachments";
 import { AttachmentError } from "./attachment-policy";
+import { readBounded } from "./common";
 import type { Env, Outbox, SendPayload } from "./types";
 
 const providerResponse = z.object({
@@ -26,7 +27,9 @@ function providerRetryDelay(retryAfter: string | null): number {
 
 async function providerAcceptance(response: Response): Promise<SendResult> {
   try {
-    const parsed = providerResponse.safeParse(await response.json());
+    if (!response.body) throw new Error("Missing provider response");
+    const bytes = await readBounded(response.body, 64 * 1024);
+    const parsed = providerResponse.safeParse(JSON.parse(new TextDecoder().decode(bytes)));
     if (parsed.success && parsed.data.success)
       return { status: "accepted", result: JSON.stringify(parsed.data.result ?? null) };
   } catch {
@@ -69,6 +72,7 @@ export async function cloudflareSend(
       error: "Provider connection failed; delivery outcome must be checked before resending",
     };
   }
+  releaseRejectedResponse(response);
   if (response.status === 429) {
     return {
       status: "retry",
@@ -86,6 +90,10 @@ export async function cloudflareSend(
     };
   }
   return providerAcceptance(response);
+}
+
+function releaseRejectedResponse(response: Response): void {
+  if (!response.ok) void response.body?.cancel().catch(() => {});
 }
 
 function sendingCredentials(env: Env) {

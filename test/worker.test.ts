@@ -499,9 +499,10 @@ describe("outbox and failure recovery", () => {
       },
       JOBS: {
         ...bindings.JOBS,
-        send: async (job, options) => {
-          published.push(job.id);
-          return bindings.JOBS.send(job, options);
+        sendBatch: async (items, options) => {
+          const batch = [...items];
+          published.push(...batch.map((item) => item.body.id));
+          return bindings.JOBS.sendBatch(batch, options);
         },
       },
     };

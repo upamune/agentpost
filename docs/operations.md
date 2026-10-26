@@ -24,7 +24,7 @@ Raw-index repair, interrupted-send recovery, inbound republishing, and outbound 
 - A conditional `pending → sending` UPDATE admits only one duplicate queue delivery.
 - Sends, activity changes, and stale-send recovery go through the same inbox-ID-derived Durable Object. Its ordering spans awaits. Direct administrative D1 writes bypass these guarantees.
 - Immediately before provider dispatch, a synchronous SQLite write fences a replaced Object. There is no await between that ownership check and call initiation. Activity writes carry a monotonically increasing version; D1 rejects a delayed older write instead of rolling back a newer disable. An unapplied disable is reported as failure.
-- One queue consumer processes sends sequentially. Provider 429 retries use at least 30 seconds of backoff, up to eight attempts. Cron republishing can add approximately five minutes after the due time.
+- Mail consumers process one job per invocation with concurrency capped at four; the inbox coordinator still serializes sends within an inbox. Provider 429 retries use at least 30 seconds of backoff, up to eight attempts. Cron republishing can add approximately five minutes after the due time.
 - Provider 400/401/403/404/413/422 responses become `failed`.
 - Network failure, timeout, 5xx, or ambiguous responses become `unknown`, with no automatic resend.
 - After interrupted execution, Cron routes `sending` older than two minutes through the same Object and marks it `unknown`. Recovery waits behind a live send and rechecks state/time before updating. Age alone does not overwrite a live operation.
@@ -120,3 +120,7 @@ For automatic send keys, save the `idempotency_key` returned by CLI/MCP success 
 ## Incoming forwarding
 
 Forwarding policy is administrator-only and affects future SMTP admissions. Original MIME and its frozen destination are stored with a conditional R2 put, then indexed with a durable forwarding decision before a native call is claimed. Skipped mail stays skipped after settings change. Inbound forwarding claims made before disable may finish afterward. Repair restores intent but cannot reconstruct an SMTP forwarding session. Maintenance marks abandoned intents blocked and interrupted claims unknown; neither is automatically retried. Health attention can be acknowledged with an evidence note while preserving outcomes. Back up forwarding D1 state with raw MIME; raw alone cannot prove a native attempt did not happen. See [forwarding operations](forwarding.md).
+
+## Cloudflare component audit
+
+The [storage and queue audit](cloudflare-audit.md) records D1 indexes, recovery batching, R2 read bounds/checksums, queue failure isolation and monitoring. Forwarding recovery processes at most 100 stale pending and 100 stale sending rows per run; later Cron invocations handle the remainder.

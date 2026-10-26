@@ -66,6 +66,7 @@ export async function uploadAttachment(
   await admit();
   const object = await env.MAIL.put(key(inbox, id), bytes, {
     onlyIf: { etagDoesNotMatch: "*" },
+    sha256: content.sha256,
     httpMetadata: { contentType: "application/octet-stream" },
     customMetadata: { manifest: encodeURIComponent(JSON.stringify(descriptor)) },
   });
@@ -97,6 +98,14 @@ export async function validateOutgoingAttachments(
 async function providerAttachment(env: Env, inbox: string, id: string) {
   const object = await env.MAIL.get(key(inbox, id));
   if (!object) throw new AttachmentError(404, "Attachment not found in this inbox");
+  try {
+    return await readProviderAttachment(object, inbox, id);
+  } finally {
+    if (!object.bodyUsed) await object.body.cancel().catch(() => {});
+  }
+}
+
+async function readProviderAttachment(object: R2ObjectBody, inbox: string, id: string) {
   const descriptor = await storedDescriptor(object, inbox, id);
   const bytes = await readBounded(object.body, MAX_ATTACHMENT_BYTES);
   if (bytes.byteLength !== descriptor.size || (await sha256(bytes)) !== descriptor.sha256)

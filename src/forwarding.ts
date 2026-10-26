@@ -68,8 +68,16 @@ export async function recoverForwarding(env: Env): Promise<void> {
   const now = Date.now();
   await env.DB.batch([
     env.DB.prepare(`UPDATE forwarding_deliveries SET status = 'unknown', error = 'SMTP handler ended during forwarding; inspect provider activity', updated_at = ?
-      WHERE status = 'sending' AND updated_at < ?`).bind(now, now - 2 * 60_000),
+      WHERE status = 'sending' AND message_id IN
+      (SELECT message_id FROM forwarding_deliveries WHERE status = 'sending' AND updated_at < ? ORDER BY updated_at, message_id LIMIT 100)`).bind(
+      now,
+      now - 2 * 60_000,
+    ),
     env.DB.prepare(`UPDATE forwarding_deliveries SET status = 'blocked', error = 'SMTP session unavailable; original retained for manual recovery', updated_at = ?
-      WHERE status = 'pending' AND updated_at < ?`).bind(now, now - 2 * 60_000),
+      WHERE status = 'pending' AND message_id IN
+      (SELECT message_id FROM forwarding_deliveries WHERE status = 'pending' AND updated_at < ? ORDER BY updated_at, message_id LIMIT 100)`).bind(
+      now,
+      now - 2 * 60_000,
+    ),
   ]);
 }

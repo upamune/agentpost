@@ -1,5 +1,5 @@
 import { coordinator } from "./coordinator";
-import { enqueueWebhook } from "./webhook-store";
+import { publishJobs } from "./queue-jobs";
 import type { Env } from "./types";
 
 export async function deliverWebhook(env: Env, id: string): Promise<void> {
@@ -11,9 +11,13 @@ export async function deliverWebhook(env: Env, id: string): Promise<void> {
 export async function republishWebhooks(env: Env): Promise<void> {
   const now = Date.now();
   const rows =
-    await env.DB.prepare(`SELECT id FROM webhook_deliveries WHERE (status = 'pending' AND available_at <= ?)
-    OR (status = 'sending' AND updated_at < ?) ORDER BY updated_at, id LIMIT 100`)
+    await env.DB.prepare(`SELECT id, available_at AS due_at FROM webhook_deliveries WHERE status = 'pending' AND available_at <= ?
+    UNION ALL SELECT id, updated_at AS due_at FROM webhook_deliveries WHERE status = 'sending' AND updated_at < ?
+    ORDER BY due_at, id LIMIT 100`)
       .bind(now, now - 120_000)
       .all<{ id: string }>();
-  for (const row of rows.results) await enqueueWebhook(env, row.id);
+  await publishJobs(
+    env.AGENTPOST_WEBHOOK_JOBS,
+    rows.results.map((row) => ({ kind: "webhook", id: row.id })),
+  );
 }

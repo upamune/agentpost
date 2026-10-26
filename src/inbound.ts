@@ -4,6 +4,7 @@ import { forwardingMetadata } from "./forwarding-policy";
 import { forwardReceived } from "./forwarding";
 import { stringifyBoundedJson } from "./bounded-json";
 import { MAX_MAIL_BYTES, readBounded, sha256 } from "./common";
+import { readStoredMime } from "./mail-storage";
 import type { Env, Message } from "./types";
 
 export function parseMime(raw: ArrayBuffer) {
@@ -44,6 +45,7 @@ export async function receive(message: ForwardableEmailMessage, env: Env): Promi
   if (!existing) {
     await env.MAIL.put(key, raw, {
       onlyIf: { etagDoesNotMatch: "*" },
+      sha256: hash,
       httpMetadata: { contentType: "message/rfc822" },
       customMetadata: {
         id,
@@ -124,7 +126,7 @@ export async function parseMessage(env: Env, id: string): Promise<void> {
   if (!message || message.status === "ready") return;
   const object = await env.MAIL.get(message.raw_key);
   if (!object) throw new Error("Original MIME is missing");
-  const parsed = await parseMime(await object.arrayBuffer());
+  const parsed = await parseMime(await readStoredMime(object));
   const document = {
     from: parsed.from,
     to: parsed.to,
