@@ -157,3 +157,38 @@ After attachment preparation, outbound dispatch now requires `outboundDispatchBa
 Two additional outbound replays use the actual coordinator classes over shared SQLite and D1: disable commits after the new actor's active read, or the new actor's barrier commits before the old disable. They run in separate isolates and controlled request contexts; they simulate handoff rather than force Cloudflare replacement. `verify:outbound:selftest` also removes the actual authorization guard and requires the first replay to fail an assertion. This source-only mutation is reported separately from the four existing model/code mutation pairs. The final-fence replay lets the authorization reservation succeed, then injects ownership loss at the final fence.
 
 The same bounded model with `EmailOnly = FALSE` also checks webhook configuration replacement. The email scenario explores 39 distinct states; the webhook scenario explores 77. The webhook area additionally models versioned configuration, durable event/delivery identity, conditional claims and settlement, and generated/explicit idempotency-key retention. All seven baseline scenarios pass, all twelve model mutants produce the designated violation, and all five separately reported real-code mutants fail their assertions. See the [model bounds and source mapping](../verification/webhooks/README.md). Cryptography, UUID collision resistance, exact-origin policy, HTTP behavior, elapsed time, delivery, and whole-program correctness are outside these finite models; real-code tests cover their concrete boundaries.
+
+## Native incoming forwarding (2026-10-26)
+
+The product revision `0f2689da7e4fc9ccdad75bd64e761c84ff645d37` adds global/inbox forwarding policy and native SMTP forwarding. Reviewing changes since the previous sync found no change to outbound claims, coordinator fencing, or attachment preparation. Inbound persistence retains its raw-first ordering and now freezes the admission policy in a conditional R2 put. Maintenance adds an independent forwarding-attention stage.
+
+Verification was **updated**, rather than weakening existing recovery promises. Two D1-loss replays initially failed because the new foreign-key-backed forwarding history remained while their fixture deleted message indexes. The fixtures now simulate loss of both D1 tables; that failure was harness drift. The original recovery model remains in sync. A separate [Forwarding.tla](../verification/inbound/Forwarding.tla) models two SMTP handlers for one retained MIME identity and three destination categories (off, trusted, unapproved). Capturing a setting, conditional original storage, indexing, reading pending work, claiming, invoking the native provider, conditional settlement, interruption and recovery are distinct steps.
+
+| Forwarding property                           | Product operations                                      | Evidence                                                                             |
+| --------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Original precedes native dispatch             | `receive`, `indexRaw`, `forwardReceived`                | Real R2 retention/read failure tests and `RawBeforeForward`                          |
+| Admission decision stays immutable            | Conditional R2 put, `indexForwarding`                   | A paused first receipt races a new default and a second receipt; `SnapshotPreserved` |
+| Only trusted destinations dispatch            | `forwardingPlan`, `pendingTarget`, allowlist validation | Withdrawn-allowlist and loop tests; `TrustedDestination`                             |
+| At most one native call per retained identity | Conditional pending → sending claim                     | Concurrent SMTP duplicates; `AtMostOneForward`                                       |
+| Ambiguity cannot authorize a second claim     | Conditional settlement, `recoverForwarding`             | Stale recovery with a delayed response; `NoBlindRetry`                               |
+
+`mise run verify:inbound:selftest` checks the recovery and forwarding models, 24 real-code cases (eight recovery plus sixteen forwarding), and eight model/source mutation pairs. Four new pairs remove the conditional original put, conditional native claim, unknown-outcome recovery, or destination allowlist. Each unsafe model violates its named invariant, and its matching real implementation mutation fails a designated assertion. Guarded product baselines pass. No current product counterexample was found in these bounds.
+
+The checked [mutation evidence](../verification/inbound/evidence/forwarding/) includes numbered PNGs, Mermaid sources, stories, configs and summaries for [snapshot replacement](../verification/inbound/evidence/forwarding/snapshot/bug-1.png), [duplicate claims](../verification/inbound/evidence/forwarding/claim/bug-1.png), [blind retries](../verification/inbound/evidence/forwarding/retry/bug-1.png), and [unapproved destinations](../verification/inbound/evidence/forwarding/policy/bug-1.png). Every generated chart was rendered and visually inspected. Green marks a path excluded by the guarded current model, compared with an intentionally unsafe variant; these are mutation counterexamples, not accepted product vulnerabilities. The chart covers a smaller readable view; the automated TLC checks use the complete bounded state space.
+
+To regenerate a readable claim comparison in scratch space, from the checkout:
+
+```sh
+chart_dir="$(mktemp -d)"
+mkdir -p "$chart_dir/unsafe" "$chart_dir/guarded"
+cp verification/inbound/Forwarding.tla verification/inbound/Forwarding.map.mjs "$chart_dir/unsafe/"
+cp verification/inbound/evidence/forwarding/claim/Forwarding.cfg "$chart_dir/unsafe/"
+cp verification/inbound/Forwarding.tla verification/inbound/Forwarding.cfg "$chart_dir/guarded/"
+mise exec -- node .agents/skills/statechart/scripts/statechart.mjs from-spec \
+  "$chart_dir/unsafe/Forwarding.tla" --fixed "$chart_dir/guarded/Forwarding.tla" \
+  --cover --png --out "$chart_dir/output"
+```
+
+Use the `snapshot`, `retry`, or `policy` config instead to inspect those mutations. Read `stories.md` and `summary.json` beside the resulting PNGs; they identify hidden steps and omitted overview paths. The original inbound-recovery chart was also regenerated and inspected.
+
+The forwarding model assumes atomic conditional R2/D1 writes, no D1 rollback and the native provider contract. The destination categories abstract policy changes, including withdrawal of a previously allowed mailbox. Inbox activity/loop guards and administrator authorization are checked by real code, not proved by this forwarding model. It proves finite safety, not eventual forwarding, arbitrary concurrency histories, cryptography, native verification, real SMTP/DMARC behavior, mailbox delivery, or freedom from external forwarding loops. Claims admitted before disable may finish afterward; this intentionally differs from the serialized outbound send-disable contract. Updated allowlists do not cancel an old Worker invocation. Follow the [operational forwarding guide](forwarding.md) and perform separate authorized live checks.

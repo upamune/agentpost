@@ -12,7 +12,7 @@ const selftest = process.argv.includes("--selftest");
 const output = resolve(root, process.env.AGENTPOST_FORMAL_OUTPUT ?? `.verification/${area}`);
 const scratch = await mkdtemp(join(tmpdir(), `agentpost-${area}-`));
 const moduleName = area === "outbound" ? "Outbound" : "Inbound";
-const replayCount = area === "outbound" ? 10 : 8;
+const replayCount = area === "outbound" ? 10 : 24;
 const invariants =
   area === "outbound"
     ? [
@@ -42,6 +42,10 @@ const sourceFiles =
     : [
         "src/inbound.ts",
         "src/bounded-json.ts",
+        "src/forwarding.ts",
+        "src/forwarding-policy.ts",
+        "src/forwarding-store.ts",
+        "migrations/0007_forwarding.sql",
         "src/maintenance.ts",
         "src/index.ts",
         "src/api.ts",
@@ -143,6 +147,46 @@ const mutations: Mutation[] =
           needle: '      await env.DB.prepare(\n        "INSERT INTO raw_recovery_failures',
           replacement: '      await env.DB.prepare(\n        "INSERT INTO raw_recovery_failures',
           pattern: "poisoned first page",
+        },
+        {
+          name: "forward-snapshot",
+          constant: "UnsafeSnapshot",
+          checks: ["SnapshotPreserved"],
+          file: "inbound",
+          model: "Forwarding",
+          needle: '      onlyIf: { etagDoesNotMatch: "*" },\n',
+          replacement: "",
+          pattern: "racing first receipts",
+        },
+        {
+          name: "forward-claim",
+          constant: "UnsafeClaim",
+          checks: ["NoBlindRetry", "AtMostOneForward"],
+          file: "forwarding",
+          model: "Forwarding",
+          needle: "AND destination = ? AND status = 'pending'",
+          replacement: "AND destination = ? AND status != 'skipped'",
+          pattern: "simultaneous duplicates share one native attempt",
+        },
+        {
+          name: "forward-retry",
+          constant: "UnsafeRetry",
+          checks: ["NoBlindRetry"],
+          file: "forwarding",
+          model: "Forwarding",
+          needle: "SET status = 'unknown', error = 'SMTP handler",
+          replacement: "SET status = 'pending', error = 'SMTP handler",
+          pattern: "stale recovery and late completion",
+        },
+        {
+          name: "forward-policy",
+          constant: "UnsafePolicy",
+          checks: ["TrustedDestination"],
+          file: "forwarding-policy",
+          model: "Forwarding",
+          needle: "if (!allowedDestinations(env).includes(destination.data))",
+          replacement: "if (false)",
+          pattern: "loop markers and a withdrawn allowlist",
         },
       ];
 
@@ -260,6 +304,18 @@ try {
       join(root, "verification/outbound/ActiveVersion.tla"),
       join(scratch, "ActiveVersion.tla"),
     );
+  if (area === "inbound")
+    await copyFile(
+      join(root, "verification/inbound/Forwarding.tla"),
+      join(scratch, "Forwarding.tla"),
+    );
+  const forwardingConfig =
+    area === "inbound"
+      ? (await readFile(join(root, "verification/inbound/Forwarding.cfg"), "utf8")).replace(
+          /^INVARIANT.*\n/gm,
+          "",
+        )
+      : "";
   const versionConfig =
     area === "outbound"
       ? (await readFile(join(root, "verification/outbound/ActiveVersion.cfg"), "utf8")).replace(
@@ -329,6 +385,21 @@ try {
       })),
     );
   }
+  if (area === "inbound") {
+    const forwarding = await baselineChecks(
+      [
+        "TypeOK",
+        "RawBeforeForward",
+        "SnapshotPreserved",
+        "TrustedDestination",
+        "AtMostOneForward",
+        "NoBlindRetry",
+      ],
+      forwardingConfig,
+      "Forwarding",
+    );
+    checks.push(...forwarding.map((result) => ({ ...result, check: `Forwarding${result.check}` })));
+  }
   for (const check of checks) console.log(`${area}/${check.check}: ${check.outcome}`);
   const actual = await replay("replay");
   const hashes = await Promise.all(
@@ -344,7 +415,15 @@ try {
     bounds:
       area === "outbound"
         ? { workers: 2, maxClaims: 8, actualRetryLimit: 8 }
-        : { originals: 3, valid: 2, poisoned: 1, pageSize: 1, transientFaults: 2 },
+        : {
+            originals: 3,
+            valid: 2,
+            poisoned: 1,
+            pageSize: 1,
+            transientFaults: 2,
+            forwardingHandlers: 2,
+            forwardingTargets: 3,
+          },
     assumptions:
       area === "outbound"
         ? [
@@ -354,7 +433,10 @@ try {
             "actor serialization and synchronous ownership fence; delayed replaced actors included",
           ]
         : [
-            "originals already successfully persisted",
+            "originals already successfully persisted in recovery model; conditional R2 put in forwarding model",
+            "native forwarding exists only during SMTP handler; claims never reset; no D1 rollback",
+            "forwarding configuration is captured at admission; later changes do not cancel admitted work",
+            "verified-destination enforcement and SMTP delivery are external assumptions",
             "finite stable corpus",
             "at most two transient faults",
             "weakly fair successful Cron, queue and parse actions",
@@ -373,7 +455,8 @@ try {
   } else if (selftest) {
     const results = [];
     for (const mutation of mutations) {
-      const baselineConfig = mutation.model ? versionConfig : bare;
+      const baselineConfig =
+        mutation.model === "Forwarding" ? forwardingConfig : mutation.model ? versionConfig : bare;
       for (const check of mutation.checks) {
         const config = baselineConfig.replace(
           `${mutation.constant} = FALSE`,

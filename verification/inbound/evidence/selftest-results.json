@@ -28,21 +28,65 @@
       "baseline": "replay",
       "model": "violated",
       "source": "assertion-failed"
+    },
+    {
+      "name": "forward-snapshot",
+      "checks": ["SnapshotPreserved"],
+      "baseline": "replay",
+      "model": "violated",
+      "source": "assertion-failed"
+    },
+    {
+      "name": "forward-claim",
+      "checks": ["NoBlindRetry", "AtMostOneForward"],
+      "baseline": "replay",
+      "model": "violated",
+      "source": "assertion-failed"
+    },
+    {
+      "name": "forward-retry",
+      "checks": ["NoBlindRetry"],
+      "baseline": "replay",
+      "model": "violated",
+      "source": "assertion-failed"
+    },
+    {
+      "name": "forward-policy",
+      "checks": ["TrustedDestination"],
+      "baseline": "replay",
+      "model": "violated",
+      "source": "assertion-failed"
     }
   ],
   "sourceMutations": [],
   "sourceFiles": [
     {
       "path": "src/inbound.ts",
-      "sha256": "d7e4bfeeb2aea3536257f6666e94bedbd375a19b3bc5c87cdda9477652c74ed4"
+      "sha256": "7bfcddffc01dde7e6e4a25addf4f552c5601291737f495d9ba9d06642c750a2a"
     },
     {
       "path": "src/bounded-json.ts",
       "sha256": "1a847ef629c4712a81bd83261c8f8728db149456cf32a59d116927721cd503b0"
     },
     {
+      "path": "src/forwarding.ts",
+      "sha256": "553ca20059846fbcd4c37e8cec9426df3777e512eb9c7b1f0b479cbcdaa5a07e"
+    },
+    {
+      "path": "src/forwarding-policy.ts",
+      "sha256": "02137ac6ff761c8fefb2188bed814d4b3434d338dd14677ae9bb3552c966825c"
+    },
+    {
+      "path": "src/forwarding-store.ts",
+      "sha256": "62b618c6febd800e1c2dea630620e74a159dd640e18d2b55c37490d9f6ab02f5"
+    },
+    {
+      "path": "migrations/0007_forwarding.sql",
+      "sha256": "bc033db783daf2525f5c45f926512c5a2cff403db58f0b92016fe2172865c6d1"
+    },
+    {
       "path": "src/maintenance.ts",
-      "sha256": "7aaa23b99e2771bf99b47ade452cf2a2e4149cb5d279753077484d4a0703d448"
+      "sha256": "4392c353d04fe3eadd03962ce165221bee2ae51c4173b8cdc7db893992f09e3a"
     },
     {
       "path": "src/index.ts",
@@ -50,7 +94,7 @@
     },
     {
       "path": "src/api.ts",
-      "sha256": "dda3093c1428e94c022aab18e6c9e173960ad5c74d22ff95f92fddb8473fa392"
+      "sha256": "c22c64e6801e150a2b31a39e1fcf7917366f96aa31e8c389fcd7ad2667274de1"
     },
     {
       "path": "migrations/0001_mail.sql",

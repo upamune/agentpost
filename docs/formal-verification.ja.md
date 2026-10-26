@@ -157,3 +157,38 @@ CIはformal matrixの `attachments` を実行して生ログとレポートを�
 追加した送信の2リプレイは、同じ実SQLite・D1を使うコーディネーターの実クラスで、古い無効化が新しい実行主体の有効状態の読み取り後に確定する順序と、新しいバリアが古い無効化より先に確定する順序を検査します。別々のisolateと制御したリクエストコンテキストで引き継ぎを模擬しており、Cloudflareの実際の置き換えを強制してはいません。`verify:outbound:selftest` は実コードの送信許可ガードも取り除き、前者のリプレイのアサーションが失敗することを要求します。この実コードのみの変異は、既存の4組のモデル・コード変異とは別に報告します。最後のfenceのリプレイは、送信許可のための予約を成功させてから、最後のfenceで所有権喪失を注入します。
 
 同じ有限モデルの `EmailOnly = FALSE` はWebhook設定の置き換えも検査します。メールのシナリオは異なる39状態、Webhookは77状態を探索します。Webhookの対象には、版付き設定、永続的なイベント・配信ID、条件付きclaimと結果保存、自動生成または指定した冪等キーの保持も含みます。正常系7シナリオはすべて成功し、モデル変異12種類は指定した性質の違反を検出し、別に報告する実コード変異5種類はアサーションが失敗しました。[モデルの範囲とコードとの対応](../verification/webhooks/README.ja.md)も参照してください。暗号、UUIDの耐衝突性、宛先originの制限、HTTPの挙動、経過時間、メール到達性、プログラム全体の正しさは、これらの有限モデルの対象外です。具体的な境界は実コードのテストで確認します。
+
+## 受信メールの標準転送（2026-10-26）
+
+製品リビジョン`0f2689da7e4fc9ccdad75bd64e761c84ff645d37`で全体・個別の転送設定とSMTP受信中の標準転送を追加しました。前の同期点から確認し、送信claim・コーディネーターのfence・添付の準備には変更がありません。受信は原文先行を維持し、条件付きR2 PUTで受信時の転送判断を固定します。メンテナンスには独立した転送の注意状態への更新を追加しました。
+
+既存の保証を弱めず、検証を**更新**しました。D1喪失を再現する2ケースは、追加された転送履歴を残したまま受信索引だけを削除したため外部キー制約で失敗しました。両方のD1状態を失うようフィクスチャを修正しています。この失敗はハーネスのドリフトです。既存の復旧モデルは同期を維持しています。別の[Forwarding.tla](../verification/inbound/Forwarding.tla)で、同じMIME原文に対する2つのSMTPハンドラと、転送なし・信頼済み・許可外の3分類をモデル化しました。設定取得・条件付き原文保存・索引・pendingの読み取り・claim・標準転送・条件付き完了・中断・復旧を分離しています。
+
+| 転送の性質                       | 製品の操作                                    | 根拠                                                                            |
+| -------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------- |
+| 標準転送より先に原文を保存       | `receive`・`indexRaw`・`forwardReceived`      | 実R2の保存・読み取り障害テストと`RawBeforeForward`                              |
+| 受信時の転送判断を変更しない     | 条件付きR2 PUT・`indexForwarding`             | 最初の受信を止め、全体設定変更と別の受信を競合させるケースと`SnapshotPreserved` |
+| 信頼する宛先だけに転送           | `forwardingPlan`・`pendingTarget`・許可リスト | 許可撤回・ループのテストと`TrustedDestination`                                  |
+| 同じ原文の転送呼び出しは最大1回  | 条件付きpending→sending claim                 | SMTP同時受信と`AtMostOneForward`                                                |
+| 結果不明から2回目をclaimできない | 条件付き完了・`recoverForwarding`             | 遅延した完了と滞留復旧のケース、`NoBlindRetry`                                  |
+
+`mise run verify:inbound:selftest`で復旧・転送モデル、24件の実コードケース（復旧8件＋転送16件）、8組のモデル・ソース変異を確認します。追加した4組では、条件付き原文PUT・転送claim・不明結果の復旧・宛先許可のガードを外します。モデルの対応する不変条件と、実コードの指定したアサーションでそれぞれ検出できました。ガード付きの製品は成功し、この範囲で現在の製品の反例は見つかりませんでした。
+
+[変異の証拠](../verification/inbound/evidence/forwarding/)には番号付きPNG・Mermaid・手順・設定・集計を保存しました。[受信判断の上書き](../verification/inbound/evidence/forwarding/snapshot/bug-1.png)、[重複claim](../verification/inbound/evidence/forwarding/claim/bug-1.png)、[不明結果の再試行](../verification/inbound/evidence/forwarding/retry/bug-1.png)、[許可外宛先](../verification/inbound/evidence/forwarding/policy/bug-1.png)です。生成した図はすべてレンダリングして目視しました。緑は意図的に壊したモデルと比べて現在のガードが防ぐ経路であり、製品に残した脆弱性ではありません。図は読みやすい範囲に絞りますが、自動TLC検証は境界内の状態空間全体を探索します。
+
+リポジトリから、claimの比較図を一時領域に再生成できます。
+
+```sh
+chart_dir="$(mktemp -d)"
+mkdir -p "$chart_dir/unsafe" "$chart_dir/guarded"
+cp verification/inbound/Forwarding.tla verification/inbound/Forwarding.map.mjs "$chart_dir/unsafe/"
+cp verification/inbound/evidence/forwarding/claim/Forwarding.cfg "$chart_dir/unsafe/"
+cp verification/inbound/Forwarding.tla verification/inbound/Forwarding.cfg "$chart_dir/guarded/"
+mise exec -- node .agents/skills/statechart/scripts/statechart.mjs from-spec \
+  "$chart_dir/unsafe/Forwarding.tla" --fixed "$chart_dir/guarded/Forwarding.tla" \
+  --cover --png --out "$chart_dir/output"
+```
+
+`snapshot`・`retry`・`policy`の設定に置き換えると他の変異を確認できます。PNGと同じ場所の`stories.md`と`summary.json`には、隠れた手順や概要図で省いた経路を記載します。既存の受信復旧図も再生成して目視しました。
+
+モデルは条件付きR2・D1書き込みの原子性、D1を巻き戻さないこと、標準転送の契約を前提にします。宛先の分類には、以前許可した宛先の撤回も抽象化しています。受信箱の有効状態・ループ防止・管理者認可は実コードで確認し、この転送モデルでは証明しません。有限の安全性を対象とし、転送の必達・任意の同時実行・暗号・Cloudflareの実際の検証・SMTPやDMARC・相手への配信・外部転送ループの不存在は証明しません。無効化前に取得済みのclaimは後で完了でき、送信の直列化された無効化契約とは異なります。許可リスト更新で古いWorker実行を取り消すこともできません。[転送の運用](forwarding.ja.md)に従い、許可された実メールで別途確認してください。

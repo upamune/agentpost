@@ -1,0 +1,83 @@
+{
+  "view": "customer",
+  "second": {
+    "role": "fix",
+    "label": "the fix",
+    "lacks": []
+  },
+  "modelStates": 3750,
+  "modelTransitions": 16983,
+  "chartStates": 12,
+  "chartTransitions": 13,
+  "chartStatus": {
+    "works": 13,
+    "wrong": 0,
+    "fixed": 1,
+    "mixed": 0,
+    "after": 0,
+    "worse": 0
+  },
+  "mixedStatus": [],
+  "cover": {
+    "drawn": true,
+    "states": 14,
+    "transitions": 30,
+    "leftOutStates": [
+      "Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 0 native calls",
+      "Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 1 native calls"
+    ],
+    "leftOutTransitions": [
+      "Awaiting forwarding index; original destination = off; 0 claims; 0 native calls --> Awaiting forwarding index; original destination = trusted mailbox; 0 claims; 0 native calls: Retain original and its admission decision",
+      "Awaiting forwarding index; original destination = off; 0 claims; 0 native calls --> Awaiting forwarding index; original destination = unapproved mailbox; 0 claims; 0 native calls: Retain original and its admission decision",
+      "Awaiting forwarding index; original destination = trusted mailbox; 0 claims; 0 native calls --> Awaiting forwarding index; original destination = off; 0 claims; 0 native calls: Retain original and its admission decision",
+      "Awaiting forwarding index; original destination = trusted mailbox; 0 claims; 0 native calls --> Awaiting forwarding index; original destination = unapproved mailbox; 0 claims; 0 native calls: Retain original and its admission decision",
+      "Awaiting forwarding index; original destination = unapproved mailbox; 0 claims; 0 native calls --> Awaiting forwarding index; original destination = off; 0 claims; 0 native calls: Retain original and its admission decision",
+      "Awaiting forwarding index; original destination = unapproved mailbox; 0 claims; 0 native calls --> Awaiting forwarding index; original destination = trusted mailbox; 0 claims; 0 native calls: Retain original and its admission decision",
+      "Claimed; outcome pending; original destination = trusted mailbox; 1 claims; 0 native calls --> Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 0 native calls: Record interrupted work for operator attention",
+      "Claimed; outcome pending; original destination = trusted mailbox; 1 claims; 0 native calls --> Retained and indexed destinations disagree: Retain original and its admission decision",
+      "Claimed; outcome pending; original destination = trusted mailbox; 1 claims; 1 native calls --> Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 1 native calls: Record interrupted work for operator attention or Persist the native outcome if still sending",
+      "Claimed; outcome pending; original destination = trusted mailbox; 1 claims; 1 native calls --> Retained and indexed destinations disagree: Retain original and its admission decision",
+      "Forwarding blocked; original destination = trusted mailbox; 0 claims; 0 native calls --> Retained and indexed destinations disagree: Retain original and its admission decision",
+      "Forwarding blocked; original destination = unapproved mailbox; 0 claims; 0 native calls --> Retained and indexed destinations disagree: Retain original and its admission decision",
+      "Native forwarding accepted; original destination = trusted mailbox; 1 claims; 1 native calls --> Retained and indexed destinations disagree: Retain original and its admission decision",
+      "Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 0 native calls --> Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 1 native calls: Start the native forwarding call",
+      "Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 0 native calls --> Retained and indexed destinations disagree: Retain original and its admission decision",
+      "Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 1 native calls --> Retained and indexed destinations disagree: Retain original and its admission decision",
+      "Waiting for native claim; original destination = trusted mailbox; 0 claims; 0 native calls --> Retained and indexed destinations disagree: Retain original and its admission decision"
+    ]
+  },
+  "chartGroups": [
+    {
+      "name": "Native call initiated",
+      "color": "#d6eaf8",
+      "states": 2
+    },
+    {
+      "name": "No native call",
+      "color": "#fdebd0",
+      "states": 9
+    }
+  ],
+  "mixedGroups": ["Retained and indexed destinations disagree"],
+  "classes": [
+    {
+      "n": 1,
+      "end": "Retained and indexed destinations disagree",
+      "invariant": "SnapshotPreserved",
+      "rule": "A duplicate SMTP handler cannot overwrite the retained admission decision.",
+      "cause": null,
+      "readerSteps": 4,
+      "modelSteps": 7,
+      "counterexamples": 228,
+      "lastSteps": ["Retain original and its admission decision"],
+      "startsHere": false,
+      "fix": "Forwarding was off; original destination = off; 0 claims; 0 native calls"
+    }
+  ],
+  "codeLike": [],
+  "uncited": {
+    "/tmp/agentpost-forwarding-charts/snapshot/Forwarding.tla": [],
+    "/tmp/agentpost-forwarding-charts/fixed/Forwarding.tla": []
+  },
+  "brokenProperties": []
+}

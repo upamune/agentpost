@@ -1,14 +1,19 @@
 {
-  "verifiedProductCommit": "32497e235c6d973f4b59d08897c914743f257800",
+  "verifiedProductCommit": "0f2689da7e4fc9ccdad75bd64e761c84ff645d37",
   "bounds": {
     "originals": 3,
     "valid": 2,
     "poisoned": 1,
     "pageSize": 1,
-    "transientFaults": 2
+    "transientFaults": 2,
+    "forwardingHandlers": 2,
+    "forwardingTargets": 3
   },
   "assumptions": [
-    "originals already successfully persisted",
+    "originals already successfully persisted in recovery model; conditional R2 put in forwarding model",
+    "native forwarding exists only during SMTP handler; claims never reset; no D1 rollback",
+    "forwarding configuration is captured at admission; later changes do not cancel admitted work",
+    "verified-destination enforcement and SMTP delivery are external assumptions",
     "finite stable corpus",
     "at most two transient faults",
     "weakly fair successful Cron, queue and parse actions",
@@ -17,15 +22,31 @@
   "sourceFiles": [
     {
       "path": "src/inbound.ts",
-      "sha256": "d7e4bfeeb2aea3536257f6666e94bedbd375a19b3bc5c87cdda9477652c74ed4"
+      "sha256": "7bfcddffc01dde7e6e4a25addf4f552c5601291737f495d9ba9d06642c750a2a"
     },
     {
       "path": "src/bounded-json.ts",
       "sha256": "1a847ef629c4712a81bd83261c8f8728db149456cf32a59d116927721cd503b0"
     },
     {
+      "path": "src/forwarding.ts",
+      "sha256": "553ca20059846fbcd4c37e8cec9426df3777e512eb9c7b1f0b479cbcdaa5a07e"
+    },
+    {
+      "path": "src/forwarding-policy.ts",
+      "sha256": "02137ac6ff761c8fefb2188bed814d4b3434d338dd14677ae9bb3552c966825c"
+    },
+    {
+      "path": "src/forwarding-store.ts",
+      "sha256": "62b618c6febd800e1c2dea630620e74a159dd640e18d2b55c37490d9f6ab02f5"
+    },
+    {
+      "path": "migrations/0007_forwarding.sql",
+      "sha256": "bc033db783daf2525f5c45f926512c5a2cff403db58f0b92016fe2172865c6d1"
+    },
+    {
       "path": "src/maintenance.ts",
-      "sha256": "7aaa23b99e2771bf99b47ade452cf2a2e4149cb5d279753077484d4a0703d448"
+      "sha256": "4392c353d04fe3eadd03962ce165221bee2ae51c4173b8cdc7db893992f09e3a"
     },
     {
       "path": "src/index.ts",
@@ -33,7 +54,7 @@
     },
     {
       "path": "src/api.ts",
-      "sha256": "dda3093c1428e94c022aab18e6c9e173960ad5c74d22ff95f92fddb8473fa392"
+      "sha256": "c22c64e6801e150a2b31a39e1fcf7917366f96aa31e8c389fcd7ad2667274de1"
     },
     {
       "path": "migrations/0001_mail.sql",
@@ -78,6 +99,36 @@
       "check": "EventuallyReady",
       "outcome": "passed",
       "log": "Inbound-baseline.log"
+    },
+    {
+      "check": "ForwardingTypeOK",
+      "outcome": "passed",
+      "log": "Forwarding-baseline.log"
+    },
+    {
+      "check": "ForwardingRawBeforeForward",
+      "outcome": "passed",
+      "log": "Forwarding-baseline.log"
+    },
+    {
+      "check": "ForwardingSnapshotPreserved",
+      "outcome": "passed",
+      "log": "Forwarding-baseline.log"
+    },
+    {
+      "check": "ForwardingTrustedDestination",
+      "outcome": "passed",
+      "log": "Forwarding-baseline.log"
+    },
+    {
+      "check": "ForwardingAtMostOneForward",
+      "outcome": "passed",
+      "log": "Forwarding-baseline.log"
+    },
+    {
+      "check": "ForwardingNoBlindRetry",
+      "outcome": "passed",
+      "log": "Forwarding-baseline.log"
     }
   ],
   "replay": {
@@ -85,10 +136,186 @@
     "cases": [
       {
         "ancestorTitles": [],
+        "fullName": "global defaults, custom overrides, explicit off and restored inheritance are independent",
+        "status": "passed",
+        "title": "global defaults, custom overrides, explicit off and restored inheritance are independent",
+        "duration": 23,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "configuration and destination history are administrator-only even for the inbox token",
+        "status": "passed",
+        "title": "configuration and destination history are administrator-only even for the inbox token",
+        "duration": 9,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "destinations reject open relay targets, same-domain loops, malformed policy and input",
+        "status": "passed",
+        "title": "destinations reject open relay targets, same-domain loops, malformed policy and input",
+        "duration": 10,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "native forwarding starts only after durable MIME, indexing and a conditional claim",
+        "status": "passed",
+        "title": "native forwarding starts only after durable MIME, indexing and a conditional claim",
+        "duration": 22,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "explicit off skips forwarding while other inboxes use the default or their custom destination",
+        "status": "passed",
+        "title": "explicit off skips forwarding while other inboxes use the default or their custom destination",
+        "duration": 22,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "duplicate SMTP delivery never forwards twice or adopts a changed destination",
+        "status": "passed",
+        "title": "duplicate SMTP delivery never forwards twice or adopts a changed destination",
+        "duration": 15,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "enabling a default never replays an earlier skipped message",
+        "status": "passed",
+        "title": "enabling a default never replays an earlier skipped message",
+        "duration": 13,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "simultaneous duplicates share one native attempt",
+        "status": "passed",
+        "title": "simultaneous duplicates share one native attempt",
+        "duration": 14,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "a native exception retains mail, reports unknown and cannot cause an automatic resend",
+        "status": "passed",
+        "title": "a native exception retains mail, reports unknown and cannot cause an automatic resend",
+        "duration": 19,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "loop markers and a withdrawn allowlist block disclosure without losing original mail",
+        "status": "passed",
+        "title": "loop markers and a withdrawn allowlist block disclosure without losing original mail",
+        "duration": 14,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "raw-storage failure prevents forwarding",
+        "status": "passed",
+        "title": "raw-storage failure prevents forwarding",
+        "duration": 10,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "raw-index repair restores forwarding intent but never performs a native forward",
+        "status": "passed",
+        "title": "raw-index repair restores forwarding intent but never performs a native forward",
+        "duration": 12,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "stale recovery and late completion preserve unknown without repeating a native call",
+        "status": "passed",
+        "title": "stale recovery and late completion preserve unknown without repeating a native call",
+        "duration": 15,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "racing first receipts preserve the winning raw snapshot across a global-setting change",
+        "status": "passed",
+        "title": "racing first receipts preserve the winning raw snapshot across a global-setting change",
+        "duration": 16,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "a disabled recipient cannot admit a native forward",
+        "status": "passed",
+        "title": "a disabled recipient cannot admit a native forward",
+        "duration": 12,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "disabling after retention but before the native claim prevents forwarding",
+        "status": "passed",
+        "title": "disabling after retention but before the native claim prevents forwarding",
+        "duration": 16,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
         "fullName": "a D1 failure after raw persistence is repaired from the original metadata",
         "status": "passed",
         "title": "a D1 failure after raw persistence is repaired from the original metadata",
-        "duration": 30,
+        "duration": 27,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -99,7 +326,7 @@
         "fullName": "queue outage and duplicate recovery preserve one message and one received event",
         "status": "passed",
         "title": "queue outage and duplicate recovery preserve one message and one received event",
-        "duration": 23,
+        "duration": 20,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -110,7 +337,7 @@
         "fullName": "failures before parsed storage and before ready commit retain the original and recover",
         "status": "passed",
         "title": "failures before parsed storage and before ready commit retain the original and recover",
-        "duration": 17,
+        "duration": 16,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -121,7 +348,7 @@
         "fullName": "poisoned first page cannot starve healthy later raw objects and stays visible in health",
         "status": "passed",
         "title": "poisoned first page cannot starve healthy later raw objects and stays visible in health",
-        "duration": 21,
+        "duration": 18,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -132,7 +359,7 @@
         "fullName": "orphaned inbox metadata is reported, retried and cleared after the inbox is restored",
         "status": "passed",
         "title": "orphaned inbox metadata is reported, retried and cleared after the inbox is restored",
-        "duration": 18,
+        "duration": 17,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -143,7 +370,7 @@
         "fullName": "cursor commit failure repeats safe inserts without downgrading ready messages",
         "status": "passed",
         "title": "cursor commit failure repeats safe inserts without downgrading ready messages",
-        "duration": 18,
+        "duration": 16,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -154,7 +381,7 @@
         "fullName": "failed inbound republishing does not prevent outbound republishing",
         "status": "passed",
         "title": "failed inbound republishing does not prevent outbound republishing",
-        "duration": 16,
+        "duration": 12,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -165,7 +392,7 @@
         "fullName": "failed attention persistence keeps the cursor before the poisoned original",
         "status": "passed",
         "title": "failed attention persistence keeps the cursor before the poisoned original",
-        "duration": 14,
+        "duration": 12,
         "failureMessages": [],
         "meta": {},
         "tags": [],

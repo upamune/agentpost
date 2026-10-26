@@ -1,0 +1,40 @@
+---
+config:
+  markdownAutoWrap: false
+  state:
+    useMaxWidth: false
+---
+stateDiagram-v2
+  %% second model (fix): the fix
+  classDef plainFixed fill:#f4f6f7,stroke:#1e8449,stroke-width:4px,color:#145a32
+  classDef group1 fill:#fdebd0,stroke:#7f7668,color:#1b2631
+  classDef group1Fixed fill:#fdebd0,stroke:#1e8449,stroke-width:4px,color:#145a32
+  classDef group1Path fill:#fdebd0,stroke:#1f3a93,stroke-width:4px,color:#1b2631
+  state "Legend" as legend {
+    state "No native call" as legendGroup1
+    state "Fixed or new with the fix" as legendFixed
+  }
+  class legendGroup1 group1
+  class legendFixed plainFixed
+  state "Another native forwarding<br/>claim was authorized" as s0
+  state "Awaiting forwarding index;<br/>original destination =<br/>trusted mailbox; 0 claims;<br/>0 native calls" as s1
+  state "Claimed; outcome pending;<br/>original destination =<br/>trusted mailbox; 1 claims;<br/>0 native calls" as s2
+  state "Outcome unknown; no<br/>automatic retry; original<br/>destination = trusted<br/>mailbox; 1 claims; 0<br/>native calls" as s3
+  state "SMTP delivery arrived;<br/>original not retained" as s4
+  state "Waiting for native claim;<br/>original destination =<br/>trusted mailbox; 0 claims;<br/>0 native calls" as s5
+  state "Waiting for native claim;<br/>original destination =<br/>trusted mailbox; 1 claims;<br/>0 native calls" as s6
+  [*] --> s4
+  s4 --> s1 : 2. Retain original and its<br/>admission decision
+  s1 --> s5 : 3. Index the retained decision
+  s5 --> s2 : 4. Atomically claim native<br/>forwarding
+  s2 --> s6 : 5. Record interrupted work for<br/>operator attention
+  s6 --> s0 : 6. Atomically claim native<br/>forwarding
+  s2 --> s3 : with the fix, Record<br/>interrupted work for operator<br/>attention
+  s4 --> s4 : 1. Operator changes the<br/>default
+  class s0 plainFixed
+  class s1 group1Path
+  class s2 group1Path
+  class s3 group1Fixed
+  class s4 group1Path
+  class s5 group1Path
+  class s6 group1Path

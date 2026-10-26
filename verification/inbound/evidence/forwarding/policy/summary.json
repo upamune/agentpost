@@ -1,0 +1,72 @@
+{
+  "view": "customer",
+  "second": {
+    "role": "fix",
+    "label": "the fix",
+    "lacks": []
+  },
+  "modelStates": 4269,
+  "modelTransitions": 20052,
+  "chartStates": 14,
+  "chartTransitions": 15,
+  "chartStatus": {
+    "works": 16,
+    "wrong": 0,
+    "fixed": 1,
+    "mixed": 0,
+    "after": 0,
+    "worse": 0
+  },
+  "mixedStatus": [],
+  "cover": {
+    "drawn": true,
+    "states": 17,
+    "transitions": 20,
+    "leftOutStates": [
+      "Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 0 native calls",
+      "Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 1 native calls",
+      "Outcome unknown; no automatic retry; original destination = unapproved mailbox; 1 claims; 0 native calls"
+    ],
+    "leftOutTransitions": [
+      "Claimed; outcome pending; original destination = trusted mailbox; 1 claims; 0 native calls --> Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 0 native calls: Record interrupted work for operator attention",
+      "Claimed; outcome pending; original destination = trusted mailbox; 1 claims; 1 native calls --> Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 1 native calls: Record interrupted work for operator attention or Persist the native outcome if still sending",
+      "Claimed; outcome pending; original destination = unapproved mailbox; 1 claims; 0 native calls --> Outcome unknown; no automatic retry; original destination = unapproved mailbox; 1 claims; 0 native calls: Record interrupted work for operator attention",
+      "Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 0 native calls --> Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 1 native calls: Start the native forwarding call",
+      "Outcome unknown; no automatic retry; original destination = unapproved mailbox; 1 claims; 0 native calls --> Mail forwarded to an unapproved mailbox: Start the native forwarding call"
+    ]
+  },
+  "chartGroups": [
+    {
+      "name": "Native call initiated",
+      "color": "#d6eaf8",
+      "states": 3
+    },
+    {
+      "name": "No native call",
+      "color": "#fdebd0",
+      "states": 11
+    }
+  ],
+  "mixedGroups": [],
+  "classes": [
+    {
+      "n": 1,
+      "end": "Mail forwarded to an unapproved mailbox",
+      "invariant": "TrustedDestination",
+      "rule": "Mail can leave this model only for an operator-allowed external destination.",
+      "cause": null,
+      "readerSteps": 5,
+      "modelSteps": 8,
+      "counterexamples": 288,
+      "lastSteps": ["Start the native forwarding call"],
+      "startsHere": false,
+      "fix": "Forwarding blocked; original destination = unapproved mailbox; 0 claims; 0 native calls"
+    }
+  ],
+  "codeLike": [],
+  "uncited": {
+    "/tmp/agentpost-forwarding-charts/policy/Forwarding.tla": [],
+    "/tmp/agentpost-forwarding-charts/fixed/Forwarding.tla": []
+  },
+  "brokenProperties": []
+}

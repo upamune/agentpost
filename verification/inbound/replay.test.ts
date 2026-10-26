@@ -188,6 +188,7 @@ test("poisoned first page cannot starve healthy later raw objects and stays visi
   const box = await createInbox();
   const mail = await original(box);
   await mail.receive();
+  await bindings.DB.prepare("DELETE FROM forwarding_deliveries").run();
   await bindings.DB.prepare("DELETE FROM messages").run();
   const poison = "raw/!poison.eml";
   await bindings.MAIL.put(poison, "Poison original");
@@ -227,6 +228,7 @@ test("orphaned inbox metadata is reported, retried and cleared after the inbox i
     token_hash: string;
     created_at: number;
   }>();
+  await bindings.DB.prepare("DELETE FROM forwarding_deliveries").run();
   await bindings.DB.prepare("DELETE FROM messages").run();
   await bindings.DB.prepare("DELETE FROM inboxes WHERE id = ?").bind(box.id).run();
   await expect(repairRawIndex(bindings)).rejects.toThrow("unresolved objects");

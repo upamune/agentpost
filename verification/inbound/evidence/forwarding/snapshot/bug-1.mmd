@@ -1,0 +1,31 @@
+---
+config:
+  markdownAutoWrap: false
+  state:
+    useMaxWidth: false
+---
+stateDiagram-v2
+  %% second model (fix): the fix
+  classDef plainFixed fill:#f4f6f7,stroke:#1e8449,stroke-width:4px,color:#145a32
+  classDef group1 fill:#fdebd0,stroke:#7f7668,color:#1b2631
+  classDef group1Path fill:#fdebd0,stroke:#1f3a93,stroke-width:4px,color:#1b2631
+  state "Legend" as legend {
+    state "No native call" as legendGroup1
+    state "Fixed or new with the fix" as legendFixed
+  }
+  class legendGroup1 group1
+  class legendFixed plainFixed
+  state "Awaiting forwarding index;<br/>original destination =<br/>off; 0 claims; 0 native<br/>calls" as s0
+  state "Forwarding was off;<br/>original destination =<br/>off; 0 claims; 0 native<br/>calls" as s1
+  state "Retained and indexed<br/>destinations disagree" as s2
+  state "SMTP delivery arrived;<br/>original not retained" as s3
+  [*] --> s3
+  s3 --> s0 : 2. Retain original and its<br/>admission decision
+  s0 --> s1 : 3. Index the retained decision
+  s1 --> s2 : 4. Retain original and its<br/>admission decision
+  s1 --> s1 : with the fix, Retain original<br/>and its admission decision
+  s3 --> s3 : 1. Operator changes the<br/>default
+  class s0 group1Path
+  class s1 group1Path
+  class s2 plainFixed
+  class s3 group1Path
