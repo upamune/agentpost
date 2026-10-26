@@ -2,6 +2,11 @@
 
 [English](CHANGELOG.md) | [日本語](CHANGELOG.ja.md)
 
+## 0.1.3
+
+- Fix the npm publisher's local archive path so npm does not interpret it as a GitHub shorthand. Add an actual offline npm publish dry-run regression using the workflow's maintained file argument.
+- Publish the first npm CLI/MCP version through GitHub OIDC with provenance. Version 0.1.2's signed GitHub assets remain immutable.
+
 ## 0.1.2
 
 - Publish the dependency-free Node.js CLI/MCP client as `@upamune/agentpost` with GitHub OIDC Trusted Publishing and npm provenance. Installation requires no lifecycle scripts or Bun.
