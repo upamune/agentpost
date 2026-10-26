@@ -64,6 +64,12 @@ run = "bun run scripts/smoke-executable.ts"
 [tasks."release:finalize"]
 run = "bun run scripts/finalize-release.ts"
 
+[tasks."npm:build"]
+run = "bun run scripts/build-npm.ts"
+
+[tasks."npm:smoke"]
+run = "bun run scripts/smoke-npm.ts"
+
 [tasks.secrets]
 run = "gitleaks git --redact --no-banner --log-opts=--all"
 

@@ -8,7 +8,7 @@ license: MIT
 
 [日本語ガイド](references/guide.ja.md)
 
-Use agentpost's configured MCP tools or standalone CLI (source/Bun is also supported). Each operator self-hosts agentpost on their own Cloudflare account and domain. The Worker issues random or custom-named addresses on that domain; an inbox UUID identifies the mailbox in API and tool calls.
+Use agentpost's configured MCP tools or npm/standalone CLI (source/Bun is also supported). Each operator self-hosts agentpost on their own Cloudflare account and domain. The Worker issues random or custom-named addresses on that domain; an inbox UUID identifies the mailbox in API and tool calls.
 
 ## Connection and access
 
@@ -17,6 +17,8 @@ Prefer the configured MCP connection when available. For CLI use, read [CLI work
 The CLI and stdio MCP use `AGENTPOST_API_URL` and `AGENTPOST_API_TOKEN`. With tokens, use an inbox token for mailbox work; admin access is required for creation, listing, disabling, and rotation. Native remote MCP can instead use Cloudflare Access OAuth: an `agent` grant can provision/list and use owned inboxes, while an explicit `admin` grant controls all inboxes. OAuth creation returns no inbox token, even in both mode. Don't replace an inbox token with admin credentials to bypass an authorization failure. Keep tokens private. For authorized provisioning, `create_inbox` accepts optional `local_part` (the name before `@`); omission creates a random name. A conflict never grants access to an existing inbox or permission to replace its token. Save new inbox IDs and addresses with task state, and save creation/rotation responses only in private storage because they can contain an inbox token.
 
 For release installation or updates, verify the selected executable or source archive's signed provenance before execution or extraction using https://github.com/upamune/agentpost/blob/main/docs/releases.md. Enforce the repository, signing workflow, and selected version tag. Preserve existing files and stop on missing or invalid verification; then record the absolute executable or source path and version. Standalone executables embed Bun and run stdio MCP with `mcp`; they do not autoload local `.env`/`bunfig.toml`, so use private process/MCP environment configuration.
+
+For npm installation, use only `@upamune/agentpost`, require Node.js 22.14+, and follow the npm branch in the installation guide. The unscoped `agentpost` is another project. Verify the versioned npm archive before installation, install with scripts disabled, and record the Node/executable paths. The npm client has no runtime dependencies; stdio MCP accepts the same `mcp` argument.
 
 ## Read and monitor
 

@@ -2,17 +2,31 @@
 
 [English](INSTALL.md) | [日本語](INSTALL.ja.md)
 
-Use this document when a user asks an AI agent to install or configure agentpost. The application provides a Worker API, a Bun CLI, an MCP server, and an optional agent skill.
+Use this document when a user asks an AI agent to install or configure agentpost. The application provides a Worker API, an npm/standalone CLI, an MCP server, and an optional agent skill.
 
 ## Choose the installation mode
 
 - **Connect remote MCP with OAuth:** use a compatible client and an Access-protected `/mcp` URL. The client performs login and refresh. A source checkout, CLI, and `AGENTPOST_API_TOKEN` are unnecessary unless other workflows need them. See [authentication](docs/authentication.md).
 
-- **Connect to an existing Worker:** install a verified standalone executable (or the source checkout), configure `AGENTPOST_API_URL` and `AGENTPOST_API_TOKEN`, and optionally configure MCP and the skill. Cloudflare management credentials are not needed.
+- **Connect to an existing Worker:** install the npm package, a verified standalone executable, or the source checkout, configure `AGENTPOST_API_URL` and `AGENTPOST_API_TOKEN`, and optionally configure MCP and the skill. Cloudflare management credentials are not needed.
 - **Try a local Worker:** follow the source installation, then the local verification section. No domain or Cloudflare credentials are needed.
 - **Host a Worker:** follow [the deployment guide](docs/deploy.md) for the user's Cloudflare account and domain. Hosting uses D1, R2, Queues and a SQLite-backed Durable Object per inbox. Wrangler creates the Durable Object binding and migration during deployment. Local installation does not deploy the service.
 
 Reuse the user's existing checkout, tools, credentials, and MCP configuration when available. If the repository is private, Git access must already be configured; report an access failure instead of changing repository visibility.
+
+## Install with npm
+
+Use Node.js 22.14 or newer and the scoped package `@upamune/agentpost`. The unscoped `agentpost` package is unrelated. The npm client has no runtime dependencies, native addons, or lifecycle installation scripts; Bun is unnecessary.
+
+```sh
+npm install --global --ignore-scripts @upamune/agentpost@X.Y.Z
+agentpost --version
+agentpost --help
+```
+
+Choose an actual published version in place of `X.Y.Z`. For agent-managed installation, first download `upamune-agentpost-VERSION.tgz` and verify it with the GitHub attestation/checksum procedure in [releases](docs/releases.md#verify-a-download), then install that exact verified local archive with `npm install --global --ignore-scripts /absolute/path/to/upamune-agentpost-VERSION.tgz`. Installation alone does not run the client or connect to a Worker. Stop on missing/invalid provenance. Preserve existing installations and use an authorized user-owned npm prefix; do not escalate to sudo to fix a permissions failure.
+
+Record the version, absolute executable path, Node executable path, and `npm root --global`. The npm CLI does not autoload `.env` or working-directory configuration. Supply credentials privately as described below. For stdio MCP, either use the installed command with Node on the client's PATH, or set `command` to the absolute Node path and `args` to `["/ABSOLUTE_NPM_ROOT/@upamune/agentpost/cli.mjs", "mcp"]`. The latter also avoids Windows `.cmd` launcher differences. Existing MCP servers and credentials must be preserved.
 
 ## Install a standalone executable
 
@@ -32,7 +46,7 @@ The standalone executable does not autoload `.env`, `bunfig.toml`, `package.json
 
 ## Install from source
 
-Prerequisites: Git and [mise](https://mise.jdx.dev/getting-started.html). The CLI runs with Bun; Wrangler uses Node.js. There is no published npm package; standalone clients are separate release assets.
+Prerequisites: Git and [mise](https://mise.jdx.dev/getting-started.html). The CLI runs with Bun; Wrangler uses Node.js. The published npm client is `@upamune/agentpost`; standalone clients are separate release assets.
 
 Choose a persistent directory for the checkout. Inspect an existing destination before reusing it; preserve local changes.
 

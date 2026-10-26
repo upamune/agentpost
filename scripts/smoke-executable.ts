@@ -8,8 +8,11 @@ import { z } from "zod";
 import { version } from "../package.json";
 import { executableName } from "./executable-targets";
 
-const executable =
-  process.argv[2] === "--platform"
+const nodeMode = process.argv[2] === "--node";
+const prefix = nodeMode ? [resolve(process.argv[3]!)] : [];
+const executable = nodeMode
+  ? Bun.which("node")!
+  : process.argv[2] === "--platform"
     ? resolve("dist", "executables", executableName(version, process.argv[3]!))
     : resolve(process.argv[2] ?? "");
 const directory = await mkdtemp(join(tmpdir(), "agentpost-standalone-"));
@@ -36,7 +39,7 @@ delete environment.BUN_OPTIONS;
 delete environment.NODE_OPTIONS;
 
 async function cli(args: string[], configured = false) {
-  const child = Bun.spawn([executable, ...args], {
+  const child = Bun.spawn([executable, ...prefix, ...args], {
     cwd: directory,
     env: {
       ...environment,
@@ -61,7 +64,7 @@ async function mcp() {
   );
   const transport = new StdioClientTransport({
     command: executable,
-    args: ["mcp"],
+    args: [...prefix, "mcp"],
     cwd: directory,
     env: { ...environment, AGENTPOST_API_URL: api.url.href, AGENTPOST_API_TOKEN: token },
     stderr: "pipe",

@@ -1,5 +1,7 @@
 # agentpost
 
+[![npm](https://img.shields.io/npm/v/%40upamune%2Fagentpost)](https://www.npmjs.com/package/@upamune/agentpost)
+
 [![CI](https://github.com/upamune/agentpost/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/upamune/agentpost/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/codeql.yml)
 [![OSV-Scanner](https://github.com/upamune/agentpost/actions/workflows/osv.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/osv.yml)
@@ -23,6 +25,16 @@ agentpostは、自分のCloudflareアカウントと独自ドメインで動か�
 各利用者が自分のアカウントとドメインでセルフホストし、メールと認証情報を管理します。
 
 スキャンの対象・検出結果の確認先・公開前の監査は[継続的なセキュリティチェック](docs/security-checks.ja.md)にまとめています。バッジはチェック結果を示すもので、各環境の安全性を認証するものではありません。
+
+## CLIとMCPクライアントを導入する
+
+```sh
+npm install --global @upamune/agentpost
+agentpost --version
+agentpost --help
+```
+
+Node.js 22.14以降が必要です。npm版にBunは不要で、実行時の依存をバンドルし、インストールスクリプトを含めません。stdio MCPは `agentpost mcp` で起動します。スコープのないnpmパッケージ `agentpost` は別のプロジェクトです。[導入・検証手順](INSTALL.ja.md)に、版の固定、単体実行ファイル、資格情報、エージェントの設定を記載しています。
 
 ## できること
 
@@ -283,7 +295,7 @@ mise run ci
 
 CIではmainへのpushとPRごとに、整形、静的解析、型検査、テスト、Workerのdry-runビルド、秘密情報チェックを自動実行します。
 依存パッケージの脆弱性監査もpush・PRと毎日実行します。
-版タグのリリースでは、7プラットフォーム向けの単体CLI/MCP実行ファイルを、署名付き来歴証明とチェックサムと一緒に添付します。過去のソース限定リリースは変更せず、npm公開は設定していません。CIでは実際のメールや本番デプロイを使わず全プラットフォームの起動確認を行います。
+版タグのリリースでは、7プラットフォーム向けの単体CLI/MCP実行ファイルを、署名付き来歴証明とチェックサムと一緒に添付します。過去のソース限定リリースは変更せず、npmクライアントは `@upamune/agentpost` としてGitHub OIDCと来歴証明を使って公開します。CIでは実際のメールや本番デプロイを使わず全プラットフォームの起動確認を行います。
 実メールの送信と本番への自動デプロイは行いません。
 リリースPRとタグ・GitHub Releaseはtagprで管理します。GitHub Appの初期設定とリリースの確認方法は[リリース手順](docs/releases.ja.md)を参照してください。
 送信停止・復旧の競合と、受信原文・索引の復旧は[pstack / TLA+形式検証](docs/formal-verification.ja.md)で検査します。モデル検査、実コードでの再現、ガードを壊す変異検査をCIで実行します。

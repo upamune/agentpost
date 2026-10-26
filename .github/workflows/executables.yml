@@ -49,13 +49,18 @@ jobs:
       - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           version: 2026.10.17
-          install_args: bun
+          install_args: bun node
           cache: false
       - run: bun install --frozen-lockfile --ignore-scripts
       - run: mise run cli:build "$AGENTPOST_BUILD_PLATFORM" --verify-reproducible
       - name: Smoke test the standalone CLI and MCP on the native platform
         if: ${{ !contains(matrix.platform, 'musl') }}
         run: mise run cli:smoke --platform "$AGENTPOST_BUILD_PLATFORM"
+      - name: Build and test the npm package on the native platform
+        if: ${{ !contains(matrix.platform, 'musl') }}
+        run: |
+          mise run npm:build --verify-reproducible
+          mise run npm:smoke
       - name: Smoke test musl without network access
         if: contains(matrix.platform, 'musl')
         run: |

@@ -7,7 +7,25 @@ PRで`package.json`のバージョンと`CHANGELOG.md`を確認し、merge commi
 CLIとMCPが返すバージョンも`package.json`から読み込みます。
 リリースPRのマージは管理者が判断してください。
 
-[検証付きリリースワークフロー](../.github/workflows/release.yml)は、コミット済みソースのアーカイブ、CLI/MCPの単体実行ファイル、チェックサム、署名付きSLSA来歴証明を生成します。全CIとOSVの成功後に署名し、draftからダウンロードした全成果物を検証して公開します。immutable releaseで公開後のタグと成果物の置き換えを防ぎます。npmへの公開やWorkerのデプロイは行いません。Workerには[導入手順](deploy.ja.md)を使います。
+[検証付きリリースワークフロー](../.github/workflows/release.yml)は、コミット済みソースのアーカイブ、CLI/MCPの単体実行ファイル、チェックサム、署名付きSLSA来歴証明を生成します。全CIとOSVの成功後に署名し、draftからダウンロードした全成果物を検証して公開します。immutable releaseで公開後のタグと成果物の置き換えを防ぎます。npmクライアントは、初期設定後に検証済みGitHub ReleaseからOIDCで公開します。Workerのデプロイは行いません。Workerには[導入手順](deploy.ja.md)を使います。
+
+## npmクライアントと安全な公開
+
+npmパッケージは `@upamune/agentpost`、コマンドは `agentpost` です。スコープのない `agentpost` は別作者のパッケージです。Node.js 22.14以降で動くCLI/MCPを1ファイルにバンドルし、実行時依存やインストールスクリプトを含めません。Bun同梱の単体実行ファイルとは別の配布物です。
+
+`mise run npm:build --verify-reproducible` は、コミット済みの入力から `dist/npm/upamune-agentpost-VERSION.tgz` を作ります。公開内容はCLI、package.json、README、プロジェクトとバンドルした依存のライセンスだけです。ルートのpackage.jsonは `private: true` を維持します。`mise run npm:smoke` は隔離したprefixへ、オフライン・スクリプト無効でグローバル導入し、CLI、MCP、Eventsをローカルfixtureで確認します。Node 22の専用CIと各OSのNode 24でも検査します。
+
+npmアーカイブもGitHub Releaseのチェックサムと署名の対象です。後述のダウンロード検証では、対象に `upamune-agentpost-VERSION.tgz` を選べます。公開ジョブはimmutableなGitHub Releaseからアーカイブと検証資料を取り直し、タグ・コミット・署名・チェックサムを照合します。その後、GitHub OIDCで `npm publish --provenance --ignore-scripts` を実行します。長期のnpm公開トークンは使いません。公開後はnpmのintegrityを元アーカイブと照合し、固定したlockfileによる導入と `npm audit signatures` で来歴を検証します。同一版が存在する場合も一致と来歴を確認し、上書きしません。npm側で失敗してもGitHub Releaseは維持され、同じタグで再実行できます。
+
+初期設定はメンテナーが行います。
+
+1. GitHubの `npm-publish` Environmentを作り、デプロイ対象を `v*` タグだけに制限します。
+2. 初回は、2FAを有効にしたnpmログインで、`0.0.0-bootstrap.0` のように正式版と異なる予約用パッケージを `npm stage publish` します。このstageは保留のまま保持します。npmが公開元設定に必要なパッケージ情報を作り、正式版は別途OIDCから公開します。
+3. npmのパッケージ設定でGitHub Trusted Publisherを登録します。ownerは `upamune`、repositoryは `agentpost`、workflow filenameは `release.yml`、environmentは `npm-publish` とし、直接の `npm publish` を許可します。公開アクセスは「Require two-factor authentication and disallow tokens」にします。
+4. 正式版の初回OIDC公開と検証が成功してから、予約用stageを承認せず破棄します。初回の正式公開より先に唯一のstageを破棄すると、npmがパッケージ情報と公開元設定も削除することがあります。その後、初期ログインの一時セッションを失効させます。
+5. 準備後に `AGENTPOST_NPM_PUBLISH_ENABLED=true` をGitHubリポジトリ変数へ登録します。初期設定前のnpmジョブと、mainの公開なしプレビューではnpmへ公開しません。
+
+Trusted Publisherの設定は、作成後2日以内の初回公開で有効化されます。リポジトリやworkflow名を変えたら設定を見直してください。[npmの公式手順](https://docs.npmjs.com/trusted-publishers/)も参照してください。公開や署名は、メールの配達や本番設定の正常性を証明するものではありません。
 
 ## 単体実行ファイル
 
@@ -64,7 +82,7 @@ if ((Get-FileHash -Algorithm SHA256 $Asset).Hash.ToLowerInvariant() -ne $Expecte
 
 チェックサムだけでは配布元を認証できません。bundleには署名と検証資料を含み、`provenance.intoto.jsonl` は同じ署名付きDSSE envelopeをSLSA向けに公開します。署名は配布元の証明であり、バグ不在や独立したSLSA認証の証明ではありません。`release-manifest.json` にソースのコミット、バージョン、Bunのバージョン、全payloadのサイズとdigestを記録します。一部だけ取得した場合は選んだチェックサムの行を検証し、全payloadを取得した場合は `SHA256SUMS` 全体を検証できます。
 
-`mise run release:build` はGit HEADのアーカイブを `dist/release/` に作り、未コミットの変更、無視されたファイル、ローカルの導入用資格情報を含めません。`mise run cli:build PLATFORM --verify-reproducible` は `dist/executables/` に実行ファイルを作ります。PLATFORMには `windows-x64` のように `.exe` を付けないターゲットIDを指定し、ソース・package・lockfile・TypeScriptとツールの設定・ビルドスクリプトのコミットを必須にします。検査済みの7ビルドを集め、`mise run release:finalize` で不足・余分・空・symlinkの成果物を拒否してチェックサムとmanifestをまとめます。ソースの本人性と元アーカイブのdigestも確認します。PR・mainのCIも同じ共通ワークフローで全ターゲットのビルド・起動確認を行います。
+`mise run release:build` はGit HEADのアーカイブを `dist/release/` に作り、未コミットの変更、無視されたファイル、ローカルの導入用資格情報を含めません。`mise run cli:build PLATFORM --verify-reproducible` は `dist/executables/` に実行ファイルを作ります。PLATFORMには `windows-x64` のように `.exe` を付けないターゲットIDを指定し、ソース・package・lockfile・TypeScriptとツールの設定・ビルドスクリプトのコミットを必須にします。検査済みの7ビルドとnpmアーカイブを集め、`mise run release:finalize` で不足・余分・空・symlinkの成果物を拒否してチェックサムとmanifestをまとめます。ソースの本人性と元アーカイブのdigestも確認します。PR・mainのCIも同じ共通ワークフローで全ターゲットのビルド・起動確認を行います。
 
 ## プレビューと再実行
 

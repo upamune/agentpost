@@ -1,5 +1,5 @@
 import { parseArgs } from "node:util";
-import { open } from "node:fs/promises";
+import { open, readFile } from "node:fs/promises";
 import { z } from "zod";
 import { MAX_MAIL_BYTES, readBounded } from "./common";
 import { MailClient } from "./client";
@@ -55,9 +55,9 @@ async function mailBody(values: Values) {
     throw new Error("Choose --text or --text-file");
   return {
     text: values["text-file"]
-      ? await Bun.file(values["text-file"]).text()
+      ? await readFile(values["text-file"], "utf8")
       : required(values.text, "--text or --text-file"),
-    ...(values["html-file"] ? { html: await Bun.file(values["html-file"]).text() } : {}),
+    ...(values["html-file"] ? { html: await readFile(values["html-file"], "utf8") } : {}),
   };
 }
 

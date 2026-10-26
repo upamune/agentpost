@@ -49,7 +49,7 @@ function showInfo(args: ReturnType<typeof parseCliArgs>): boolean {
 }
 
 async function main(): Promise<void> {
-  const args = parseCliArgs(Bun.argv.slice(2));
+  const args = parseCliArgs(process.argv.slice(2));
   const { values, positionals } = args;
   if (showInfo(args)) return;
   if (positionals[0] === "mcp") {

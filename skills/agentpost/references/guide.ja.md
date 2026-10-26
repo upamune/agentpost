@@ -4,6 +4,8 @@
 
 設定済みのMCP接続か単体CLI（ソース・Bunでも実行可能）を使います。各運用者が自分のCloudflareアカウントとドメインでセルフホストし、ランダムまたは指定名のアドレスを発行します。API・ツールでは受信箱UUIDを指定します。
 
+npm版は `@upamune/agentpost` を使います。Node.js 22.14以降が必要です。INSTALL.ja.mdのnpm分岐に従ってアーカイブの来歴を検証し、インストールスクリプトを無効にします。
+
 ## 接続と権限
 
 MCPが設定済みなら優先して使います。CLIは[操作手順](cli.ja.md)を読み、導入時に記録した実行ファイルまたはソースcheckoutの絶対パスを使います。スキルの導入先はアプリ本体ではありません。設定がなければcheckoutの`INSTALL.ja.md`か https://github.com/upamune/agentpost/blob/main/INSTALL.ja.md を参照します。

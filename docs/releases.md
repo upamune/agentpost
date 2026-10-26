@@ -4,7 +4,25 @@
 
 Once configured, [tagpr](https://github.com/Songmu/tagpr) creates/updates a release PR on pushes to main. Review `package.json` and `CHANGELOG.md`; merging with a merge commit or squash creates a `v` tag and a draft GitHub Release. CLI/MCP versions also come from `package.json`. A maintainer decides when to merge.
 
-The [verified release workflow](../.github/workflows/release.yml) produces committed source archives and standalone CLI/MCP executables, checksums, and signed SLSA provenance. Full CI and OSV run before signing; all downloaded draft assets are checked before publication. Immutable releases protect published tags and assets. This does not publish npm packages or deploy a Worker; use the [deployment guide](deploy.md).
+The [verified release workflow](../.github/workflows/release.yml) produces committed source archives and standalone CLI/MCP executables, checksums, and signed SLSA provenance. Full CI and OSV run before signing; all downloaded draft assets are checked before publication. Immutable releases protect published tags and assets. After bootstrap, it publishes the npm client from the verified GitHub Release using OIDC. It does not deploy a Worker; use the [deployment guide](deploy.md).
+
+## npm client and secure publishing
+
+The npm package is `@upamune/agentpost`; its command is `agentpost`. The unscoped `agentpost` belongs to another author. It bundles the CLI/MCP client into one file for Node.js 22.14+, with no runtime dependencies or installation scripts. This is separate from the standalone executables that embed Bun.
+
+`mise run npm:build --verify-reproducible` creates `dist/npm/upamune-agentpost-VERSION.tgz` from committed inputs. Its allowlist includes only the CLI, package.json, README and project/bundled-dependency licenses. The root package remains `private: true`. `mise run npm:smoke` installs globally into an isolated prefix, offline with scripts disabled, and exercises CLI, MCP and Events against a local fixture. Dedicated Node 22 CI and native Node 24 jobs check compatibility.
+
+The npm archive is also covered by GitHub Release checksums and attestations. Select `upamune-agentpost-VERSION.tgz` in the download verification procedure below. The publishing job downloads it and verification metadata from the immutable GitHub Release and checks the tag, commit, signatures and digest. It then runs `npm publish --provenance --ignore-scripts` using GitHub OIDC, with no long-lived npm write token. After publication it compares npm integrity with the original archive, installs using an integrity-pinned lockfile, and verifies npm provenance with `npm audit signatures`. Existing versions must match and have provenance; they are never overwritten. An npm failure leaves the GitHub Release intact and can be retried on the same tag.
+
+Maintainer bootstrap:
+
+1. Create the GitHub `npm-publish` Environment and restrict deployments to `v*` tags.
+2. For a new package, use a 2FA-enabled npm login to `npm stage publish` a temporary bootstrap package with a distinct prerelease version, such as `0.0.0-bootstrap.0`. Keep this stage pending. npm creates the package record required for publisher settings; the real version is published separately by OIDC.
+3. In npm package settings, add a GitHub Trusted Publisher: owner `upamune`, repository `agentpost`, workflow filename `release.yml`, environment `npm-publish`, with direct `npm publish` allowed. Set publishing access to **Require two-factor authentication and disallow tokens**.
+4. Let OIDC publish and verify the actual first version before rejecting the bootstrap stage. Never approve that stage. Rejecting the only stage before the first real publication can delete the package placeholder and its publisher settings. Revoke the temporary bootstrap login session afterward.
+5. Set the GitHub repository variable `AGENTPOST_NPM_PUBLISH_ENABLED=true` once ready. The npm job is skipped before configuration and in nonpublishing main previews.
+
+A new Trusted Publisher must complete its first publish within two days. Revisit this configuration when changing the repository or workflow identity. See [npm's official instructions](https://docs.npmjs.com/trusted-publishers/). Publication/provenance does not establish email delivery or production configuration health.
 
 ## Standalone executables
 
@@ -61,7 +79,7 @@ if ((Get-FileHash -Algorithm SHA256 $Asset).Hash.ToLowerInvariant() -ne $Expecte
 
 A checksum alone is not publisher authentication. The bundle holds the signature and verification material; `provenance.intoto.jsonl` exposes the same signed DSSE envelope for SLSA consumers. A signature establishes origin, not absence of bugs or independent SLSA certification. `release-manifest.json` records source commit, version, Bun version and every payload's size/digest. Partial downloads verify only their selected checksum row; downloading every payload permits checking the complete `SHA256SUMS` file.
 
-`mise run release:build` archives Git HEAD into `dist/release/`; uncommitted changes, ignored files and local deployment credentials are excluded. `mise run cli:build PLATFORM --verify-reproducible` writes a standalone executable into `dist/executables/` (use target IDs without `.exe`, such as `windows-x64`) and requires committed source, package, lockfile, TypeScript/tool configuration and build scripts. After all seven verified builds are collected, `mise run release:finalize` rejects missing, unexpected, empty or symlink assets and creates the combined checksums/manifest. It also checks source identity and the original source archive digest. PR/main CI builds and smoke-tests all targets through the same reusable workflow.
+`mise run release:build` archives Git HEAD into `dist/release/`; uncommitted changes, ignored files and local deployment credentials are excluded. `mise run cli:build PLATFORM --verify-reproducible` writes a standalone executable into `dist/executables/` (use target IDs without `.exe`, such as `windows-x64`) and requires committed source, package, lockfile, TypeScript/tool configuration and build scripts. After all seven verified builds and the npm archive are collected, `mise run release:finalize` rejects missing, unexpected, empty or symlink assets and creates the combined checksums/manifest. It also checks source identity and the original source archive digest. PR/main CI builds and smoke-tests all targets through the same reusable workflow.
 
 ## Preview and retry
 

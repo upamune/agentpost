@@ -16,6 +16,8 @@
 
 ## メールを読む
 
+npm版は `@upamune/agentpost` で、Node.js 22.14以降が必要です。スコープのないnpm名は別のプロジェクトです。以下の例は、Bunやソースcheckoutなしで導入済みコマンドからも使えます。コマンドとNodeの絶対パスを記録し、MCPクライアントからNodeを起動できるようにしてください。導入・実行前に、リポジトリURLのINSTALL.ja.mdにあるnpm版の検証手順に従います。
+
 ```sh
 agentpost message list INBOX_UUID --limit 25
 agentpost message get INBOX_UUID MESSAGE_ID

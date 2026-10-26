@@ -2,6 +2,11 @@
 
 [English](CHANGELOG.md) | [日本語](CHANGELOG.ja.md)
 
+## 0.1.2
+
+- Node.js向けCLI/MCPクライアントを `@upamune/agentpost` として公開。実行時の依存をバンドルし、GitHub OIDCのTrusted Publishingとnpmの来歴証明を使います。導入にインストールスクリプトやBunは不要です。
+- macOS、Linux glibc/musl、Windows x64向けの7種類の単体実行ファイルを、署名付き来歴証明と各OSでの起動確認を付けて配布します。
+
 ## 0.1.1
 
 - TLC の JVM ごとに一時ディレクトリを分離し、並列の形式検証が共有の標準モジュールを上書き・削除する不具合を修正。実ツールによるファイル保持と並列展開の回帰テストを追加。検証する性質と製品のメール処理は変更していません。
