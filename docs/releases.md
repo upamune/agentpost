@@ -17,9 +17,9 @@ The npm archive is also covered by GitHub Release checksums and attestations. Se
 Maintainer bootstrap:
 
 1. Create the GitHub `npm-publish` Environment and restrict deployments to `v*` tags.
-2. For a new package, use a 2FA-enabled npm login to `npm stage publish` the actual verified archive. npm creates a public `0.0.0-stage` placeholder; the real version need not be published locally.
+2. For a new package, use a 2FA-enabled npm login to `npm stage publish` a temporary bootstrap package with a distinct prerelease version, such as `0.0.0-bootstrap.0`. Keep this stage pending. npm creates the package record required for publisher settings; the real version is published separately by OIDC.
 3. In npm package settings, add a GitHub Trusted Publisher: owner `upamune`, repository `agentpost`, workflow filename `release.yml`, environment `npm-publish`, with direct `npm publish` allowed. Set publishing access to **Require two-factor authentication and disallow tokens**.
-4. Reject the bootstrap stage rather than approving it; let OIDC publish the actual first version too. Revoke the temporary bootstrap login session.
+4. Let OIDC publish and verify the actual first version before rejecting the bootstrap stage. Never approve that stage. Rejecting the only stage before the first real publication can delete the package placeholder and its publisher settings. Revoke the temporary bootstrap login session afterward.
 5. Set the GitHub repository variable `AGENTPOST_NPM_PUBLISH_ENABLED=true` once ready. The npm job is skipped before configuration and in nonpublishing main previews.
 
 A new Trusted Publisher must complete its first publish within two days. Revisit this configuration when changing the repository or workflow identity. See [npm's official instructions](https://docs.npmjs.com/trusted-publishers/). Publication/provenance does not establish email delivery or production configuration health.

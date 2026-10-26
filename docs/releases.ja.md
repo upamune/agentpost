@@ -20,9 +20,9 @@ npmアーカイブもGitHub Releaseのチェックサムと署名の対象です
 初期設定はメンテナーが行います。
 
 1. GitHubの `npm-publish` Environmentを作り、デプロイ対象を `v*` タグだけに制限します。
-2. 初回は、検証済みの実物のアーカイブを、2FAを有効にしたnpmログインで `npm stage publish` します。npmは公開の `0.0.0-stage` プレースホルダーを作ります。実際の版をローカルから公開する必要はありません。
+2. 初回は、2FAを有効にしたnpmログインで、`0.0.0-bootstrap.0` のように正式版と異なる予約用パッケージを `npm stage publish` します。このstageは保留のまま保持します。npmが公開元設定に必要なパッケージ情報を作り、正式版は別途OIDCから公開します。
 3. npmのパッケージ設定でGitHub Trusted Publisherを登録します。ownerは `upamune`、repositoryは `agentpost`、workflow filenameは `release.yml`、environmentは `npm-publish` とし、直接の `npm publish` を許可します。公開アクセスは「Require two-factor authentication and disallow tokens」にします。
-4. 初回予約用のstageは承認せず破棄し、実際の初回公開もOIDCへ任せます。初期ログインの一時セッションは失効させます。
+4. 正式版の初回OIDC公開と検証が成功してから、予約用stageを承認せず破棄します。初回の正式公開より先に唯一のstageを破棄すると、npmがパッケージ情報と公開元設定も削除することがあります。その後、初期ログインの一時セッションを失効させます。
 5. 準備後に `AGENTPOST_NPM_PUBLISH_ENABLED=true` をGitHubリポジトリ変数へ登録します。初期設定前のnpmジョブと、mainの公開なしプレビューではnpmへ公開しません。
 
 Trusted Publisherの設定は、作成後2日以内の初回公開で有効化されます。リポジトリやworkflow名を変えたら設定を見直してください。[npmの公式手順](https://docs.npmjs.com/trusted-publishers/)も参照してください。公開や署名は、メールの配達や本番設定の正常性を証明するものではありません。
