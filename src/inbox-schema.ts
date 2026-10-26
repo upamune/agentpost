@@ -4,7 +4,8 @@ export const MAX_INBOX_NOTES_BYTES = 40_000;
 const siteUrl = z
   .string()
   .max(2048)
-  .regex(/^[^\p{Cc}\s]+$/u, "URLs cannot contain control characters or whitespace")
+  .regex(/^\S+$/, "URLs cannot contain whitespace")
+  .refine((value) => !/\p{Cc}/u.test(value), "URLs cannot contain control characters")
   .pipe(z.url({ protocol: /^https?$/ }))
   .pipe(
     z.string().refine((value) => {

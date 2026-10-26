@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { createMcpHandler } from "@modelcontextprotocol/server";
+import { z } from "zod";
 import { MailClient } from "../src/client";
 import { executeCli, parseCliArgs } from "../src/cli-commands";
 import { createMailServer } from "../src/mcp-server";
@@ -167,6 +168,11 @@ test("MCP advertises optional creation fields and applies nonempty field-preserv
     const create = catalog.tools.find((tool) => tool.name === "create_inbox");
     expect(create?.inputSchema.properties).toHaveProperty("notes");
     expect(create?.inputSchema.properties).toHaveProperty("urls");
+    const urlSchema = z
+      .object({ urls: z.object({ items: z.object({ pattern: z.string() }) }) })
+      .parse(create?.inputSchema.properties);
+    // JSON Schema patterns are consumed without the original JavaScript RegExp flags.
+    expect(new RegExp(urlSchema.urls.items.pattern).test(urls[0]!)).toBe(true);
     const edit = catalog.tools.find((tool) => tool.name === "update_inbox");
     expect(edit?.annotations).toMatchObject({
       idempotentHint: true,
