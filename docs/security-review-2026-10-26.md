@@ -19,6 +19,8 @@ These are reliability and local resource-boundary findings. No remote authentica
 
 Regression coverage exercises fresh/stale sending timestamps without modifying outcomes; oversized/sparse and special-file inputs; UTF-8/JSON escape expansion before fetch; invalid checkpoints; and valid Unicode/file workflows. The standard CI also checks bounded outbound/inbound models, real-code replays and deliberately broken variants. These fixes do not change the modeled dispatch, ownership, recovery or persistence transitions.
 
+`mise run ci` passed for product commit `e8c9cc1d7c85727aca72025d1e9b034a055642e5`: 106 Worker tests and 124 Bun tests, plus the existing formal/replay/mutation and fuzz/security gates. OSV reported no issues. Reproducible macOS arm64 smoke and offline Node 22.23.4 npm installation passed. The Node-only skill installer also copied the consumer skill and all bundled references into a fresh project without development skills.
+
 The finalized MCP core remains 2026-07-28, checked separately from the pinned Events draft. The audit did not change either wire contract.
 
 GitHub's open-alert state at the baseline contained no CodeQL finding and four Scorecard practice findings: independent code review, branch-review requirements, repository maintenance history, and OpenSSF Best Practices enrollment. Their [remaining prerequisites](scorecard-remediation.md) remain visible; agent reviews do not count as independent human approvals.
