@@ -1,15 +1,10 @@
 import { execFileSync } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { releaseIdentity } from "./release-source";
 
 // Archive committed source only. Untracked deployment files never enter the package.
-const git = (...args: string[]) => execFileSync("git", args, { encoding: "utf8" }).trim();
-const commit = git("rev-parse", "HEAD");
-const { version } = JSON.parse(git("show", "HEAD:package.json"));
-if (typeof version !== "string" || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version))
-  throw new Error("Release package version must be a stable SemVer number");
-if (process.env.AGENTPOST_RELEASE_TAG && process.env.AGENTPOST_RELEASE_TAG !== `v${version}`)
-  throw new Error("Release tag must match the committed package version");
+const { version, commit } = releaseIdentity();
 const directory = join(process.cwd(), "dist", "release");
 await mkdir(directory, { recursive: true });
 const name = `agentpost-${version}.tar.gz`;

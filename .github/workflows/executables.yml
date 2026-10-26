@@ -1,0 +1,70 @@
+name: Standalone executables
+
+on:
+  workflow_call:
+    inputs:
+      source_commit:
+        description: Exact validated source revision, or the caller's commit
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  executable:
+    name: executable (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: darwin-arm64
+            runner: macos-15
+          - platform: darwin-x64
+            runner: macos-15-intel
+          - platform: linux-arm64
+            runner: ubuntu-24.04-arm
+          - platform: linux-x64
+            runner: ubuntu-24.04
+          - platform: linux-arm64-musl
+            runner: ubuntu-24.04-arm
+          - platform: linux-x64-musl
+            runner: ubuntu-24.04
+          - platform: windows-x64
+            runner: windows-2025
+    env:
+      # Bun is already installed; do not install unrelated development tools.
+      MISE_TASK_RUN_AUTO_INSTALL: "false"
+      AGENTPOST_BUILD_PLATFORM: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source_commit || github.sha }}
+          persist-credentials: false
+      - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        with:
+          version: 2026.10.17
+          install_args: bun
+          cache: false
+      - run: bun install --frozen-lockfile --ignore-scripts
+      - run: mise run cli:build "$AGENTPOST_BUILD_PLATFORM" --verify-reproducible
+      - name: Smoke test the standalone CLI and MCP on the native platform
+        if: ${{ !contains(matrix.platform, 'musl') }}
+        run: mise run cli:smoke --platform "$AGENTPOST_BUILD_PLATFORM"
+      - name: Smoke test musl without network access
+        if: contains(matrix.platform, 'musl')
+        run: |
+          docker run --rm --network none --volume "$PWD:/work:ro" --workdir /work \
+            oven/bun:1.4.4-alpine@sha256:4cf82f5686b196504fe119db3fcd9185b191f82ece82c40680e597228ec6070a \
+            bun run scripts/smoke-executable.ts --platform "$AGENTPOST_BUILD_PLATFORM"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: executable-${{ matrix.platform }}
+          path: dist/executables/*
+          if-no-files-found: error
+          retention-days: 14

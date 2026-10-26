@@ -9,7 +9,7 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/upamune/agentpost/badge)](https://scorecard.dev/viewer/?uri=github.com/upamune/agentpost)
 
 [![Security fuzzing](https://github.com/upamune/agentpost/actions/workflows/fuzz.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/fuzz.yml)
-[![Verified source release](https://github.com/upamune/agentpost/actions/workflows/release.yml/badge.svg)](https://github.com/upamune/agentpost/actions/workflows/release.yml)
+[![Verified release](https://github.com/upamune/agentpost/actions/workflows/release.yml/badge.svg)](https://github.com/upamune/agentpost/actions/workflows/release.yml)
 [![Code complexity](https://github.com/upamune/agentpost/actions/workflows/complexity.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/complexity.yml)
 
 [English](README.md) | [日本語](README.ja.md)
@@ -29,7 +29,7 @@ agentpostは、自分のCloudflareアカウントと独自ドメインで動か�
 - 独自ドメインにランダムまたは指定した名前のメールアドレスを発行し、受信箱を作成します。有効化、無効化、トークンの再発行にも対応します。
 - メールの本文、HTML、添付ファイル、原文の`.eml`を取得できます。
 - 発行したアドレスからメールを送信し、Reply-Toとスレッド情報を引き継いで返信できます。
-- エージェントとの接続に、JSONを返すCLI、HTTP API、stdioとStreamable HTTPのMCPサーバーを提供します。
+- エージェントとの接続に、JSONを返すCLI、HTTP API、stdioとStreamable HTTPのMCPサーバーを提供します。Bunを内包する単体CLI/MCPは、macOS・Linux（glibc/musl）のx64/arm64およびWindows x64向けリリース成果物です。[検証と導入](docs/releases.ja.md)を参照してください。
 - 受信と送信状態の変化を監視し、保存したカーソルから再開できます。
 - 受信箱トークンで、エージェントが操作できるメールを受信箱ごとに分離できます。
 
@@ -283,7 +283,7 @@ mise run ci
 
 CIではmainへのpushとPRごとに、整形、静的解析、型検査、テスト、Workerのdry-runビルド、秘密情報チェックを自動実行します。
 依存パッケージの脆弱性監査もpush・PRと毎日実行します。
-CLIはBunで実行する構成で、単体バイナリの自動配布は行っていません。
+版タグのリリースでは、7プラットフォーム向けの単体CLI/MCP実行ファイルを、署名付き来歴証明とチェックサムと一緒に添付します。過去のソース限定リリースは変更せず、npm公開は設定していません。CIでは実際のメールや本番デプロイを使わず全プラットフォームの起動確認を行います。
 実メールの送信と本番への自動デプロイは行いません。
 リリースPRとタグ・GitHub Releaseはtagprで管理します。GitHub Appの初期設定とリリースの確認方法は[リリース手順](docs/releases.ja.md)を参照してください。
 送信停止・復旧の競合と、受信原文・索引の復旧は[pstack / TLA+形式検証](docs/formal-verification.ja.md)で検査します。モデル検査、実コードでの再現、ガードを壊す変異検査をCIで実行します。

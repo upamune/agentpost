@@ -2,15 +2,15 @@
 
 [English](../SKILL.md) | [日本語](guide.ja.md)
 
-設定済みのMCP接続かBun CLIを使います。各運用者が自分のCloudflareアカウントとドメインでセルフホストし、ランダムまたは指定名のアドレスを発行します。API・ツールでは受信箱UUIDを指定します。
+設定済みのMCP接続か単体CLI（ソース・Bunでも実行可能）を使います。各運用者が自分のCloudflareアカウントとドメインでセルフホストし、ランダムまたは指定名のアドレスを発行します。API・ツールでは受信箱UUIDを指定します。
 
 ## 接続と権限
 
-MCPが設定済みなら優先して使います。CLIは[操作手順](cli.ja.md)を読み、インストール時に記録したソースcheckoutのパスから実行します。スキルの導入先はソースcheckoutではありません。設定がなければcheckoutの`INSTALL.ja.md`か https://github.com/upamune/agentpost/blob/main/INSTALL.ja.md を参照します。
+MCPが設定済みなら優先して使います。CLIは[操作手順](cli.ja.md)を読み、導入時に記録した実行ファイルまたはソースcheckoutの絶対パスを使います。スキルの導入先はアプリ本体ではありません。設定がなければcheckoutの`INSTALL.ja.md`か https://github.com/upamune/agentpost/blob/main/INSTALL.ja.md を参照します。
 
 CLIとstdio MCPは`AGENTPOST_API_URL`と`AGENTPOST_API_TOKEN`を使います。トークン方式の通常操作には受信箱トークンを使い、発行・一覧・無効化・再発行は管理者権限を使います。ネイティブのリモートMCPはAccess OAuthでも接続でき、agentは自分の受信箱の発行・一覧・操作、明示されたadminは全体の管理ができます。OAuthでの発行はbothでも受信箱トークンを含めません。認可失敗を管理者資格情報への置き換えで回避しません。トークンは非公開に保持します。承認された発行では`create_inbox`の`local_part`に`@`より前の名前を指定でき、省略時はランダムです。競合は既存受信箱へのアクセスやトークン置き換えの承認ではありません。受信箱IDとアドレスをタスク状態へ記録し、トークンを含む発行・再発行の応答は非公開に保存します。
 
-リリースアーカイブから導入・更新する場合は、展開前に https://github.com/upamune/agentpost/blob/main/docs/releases.ja.md の手順で署名付き来歴証明を検証します。リポジトリ、署名したワークフロー、選んだバージョンのタグを確認してください。既存のファイルを保持し、検証できない場合や検証に失敗した場合は停止します。成功後にソースのパスとバージョンを記録します。
+リリースの実行ファイルまたはソースアーカイブから導入・更新する場合は、実行・展開前に https://github.com/upamune/agentpost/blob/main/docs/releases.ja.md の手順で署名付き来歴証明を検証します。リポジトリ、署名したワークフロー、選んだバージョンのタグを確認してください。既存のファイルを保持し、検証できない場合や検証に失敗した場合は停止します。成功後に実行ファイルまたはソースの絶対パスとバージョンを記録します。単体実行ファイルはBunを内包し、`mcp` 引数でstdio MCPを起動できます。作業ディレクトリの `.env`・`bunfig.toml` は自動読込せず、非公開のプロセス・MCP環境設定を使います。
 
 ## 閲覧と監視
 

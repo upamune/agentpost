@@ -13,6 +13,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  executables:
+    uses: $/.github/workflows/executables.yml
+  executable-check:
+    name: executable checks
+    needs: executables
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - run: test "$BUILD_RESULT" = success
+        env:
+          BUILD_RESULT: ${{ needs.executables.result }}
   format:
     runs-on: ubuntu-24.04
     steps:
