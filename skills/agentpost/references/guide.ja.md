@@ -42,3 +42,7 @@ outbox IDを受け取れなかった場合は一覧を確認し、新しい冪�
 ## ドメイン設定の診断
 
 ホスティング設定やメール認証の問題では、許可された管理者がMCP `check_domain` またはCLI `domain check` を使います。全項目と修正案を確認し、unknownを成功と扱いません。権限なく管理者資格情報へ切り替えません。DNS変更やメール送信は行わず、通過しても配送や受信トレイへの到達は保証しません。任意の資格情報・範囲・制限は https://github.com/upamune/agentpost/blob/main/docs/domain-diagnostics.ja.md を参照してください。実送信テストにはユーザーが指定・許可した宛先が必要です。
+
+## 添付付き送信・返信
+
+`--attach /absolute/path/report.pdf` をsend/replyに繰り返し指定できます。再試行に備える場合は `attachment upload INBOX_ID FILE` のIDを保存し、`--attachment-id ID` で再利用します。[添付の手順](attachments.ja.md)で上限・危険ファイル・保持方針を確認してください。

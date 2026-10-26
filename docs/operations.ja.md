@@ -103,3 +103,7 @@ D1とR2は別々のストレージなので、二つをまとめたトランザ�
 [Cloudflareの所有権に関する制約](https://developers.cloudflare.com/durable-objects/platform/known-issues/#global-uniqueness)を前提に、外部I/O後に同期ストレージで所有権を確認する。送信開始とはアプリが外部呼び出しを開始した時点であり、既に開始した通信の到着・受理を取り消す保証ではない。
 
 導入・更新時はD1 migrationsとWranglerのDurable Object migrationを両方適用する。既存の同期前のWorkerが残る段階では、キューと送信受付を止めて処理を排出し、古い`sending`を照合してから更新する。D1の`active_version`とObjectのSQLiteの連番は組なので、片方だけを過去へ戻したりObject名前空間を作り直したりせず、送信を止めて整合性を確認する。
+
+## 送信添付の保持
+
+[送信添付](outbound-attachments.ja.md)はR2の `outbound-attachments/` に変更不可で保存され、outboxはIDだけを参照します。未使用分も自動削除しません。バックアップ・復旧ではD1と添付を一緒に保持し、送信待ちが参照するオブジェクトを削除しないでください。送信直前に内容を検証し、一時的なR2障害はプロバイダー接続前に限り再試行します。欠損・改変は送信失敗、claim後のクラッシュは既存の結果不明調停の対象です。添付の形式検査はウイルス検査ではありません。

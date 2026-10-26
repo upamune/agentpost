@@ -104,3 +104,7 @@ Configure the real domain, enable Email Sending, verify receiving/sending/replie
 Following [Cloudflare ownership constraints](https://developers.cloudflare.com/durable-objects/platform/known-issues/#global-uniqueness), synchronous storage checks ownership after external I/O. Dispatch means initiation of an external call; it does not promise cancellation of a call already in flight or its eventual provider acceptance.
 
 Apply both D1 migrations and Wrangler Durable Object migrations. When upgrading an installation that predates coordination, pause sends/queues, drain old Workers, and reconcile stale `sending` first. D1 `active_version` and Object SQLite counters form a pair: do not roll back only one side or recreate the Object namespace independently. Stop sending and verify consistency before resuming.
+
+## Outbound attachment retention
+
+[Outbound attachments](outbound-attachments.md) are immutable R2 objects under `outbound-attachments/`; outbox rows reference only their IDs. Unused uploads are not automatically deleted. Back up and restore D1 and attachment objects together; do not delete objects referenced by pending sends. Dispatch verifies content before contacting the provider. Transient storage errors can retry only before provider initiation; missing/corrupt files fail, and crashes after claiming retain the existing unknown-outcome reconciliation policy. Format checks are not antivirus scanning.

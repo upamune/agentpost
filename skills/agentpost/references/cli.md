@@ -72,3 +72,7 @@ Legacy signed cursor checkpoints are rejected by the encrypted v2 format. Reconc
 ## Diagnose a domain
 
 With authorized admin access, run `agentpost domain check`. Add `--strict` to fail on warnings. JSON is printed even for configuration findings: exit 0 is pass/warning, 1 is fail (or strict warning), and 2 is unknown without a known failure. Read every check rather than treating HTTP 200 or exit 0 as delivery confirmation. The domain is configured by the operator; this command neither sends mail nor edits DNS.
+
+## Attachments
+
+Repeat `--attach /absolute/path/report.pdf` on send/reply, or upload first with `attachment upload INBOX_ID FILE` and reuse the saved ID with `--attachment-id ID`. Read [attachment workflow](attachments.md) for limits, file policy, retention, and retries.

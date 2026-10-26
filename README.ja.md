@@ -4,27 +4,18 @@
 
 [![CI](https://github.com/upamune/agentpost/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/upamune/agentpost/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/codeql.yml)
-[![OSV-Scanner](https://github.com/upamune/agentpost/actions/workflows/osv.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/osv.yml)
-[![Workflow security](https://github.com/upamune/agentpost/actions/workflows/zizmor.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/zizmor.yml)
-[![Dependency audit](https://github.com/upamune/agentpost/actions/workflows/audit.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/audit.yml)
-[![Dependency review](https://github.com/upamune/agentpost/actions/workflows/dependency-review.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/dependency-review.yml)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/upamune/agentpost/badge)](https://scorecard.dev/viewer/?uri=github.com/upamune/agentpost)
 
-[![Security fuzzing](https://github.com/upamune/agentpost/actions/workflows/fuzz.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/fuzz.yml)
 [![Verified release](https://github.com/upamune/agentpost/actions/workflows/release.yml/badge.svg)](https://github.com/upamune/agentpost/actions/workflows/release.yml)
-[![Code complexity](https://github.com/upamune/agentpost/actions/workflows/complexity.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/complexity.yml)
 
 [English](README.md) | [日本語](README.ja.md)
 
 **AIエージェントに、必要なだけメールアドレスを。**
 
-agentpostは、自分のCloudflareアカウントと独自ドメインで動かす、AIエージェント向けのOSSメール基盤です。
-エージェントやタスクごとにランダムまたは指定した名前のメールアドレスを発行し、API、CLI、MCPからメールを送受信できます。
-エージェントやタスクを増やすたびに、専用のアドレスでメールを送受信できます。
-受信箱数の固定枠はありません。Cloudflareの利用上限・レート制限・保存容量・料金は適用されます。
-各利用者が自分のアカウントとドメインでセルフホストし、メールと認証情報を管理します。
+自分のドメインにランダムまたは好きな名前のアドレスを作り、受信したメールにレポート・画像などを添付して返信できます。CLI・API・MCPから操作し、自分のCloudflareアカウントでセルフホストします。
 
-スキャンの対象・検出結果の確認先・公開前の監査は[継続的なセキュリティチェック](docs/security-checks.ja.md)にまとめています。バッジはチェック結果を示すもので、各環境の安全性を認証するものではありません。
+![ローカルCLIで受信箱を作成し、メールを受信してCSVを添付した返信をキューに入れるデモ](docs/assets/agentpost-demo.gif)
+
+実際のCLI出力と受信フィクスチャを使った30秒のローカルデモです。返信はキューへの登録までで、実際のメールは送りません。[操作記録](docs/assets/agentpost-demo.txt) · [送信添付ガイド](docs/outbound-attachments.ja.md) · [セキュリティチェック](docs/security-checks.ja.md)
 
 ## CLIとMCPクライアントを導入する
 
@@ -270,16 +261,16 @@ Cloudflare WorkersがAPIとMCPを提供し、Queuesでメールを処理しま�
 
 ## 制約
 
-| 項目                | 対応範囲                                                          |
-| ------------------- | ----------------------------------------------------------------- |
-| 受信サイズ          | 1通あたり10 MiBまで                                               |
-| 解析結果のJSON      | 16 MiBまで。超過時も原文は保持                                    |
-| APIのJSONリクエスト | 512 KiBまで                                                       |
-| 送信形式            | テキストと任意のHTML。送信添付は未対応                            |
-| 保存期間            | メールとイベントを無期限に保存。自動削除は未対応                  |
-| イベント配信        | at-least-once。受信側で`eventId`による重複除去が必要              |
-| 認証                | トークン、Cloudflare AccessのMCP OAuth、または両方                |
-| インターフェース    | API、CLI、MCP。Web UI、IMAP、クライアント向けSMTPサーバーは未提供 |
+| 項目                | 対応範囲                                                                      |
+| ------------------- | ----------------------------------------------------------------------------- |
+| 受信サイズ          | 1通あたり10 MiBまで                                                           |
+| 解析結果のJSON      | 16 MiBまで。超過時も原文は保持                                                |
+| APIのJSONリクエスト | 512 KiBまで                                                                   |
+| 送信形式            | テキスト必須・HTML任意・[送信添付](docs/outbound-attachments.ja.md)は最大10個 |
+| 保存期間            | メールとイベントを無期限に保存。自動削除は未対応                              |
+| イベント配信        | at-least-once。受信側で`eventId`による重複除去が必要                          |
+| 認証                | トークン、Cloudflare AccessのMCP OAuth、または両方                            |
+| インターフェース    | API、CLI、MCP。Web UI、IMAP、クライアント向けSMTPサーバーは未提供             |
 
 直近の敵対的調査と修正は[セキュリティ調査](docs/security-audit.ja.md)にまとめています。
 

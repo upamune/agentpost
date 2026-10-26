@@ -1,0 +1,29 @@
+Agentpost | your domain, an inbox for every agent
+Local fixture demo - no external email
+
+$ agentpost inbox create --local-part research | jq '{id,address}'
+{
+  "id": "b745adfc-1aa3-4c57-8000-216b049023dd",
+  "address": "research@example.com"
+}
+
+# Receive a fixture email through local Wrangler
+$ agentpost message list "$INBOX_ID" | jq ' .items[] | {id,subject,status}'
+{
+  "id": "f5ccab64d40cda32985f68b2bc480e7944fb709b8a5e1de1a152baff767708de",
+  "subject": "Please send the results",
+  "status": "ready"
+}
+
+$ agentpost reply "$INBOX_ID" "$MESSAGE_ID" \
+    --text "The results are attached." --attach ./report.csv \
+    --idempotency-key demo-reply-1
+{
+  "id": "0b266c4a-bb47-4df8-b288-0f36ff1404fe",
+  "status": "pending",
+  "attachments": [
+    "7c2a3604bbaf46782c51202fb9e0ff0945160c88da20481ae07daf486a4f4066"
+  ]
+}
+
+Queued locally. Provider acceptance and delivery are separate checks.

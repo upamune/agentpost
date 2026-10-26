@@ -954,3 +954,43 @@ tasks:
       push_comments: false
     created_at: 2026-10-26T02:38:28.540Z
     updated_at: 2026-10-26T02:49:51.335Z
+  - id: task_033
+    title: Send and reply with durable inbox-scoped attachments
+    description: Implement API/CLI/MCP uploads and sending/replies through
+      Cloudflare structured attachments. Store immutable content-addressed blobs
+      in private R2, retain small D1 metadata, define conservative MIME/provider
+      limits and dangerous-file policy, preserve idempotency and dispatch
+      fencing, expand verification. Simplify bilingual README opening and add a
+      real local terminal demo.
+    source_links: []
+    status: ready
+    priority: P1
+    labels: []
+    repo_targets: []
+    acceptance_criteria:
+      - API CLI and MCP support attached send and reply with ownership and
+        immutable bytes bound to idempotency
+      - Missing or invalid attachments never claim or dispatch a provider request
+      - Size and file policy are enforced with regression coverage and
+        documented in English and Japanese
+      - README opening has four representative badges and an authentic local demo
+      - Formal verification and required CI checks pass
+    dependencies: []
+    planning:
+      split_status: pending
+      risk: medium
+    execution_defaults:
+      manual_approval_required: false
+      auto_commit: true
+      push_when_done: true
+      create_pr: false
+      merge_pr: false
+      worktree_mode: direct
+      preferred_agents: []
+      max_subagents: 5
+    sync:
+      source_of_truth: backlog
+      push_status: false
+      push_comments: false
+    created_at: 2026-10-26T03:04:56.125Z
+    updated_at: 2026-10-26T03:04:56.125Z

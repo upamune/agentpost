@@ -48,3 +48,7 @@ Admin domain diagnostics use fixed Cloudflare API/DoH HTTPS origins and reject r
 ## Continuous analysis
 
 See [continuous security checks](docs/security-checks.md) for CodeQL, OSV, Bun audit, Dependency review, Dependabot, zizmor, OpenSSF Scorecard, secret protection and formal verification. Report completion and a green badge do not by themselves establish that all alerts are resolved.
+
+## Outbound attachments
+
+The [attachment policy](docs/outbound-attachments.md) uses private, inbox-scoped, immutable R2 objects. Dispatch verifies size, digest, and format before its final ownership check and provider initiation. Extension/signature allowlisting is not antivirus scanning; allowed PDFs and images can still be malicious. Uploads, including unused files, are retained without automatic expiry. Operators provide any required scanning, retention, and backups. Files are not automatically sent to external scanners.

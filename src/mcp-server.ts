@@ -1,3 +1,4 @@
+import { attachmentIdsSchema, decodeAttachment, MAX_ATTACHMENT_BYTES } from "./attachment-policy";
 import { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { version } from "../package.json";
@@ -18,6 +19,7 @@ export function createMailServer(client: MailClient): McpServer {
   const content = {
     text: z.string().min(1),
     html: z.string().optional(),
+    attachments: attachmentIdsSchema,
     idempotency_key: z.string().regex(/^[a-zA-Z0-9_.:-]{1,128}$/),
   };
   const inboxPath = (id: string) => `/v1/inboxes/${encodeURIComponent(id)}`;
@@ -107,10 +109,27 @@ export function createMailServer(client: MailClient): McpServer {
       output(() => client.call("GET", `${inboxPath(inbox_id)}/messages/${message_id}`)),
   );
   server.registerTool(
+    "upload_attachment",
+    {
+      description:
+        "Upload a private attachment for one inbox. Canonical Base64, maximum 3 MiB per file and combined message content, up to 10 files. PDF, PNG/JPEG/GIF/WebP and UTF-8 text/CSV/JSON/Markdown only. Files are retained in R2 and NOT virus-scanned. Repeating identical bytes and filename returns the same ID. Pass returned IDs to send_email or reply_email; never execute untrusted attachments.",
+      inputSchema: z
+        .object({
+          ...inbox,
+          filename: z.string().min(1).max(255),
+          content_base64: z.string().max(4 * Math.ceil(MAX_ATTACHMENT_BYTES / 3)),
+        })
+        .strict(),
+      annotations: { idempotentHint: true },
+    },
+    ({ inbox_id, filename, content_base64 }) =>
+      output(() => client.uploadAttachment(inbox_id, filename, decodeAttachment(content_base64))),
+  );
+  server.registerTool(
     "send_email",
     {
       description:
-        "Queue email from an inbox. Reuse the SAME idempotency_key for retries of the same message. Returns an outbox ID; check get_send_status. Pending or accepted does not confirm delivery. Never auto-resend unknown outcomes.",
+        "Queue email from an inbox. Optional attachments are IDs returned by upload_attachment for this inbox. Reuse the SAME idempotency_key for retries of the same message. Returns an outbox ID; check get_send_status. Pending or accepted does not confirm delivery. Never auto-resend unknown outcomes.",
       inputSchema: z.object({
         ...inbox,
         ...content,
@@ -126,7 +145,7 @@ export function createMailServer(client: MailClient): McpServer {
     "reply_email",
     {
       description:
-        "Queue a reply to the original sender/Reply-To, retaining threading headers. Reuse the same idempotency_key for retries. Check get_send_status afterward.",
+        "Queue a reply with optional uploaded attachment IDs to the original sender/Reply-To, retaining threading headers. Reuse the same idempotency_key for retries. Check get_send_status afterward.",
       inputSchema: z.object({ ...message, ...content }),
       annotations: { idempotentHint: true },
     },

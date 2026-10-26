@@ -158,3 +158,7 @@ GitHub ActionsはmainへのpushとPRで検査とWorkerのdry-runビルドを行�
 ## ドメイン設定を診断する
 
 ホスティング設定後や認証・到達性の問題では、管理者としてMCP `check_domain` またはCLI `domain check` を実行します。受信箱トークンやOAuth `agent` から管理者権限へ自動的に切り替えません。レポートのpass・warning・fail・unknownと修正案を確認し、診断だけで到達を保証しません。宛先の指定・許可がないテスト送信やDNS自動修正は行いません。[診断の設定と制限](docs/domain-diagnostics.ja.md)を参照してください。
+
+## 添付付き送信・返信
+
+`send`・`reply` に `--attach /absolute/path/report.pdf` を繰り返し指定できます。事前アップロードは `attachment upload INBOX_ID FILE`、保存済みIDの再利用は `--attachment-id ID` です。MCPは `upload_attachment` の結果を `send_email`・`reply_email` に渡します。対応するWorkerとクライアントの両方が必要です。[対応形式・サイズ・保持・再試行](docs/outbound-attachments.ja.md)を確認してください。実メールの宛先と内容は利用者の承認が必要です。

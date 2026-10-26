@@ -15,6 +15,7 @@ Use --url to override the URL. Credentials are read from the environment.
   message get|reprocess INBOX_ID MESSAGE_ID
   message raw INBOX_ID MESSAGE_ID --output FILE
   message attachment INBOX_ID MESSAGE_ID INDEX --output FILE
+  attachment upload INBOX_ID FILE
   send INBOX_ID --to ADDRESS [--to ADDRESS] --subject SUBJECT
        (--text TEXT | --text-file FILE) [--html-file FILE] --idempotency-key KEY
   reply INBOX_ID MESSAGE_ID (--text TEXT | --text-file FILE) --idempotency-key KEY
@@ -28,6 +29,10 @@ Use --url to override the URL. Credentials are read from the environment.
   domain check [--strict]
   health
   mcp
+
+Send/reply: repeat --attach FILE or --attachment-id ID (max 10).
+Files: PDF, PNG/JPEG/GIF/WebP, UTF-8 text/CSV/JSON/Markdown; max 3 MiB combined content.
+Uploads are private, inbox-scoped, retained in R2, and not virus-scanned.
 
 JSON to stdout; watch emits NDJSON. A send returns its durable outbox state,
 not proof of delivery. Reuse the same key when retrying the same send.

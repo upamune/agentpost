@@ -4,25 +4,18 @@
 
 [![CI](https://github.com/upamune/agentpost/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/upamune/agentpost/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/codeql.yml)
-[![OSV-Scanner](https://github.com/upamune/agentpost/actions/workflows/osv.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/osv.yml)
-[![Workflow security](https://github.com/upamune/agentpost/actions/workflows/zizmor.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/zizmor.yml)
-[![Dependency audit](https://github.com/upamune/agentpost/actions/workflows/audit.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/audit.yml)
-[![Dependency review](https://github.com/upamune/agentpost/actions/workflows/dependency-review.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/dependency-review.yml)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/upamune/agentpost/badge)](https://scorecard.dev/viewer/?uri=github.com/upamune/agentpost)
 
-[![Security fuzzing](https://github.com/upamune/agentpost/actions/workflows/fuzz.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/fuzz.yml)
 [![Verified release](https://github.com/upamune/agentpost/actions/workflows/release.yml/badge.svg)](https://github.com/upamune/agentpost/actions/workflows/release.yml)
-[![Code complexity](https://github.com/upamune/agentpost/actions/workflows/complexity.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/complexity.yml)
 
 [English](README.md) | [日本語](README.ja.md)
 
 **Give your AI agents as many email addresses as they need.**
 
-Create an address for every agent, task, or workflow, then send and receive email through an API, CLI, or MCP. Agentpost runs on your own domain and Cloudflare account, so you keep control of your inboxes, mail, and credentials. It is open source under the MIT license.
+Create a random or named address on your own domain. Receive mail and reply with reports, images, and other attachments through the CLI, API, or MCP. Self-host on your Cloudflare account.
 
-Use a fresh inbox for a research task, give a long-running agent its own identity, or keep separate workflows from sharing mail. Provision addresses on demand and disable them when the work is done. There is no fixed inbox-count limit in Agentpost; infrastructure capacity, rate limits, and Cloudflare sending limits still apply.
+![Local terminal demo: create an inbox, receive mail, and queue a reply with a CSV attachment](docs/assets/agentpost-demo.gif)
 
-See [continuous security checks](docs/security-checks.md) for scanner coverage, alert triage, and the pre-publication audit. Badges report check results; they do not certify that a deployment is secure.
+A 30-second local demo using real CLI output and a fixture email. The reply is queued; no real email is sent. [Transcript](docs/assets/agentpost-demo.txt) · [Attachment guide](docs/outbound-attachments.md) · [Security checks](docs/security-checks.md)
 
 ## Install the CLI and MCP client
 
@@ -37,7 +30,7 @@ Requires Node.js 22.14 or newer; Bun is unnecessary for the npm client. The pack
 ## What you can do
 
 - **Create inboxes on demand.** Issue random or custom-named addresses on your domain, give each agent an inbox token, and rotate or revoke access independently.
-- **Send, receive, and reply.** Read message bodies, attachments, and original `.eml` files. Reply using the sender's Reply-To and threading headers.
+- **Send, receive, and reply.** Read message bodies, attachments, and original `.eml` files. Reply with attachments using the sender's Reply-To and threading headers.
 - **Use your agent's existing tools.** Choose JSON CLI commands, an HTTP API, or MCP tools over stdio or Streamable HTTP. Standalone CLI/MCP release assets embed Bun for macOS and Linux (glibc/musl) on x64 and arm64, and Windows x64; see [verification and installation](docs/releases.md).
 - **Watch for new mail.** Subscribe to received messages and send-status changes, then resume from a saved cursor after a disconnect.
 - **Keep your deployment under your control.** Each operator brings their own Cloudflare account and domain. Agentpost does not provide a shared hosted email service.
@@ -228,16 +221,16 @@ Administrators can run `mise exec -- bun run cli domain check`, `GET /v1/domain/
 
 ## Limits
 
-| Area              | Current support                                              |
-| ----------------- | ------------------------------------------------------------ |
-| Incoming mail     | Up to 10 MiB per message                                     |
-| Parsed JSON       | Up to 16 MiB; originals retained on overflow                 |
-| API JSON requests | Up to 512 KiB                                                |
-| Sending           | Required plain text, optional HTML; no outbound attachments  |
-| Retention         | Mail and events retained indefinitely; no automatic deletion |
-| Events            | At-least-once; consumers deduplicate by `eventId`            |
-| Authentication    | Token, Cloudflare Access MCP OAuth, or both                  |
-| Interfaces        | API, CLI, MCP; no Web UI, IMAP, or client-facing SMTP server |
+| Area              | Current support                                                                    |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| Incoming mail     | Up to 10 MiB per message                                                           |
+| Parsed JSON       | Up to 16 MiB; originals retained on overflow                                       |
+| API JSON requests | Up to 512 KiB                                                                      |
+| Sending           | Required text, optional HTML; up to 10 [attachments](docs/outbound-attachments.md) |
+| Retention         | Mail and events retained indefinitely; no automatic deletion                       |
+| Events            | At-least-once; consumers deduplicate by `eventId`                                  |
+| Authentication    | Token, Cloudflare Access MCP OAuth, or both                                        |
+| Interfaces        | API, CLI, MCP; no Web UI, IMAP, or client-facing SMTP server                       |
 
 See the [adversarial security audit](docs/security-audit.md) for demonstrated findings, fixes, and remaining verification scope.
 

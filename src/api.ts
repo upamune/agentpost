@@ -12,7 +12,15 @@ import { eventDescriptors, eventQuerySchema } from "./event-schema";
 import { EventQueryError, pollEvents } from "./events";
 import { enforceRateLimit } from "./http-security";
 import { checkDomain } from "./domain-check";
-import type { Env, Inbox, Message, Outbox, SendPayload } from "./types";
+import type { Env, Inbox, Message, Outbox, StoredSendPayload } from "./types";
+
+import {
+  AttachmentError,
+  attachmentIdsSchema,
+  attachmentType,
+  MAX_ATTACHMENT_BYTES,
+} from "./attachment-policy";
+import { uploadAttachment, validateOutgoingAttachments } from "./attachments";
 
 type Bindings = { Bindings: Env; Variables: { principal: Principal; inbox: Inbox } };
 const app = new Hono<Bindings>();
@@ -24,6 +32,7 @@ const sendInput = z
     subject: headerText.pipe(z.string().max(998)),
     text: z.string().min(1).max(200_000),
     html: z.string().max(200_000).optional(),
+    attachments: attachmentIdsSchema,
   })
   .strict();
 const replyInput = sendInput.omit({ to: true, subject: true });
@@ -71,7 +80,7 @@ function requireJsonContentType(context: Context<Bindings>): void {
 
 class ApiError extends Error {
   constructor(
-    public status: 400 | 401 | 403 | 404 | 409 | 413 | 415 | 503,
+    public status: 400 | 401 | 403 | 404 | 409 | 413 | 415 | 429 | 503,
     message: string,
     public details?: unknown,
   ) {
@@ -336,6 +345,7 @@ interface OutboxRequest {
   serialized: string;
   hash: string;
   now: number;
+  payload: StoredSendPayload;
 }
 
 async function findOrCreateOutbox(context: Context<Bindings>, request: OutboxRequest) {
@@ -349,6 +359,7 @@ async function findOrCreateOutbox(context: Context<Bindings>, request: OutboxReq
   if (existing) return existing;
   const limited = await enforceRateLimit(context.env.AGENTPOST_SEND_LIMITER, `send:${inbox.id}`);
   if (limited) return limited;
+  await validateOutgoingAttachments(context.env, inbox.id, request.payload);
   await context.env.DB.prepare(
     "INSERT OR IGNORE INTO outbox (id, inbox_id, idempotency_key, payload, payload_hash, available_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
   )
@@ -364,14 +375,14 @@ function idempotencyKey(context: Context<Bindings>): string {
   return key;
 }
 
-async function queueSend(context: Context<Bindings>, payload: SendPayload) {
+async function queueSend(context: Context<Bindings>, payload: StoredSendPayload) {
   const inbox = context.get("inbox");
   if (!inbox.active) throw new ApiError(409, "Inbox is disabled");
   const key = idempotencyKey(context);
   const serialized = JSON.stringify(payload);
   const hash = await sha256(serialized);
   const now = Date.now();
-  const row = await findOrCreateOutbox(context, { key, serialized, hash, now });
+  const row = await findOrCreateOutbox(context, { key, serialized, hash, now, payload });
   if (row instanceof Response) return row;
   if (!row) throw new Error("Outbox record not found after insert");
   if (row.payload_hash !== hash)
@@ -383,6 +394,40 @@ async function queueSend(context: Context<Bindings>, payload: SendPayload) {
 function outboxHttpStatus(status: Outbox["status"]): 200 | 202 {
   return status === "pending" || status === "sending" ? 202 : 200;
 }
+
+function attachmentFilename(context: Context<Bindings>): string {
+  try {
+    const encoded = context.req.header("Agentpost-Filename") ?? "";
+    if (encoded.length > 765) throw new Error("Invalid filename");
+    const filename = decodeURIComponent(encoded);
+    attachmentType(filename);
+    return filename;
+  } catch {
+    throw new ApiError(400, "Agentpost-Filename must contain a valid percent-encoded filename");
+  }
+}
+
+app.post("/v1/inboxes/:inbox/attachments", async (context) => {
+  const inbox = context.get("inbox");
+  if (!inbox.active) throw new ApiError(409, "Inbox is disabled");
+  if (context.req.header("Content-Type") !== "application/octet-stream")
+    throw new ApiError(415, "Content-Type must be application/octet-stream");
+  const filename = attachmentFilename(context);
+  const stream = context.req.raw.body;
+  const bytes = stream ? await readBounded(stream, MAX_ATTACHMENT_BYTES) : new ArrayBuffer(0);
+  const result = await uploadAttachment(context.env, inbox.id, filename, bytes, async () => {
+    const limited = await enforceRateLimit(
+      context.env.AGENTPOST_SEND_LIMITER,
+      `attachment-upload:${inbox.id}`,
+    );
+    if (limited)
+      throw new ApiError(
+        limited.status === 429 ? 429 : 503,
+        "Attachment upload admission unavailable; retry later",
+      );
+  });
+  return context.json(result, result.reused ? 200 : 201);
+});
 
 app.post("/v1/inboxes/:inbox/send", async (context) => {
   const input = await readJson(context, sendInput);
@@ -410,7 +455,7 @@ function replyPayload(
   row: Message,
   parsed: ParsedMail,
   input: z.output<typeof replyInput>,
-): SendPayload {
+): StoredSendPayload {
   const target = replyAddress(parsed, row);
   const headers = replyHeaders(parsed);
   const subject = row.subject ?? "";
@@ -509,8 +554,11 @@ app.post("/v1/inboxes/:inbox/outbox/:send/resolve", async (context) => {
 
 app.onError((error, context) => {
   if (error instanceof EventQueryError) return context.json({ error: error.message }, error.status);
-  if (error instanceof ApiError)
+  if (error instanceof AttachmentError) return context.json({ error: error.message }, error.status);
+  if (error instanceof ApiError) {
+    if (error.status === 429) context.header("Retry-After", "60");
     return context.json({ error: error.message, details: error.details }, error.status);
+  }
   if (error.message === "Message exceeds size limit")
     return context.json({ error: "Request body too large" }, 413);
   console.error(JSON.stringify({ event: "request_failed" }));
