@@ -5,7 +5,7 @@ import { open } from "node:fs/promises";
 import { z } from "zod";
 import { MAX_MAIL_BYTES, MAX_REQUEST_BYTES, readBounded } from "./common";
 import { MailClient } from "./client";
-import { inboxInputSchema } from "./inbox-schema";
+import { inboxInputSchema, inboxMetadataSchema, MAX_INBOX_NOTES_BYTES } from "./inbox-schema";
 import { watchEvents } from "./watch";
 import { readLocalBytes, readLocalText } from "./local-file";
 import { resolveIdempotencyKey, withIdempotencyKey } from "./idempotency";
@@ -21,6 +21,10 @@ export function parseCliArgs(args: string[]) {
       version: { type: "boolean" },
       url: { type: "string" },
       label: { type: "string" },
+      notes: { type: "string" },
+      "notes-file": { type: "string" },
+      "site-url": { type: "string", multiple: true },
+      "clear-urls": { type: "boolean" },
       "local-part": { type: "string" },
       limit: { type: "string" },
       offset: { type: "string" },
@@ -82,13 +86,44 @@ async function inboxCommand(
       return client.call(
         "POST",
         "/v1/inboxes",
-        inboxInputSchema.parse({ label: values.label ?? "", local_part: values["local-part"] }),
+        inboxInputSchema.parse({
+          ...(await inboxMetadata(values)),
+          local_part: values["local-part"],
+        }),
+      );
+    case "edit":
+      if (values["local-part"] !== undefined)
+        throw new Error("An existing inbox address cannot be renamed");
+      return client.call(
+        "PATCH",
+        `${path(id)}/metadata`,
+        inboxMetadataSchema.parse(await inboxMetadata(values)),
       );
     case "list":
       return client.call("GET", `/v1/inboxes?${pagination(values)}`);
     default:
       return existingInboxCommand(client, action, id);
   }
+}
+
+async function inboxNotes(values: Values) {
+  if (values.notes !== undefined && values["notes-file"] !== undefined)
+    throw new Error("Choose --notes or --notes-file");
+  if (values["notes-file"] !== undefined)
+    return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(
+      await readLocalBytes(values["notes-file"], MAX_INBOX_NOTES_BYTES),
+    );
+  return values.notes;
+}
+
+function inboxSiteUrls(values: Values) {
+  if (values["clear-urls"] && values["site-url"] !== undefined)
+    throw new Error("Choose --site-url or --clear-urls");
+  return values["clear-urls"] ? [] : values["site-url"];
+}
+
+async function inboxMetadata(values: Values) {
+  return { label: values.label, notes: await inboxNotes(values), urls: inboxSiteUrls(values) };
 }
 
 function existingInboxCommand(

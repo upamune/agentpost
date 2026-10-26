@@ -237,6 +237,91 @@ test("only verified allowlisted identities receive roles; user claims cannot gra
   expect((await api("/v1/inboxes", { assertion: await jwt("") })).status).toBe(403);
 });
 
+test("metadata editing preserves issuer-bound OAuth ownership across refresh, revocation and disabling", async () => {
+  const own = await create(),
+    foreign = await create("bob");
+  const path = `/v1/inboxes/${own.id}/metadata`;
+  const alice = await jwt();
+  expect(
+    (
+      await api(path, {
+        method: "PATCH",
+        body: { notes: "Private registration notes", urls: ["https://shop.example/"] },
+        assertion: alice,
+      })
+    ).status,
+  ).toBe(200);
+  const refreshed = await jwt("alice", { jti: "new-token" });
+  expect(
+    (await api(path, { method: "PATCH", body: { label: "shop" }, assertion: refreshed })).status,
+  ).toBe(200);
+  expect(await (await api(`/v1/inboxes/${own.id}`, { assertion: refreshed })).json()).toMatchObject(
+    { label: "shop", notes: "Private registration notes", urls: ["https://shop.example/"] },
+  );
+  expect(
+    (
+      await api(`/v1/inboxes/${foreign.id}/metadata`, {
+        method: "PATCH",
+        body: { notes: "other" },
+        assertion: alice,
+      })
+    ).status,
+  ).toBe(404);
+  expect(
+    (
+      await api(path, {
+        method: "PATCH",
+        body: { active: false, notes: "other" },
+        assertion: alice,
+      })
+    ).status,
+  ).toBe(400);
+  expect(
+    (
+      await api(`/v1/inboxes/${own.id}`, {
+        method: "PATCH",
+        body: { active: false },
+        assertion: alice,
+      })
+    ).status,
+  ).toBe(403);
+  const revoked = {
+    ...oauth,
+    AGENTPOST_ACCESS_PRINCIPALS: JSON.stringify({ "user:operator": "admin" }),
+  };
+  expect(
+    (
+      await api(path, {
+        method: "PATCH",
+        body: { notes: "revoked" },
+        assertion: refreshed,
+        settings: revoked,
+      })
+    ).status,
+  ).toBe(403);
+  const operator = await jwt("operator");
+  expect(
+    (
+      await api(`/v1/inboxes/${own.id}`, {
+        method: "PATCH",
+        body: { active: false },
+        assertion: operator,
+      })
+    ).status,
+  ).toBe(200);
+  expect(
+    (await api(path, { method: "PATCH", body: { notes: "disabled" }, assertion: refreshed }))
+      .status,
+  ).toBe(404);
+  expect(
+    (await api(path, { method: "PATCH", body: { notes: "operator" }, assertion: operator })).status,
+  ).toBe(200);
+  expect(await (await api(`/v1/inboxes/${own.id}`, { assertion: operator })).json()).toMatchObject({
+    notes: "operator",
+    active: 0,
+  });
+});
+
 test("OAuth agents provision and access only their own inboxes, including through send and event routes", async () => {
   const a = await create();
   const b = await create("bob");

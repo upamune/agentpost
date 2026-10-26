@@ -17,6 +17,7 @@ An admin token provisions and administers inboxes and can access every inbox. An
 | GET    | `/v1/inboxes?limit=25&offset=0`                              | List inboxes (all for admin; own for OAuth agent)     |
 | GET    | `/v1/inboxes/{inbox}`                                        | Inbox details                                         |
 | PATCH  | `/v1/inboxes/{inbox}`                                        | Set activity, e.g. `{"active":false}` (admin)         |
+| PATCH  | `/v1/inboxes/{inbox}/metadata`                               | Edit label, notes, URLs (admin / OAuth owner)         |
 | POST   | `/v1/inboxes/{inbox}/token`                                  | Rotate inbox token (admin)                            |
 | GET    | `/v1/inboxes/{inbox}/messages?limit=25&cursor=...`           | List received messages                                |
 | GET    | `/v1/inboxes/{inbox}/messages/{message}`                     | Parsed body and attachment metadata                   |
@@ -61,6 +62,10 @@ The result uses the configured domain, e.g. `research.team+1@example.com`. Names
 Allocation requires admin access or an OAuth `agent` grant; OAuth creations record the issuer-bound owner. A single atomic D1 insert claims the address: explicit duplicates, concurrent explicit claims, and explicit names belonging to disabled inboxes return 409 without changing the original inbox or revealing its token. Names cannot be reassigned through provisioning. Inspect or administer the existing inbox instead; never treat a conflict as permission to rotate its credentials. No migration is required for existing random inboxes.
 
 CLI: `inbox create --local-part research.team+1`. MCP: `create_inbox` with `local_part`. Both support omission for random allocation.
+
+## Inbox metadata
+
+Creation accepts optional `notes` (free-form text) and `urls` (an array of HTTP(S) references), alongside `label` and `local_part`. Create/get/list return `notes` and `urls`, defaulting to `""` and `[]`. `PATCH /v1/inboxes/{inbox}/metadata` updates a nonempty subset of label/notes/URLs; omissions are preserved, empty values clear, and supplied URLs replace the list. Editing requires admin or an OAuth owner grant; inbox tokens have read access only. URLs are stored without fetching. See [examples, limits, and the required D1 migration](inbox-metadata.md).
 
 ## Send and reply
 

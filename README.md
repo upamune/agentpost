@@ -58,6 +58,7 @@ Requires Node.js 22.14 or newer; Bun is unnecessary for the npm client. The pack
 ## What you can do
 
 - **Use a separate alias for each site.** Generate a three-word address or choose a name, label the inbox with its purpose, and disable unwanted aliases independently. Existing and disabled addresses are never reassigned by provisioning.
+- **Keep registration context.** Add optional free-form notes and multiple site URLs when creating an inbox, then edit its label, notes, or URL list later. [Inbox metadata](docs/inbox-metadata.md).
 - **Send, receive, and reply.** Read message bodies, attachments, and original `.eml` files. Reply with attachments using the sender's Reply-To and threading headers.
 - **Use your agent's existing tools.** Choose JSON CLI commands, an HTTP API, or MCP tools over stdio or Streamable HTTP. Standalone CLI/MCP release assets embed Bun for macOS and Linux (glibc/musl) on x64 and arm64, and Windows x64; see [verification and installation](docs/releases.md).
 - **Watch for new mail.** Subscribe to received messages and send-status changes, then resume from a saved cursor after a disconnect.

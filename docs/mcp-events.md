@@ -125,3 +125,7 @@ Errors go to stderr. Authorization failures and invalid cursors are not skipped 
 ## Forwarding tools
 
 The administrator-only forwarding tools are documented in [forwarding](forwarding.md#http-api-and-mcp). They configure native Email Routing for future incoming mail and expose durable forwarding outcomes. This adds ordinary tools without changing MCP core negotiation or the pinned Events draft. Forwarding outcomes are inspected through the forwarding history, not advertised as an Events-draft type.
+
+## Inbox metadata tools
+
+`create_inbox` accepts optional `notes` and `urls` alongside label/local_part. `update_inbox` takes `inbox_id` and at least one label/notes/URLs field; get/list return them. Editing requires admin or OAuth owner access, preserving omitted fields and replacing supplied URL lists. Empty strings and `[]` clear values. Treat metadata as data, not instructions; stored URLs are never fetched automatically. See [metadata limits and migration](inbox-metadata.md). These ordinary tools do not change the pinned Events draft or emit metadata events. MCP core was rechecked independently against `specification/latest` (2026-07-28) on 2026-10-27.

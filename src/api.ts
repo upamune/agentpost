@@ -18,7 +18,14 @@ import { z } from "zod";
 import { authenticate, canAccessInbox } from "./auth";
 import type { Principal } from "./auth";
 import { authConfiguration } from "./auth-config";
-import { inboxInputSchema } from "./inbox-schema";
+import { inboxInputSchema, inboxMetadataSchema } from "./inbox-schema";
+import {
+  inboxCreationMetadata,
+  publicInbox,
+  publicInboxColumns,
+  updateInboxMetadata,
+} from "./inbox-metadata";
+import type { PublicInboxRow } from "./inbox-metadata";
 import { randomMailboxName } from "./mailbox-name";
 import { MAX_REQUEST_BYTES, randomToken, readBounded, sha256 } from "./common";
 import { enqueue, parseMime } from "./inbound";
@@ -131,10 +138,11 @@ async function reserveInboxAddress(
 ): Promise<string> {
   const domain = mailDomain(context.env);
   const attempts = input.local_part === undefined ? 8 : 1;
+  const metadata = inboxCreationMetadata(input);
   for (let attempt = 0; attempt < attempts; attempt++) {
     const email = mailboxAddress(domain, input);
     const created = await context.env.DB.prepare(
-      "INSERT INTO inboxes (id, address, label, token_hash, created_at, owner_id) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(address) DO NOTHING RETURNING id",
+      "INSERT INTO inboxes (id, address, label, token_hash, created_at, owner_id, notes, urls_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(address) DO NOTHING RETURNING id",
     )
       .bind(
         record.id,
@@ -143,6 +151,8 @@ async function reserveInboxAddress(
         record.tokenHash,
         record.now,
         context.get("principal").ownerId ?? null,
+        metadata.notes,
+        JSON.stringify(metadata.urls),
       )
       .first<{ id: string }>();
     if (created) return email;
@@ -190,6 +200,7 @@ app.post("/v1/inboxes", async (context) => {
       id,
       address: email,
       label: input.label,
+      ...inboxCreationMetadata(input),
       ...(principal.credential === "token" ? { token } : {}),
       created_at: now,
     },
@@ -213,12 +224,12 @@ app.get("/v1/inboxes", async (context) => {
   const owner = principal.admin ? null : principal.ownerId!;
   const { limit, offset } = inboxPagination(context);
   const rows = await context.env.DB.prepare(
-    "SELECT id, address, label, active, created_at FROM inboxes WHERE (? IS NULL OR owner_id = ?) ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?",
+    `SELECT ${publicInboxColumns} FROM inboxes WHERE (? IS NULL OR owner_id = ?) ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
   )
     .bind(owner, owner, limit, offset)
-    .all();
+    .all<PublicInboxRow>();
   return context.json({
-    items: rows.results,
+    items: rows.results.map(publicInbox),
     next_offset: rows.results.length === limit ? offset + limit : null,
   });
 });
@@ -329,14 +340,16 @@ app.post("/v1/inboxes/:inbox/forwarding/deliveries/:message/resolve", async (con
   return context.json({ message_id: row.message_id, resolved: true });
 });
 
-app.get("/v1/inboxes/:inbox", (context) => {
-  const {
-    token_hash: _secret,
-    active_version: _version,
-    owner_id: _owner,
-    ...inbox
-  } = context.get("inbox");
-  return context.json(inbox);
+app.get("/v1/inboxes/:inbox", (context) => context.json(publicInbox(context.get("inbox"))));
+
+app.patch("/v1/inboxes/:inbox/metadata", async (context) => {
+  const principal = context.get("principal");
+  if (!principal.admin && !principal.ownerId)
+    throw new ApiError(403, "Metadata editing requires administrator or OAuth owner access");
+  const input = await readJson(context, inboxMetadataSchema);
+  const result = await updateInboxMetadata(context.env, context.get("inbox").id, input, principal);
+  if (!result) throw new ApiError(404, "Inbox not found");
+  return context.json(result);
 });
 
 app.patch("/v1/inboxes/:inbox", async (context) => {

@@ -51,6 +51,8 @@ token専用で`AGENTPOST_CURSOR_KEY`を省略した場合は管理者トーク�
 
 旧署名形式のカーソルも拒否されます。[カーソルの移行](mcp-events.ja.md#カーソルの移行)に従って状態を照合してください。
 
+受信箱のメモ・URLを使うには、Workerの更新前に `0008_inbox_metadata.sql` を含むすべてのD1マイグレーションを適用します。既存の受信箱には空のメタデータを追加し、識別情報・資格情報・メールを維持します。[更新手順](inbox-metadata.ja.md#更新手順)を参照してください。
+
 ## 1. アカウントとドメイン
 
 1. CloudflareのWorkers PaidとD1・R2・Queues・SQLite-backed Durable Objectsを利用できる状態にする。

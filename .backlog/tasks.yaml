@@ -1199,3 +1199,34 @@ tasks:
       push_comments: false
     created_at: 2026-10-26T14:25:01.830Z
     updated_at: 2026-10-26T14:42:12.926Z
+  - id: task_040
+    title: Add optional inbox notes and site URLs across API CLI and MCP
+    description: Persist optional free-form notes and URL lists on creation; edit
+      label/notes/URLs with field-preserving updates and owner-scoped
+      authorization; document limits and migration; test migration, validation,
+      partial concurrent updates, authorization, CLI and MCP.
+    source_links: []
+    status: done
+    priority: P2
+    labels: []
+    repo_targets: []
+    acceptance_criteria: []
+    dependencies: []
+    planning:
+      split_status: pending
+      risk: medium
+    execution_defaults:
+      manual_approval_required: false
+      auto_commit: true
+      push_when_done: true
+      create_pr: false
+      merge_pr: false
+      worktree_mode: direct
+      preferred_agents: []
+      max_subagents: 5
+    sync:
+      source_of_truth: backlog
+      push_status: false
+      push_comments: false
+    created_at: 2026-10-26T14:54:50.227Z
+    updated_at: 2026-10-26T15:09:55.875Z
