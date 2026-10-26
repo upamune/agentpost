@@ -9,6 +9,8 @@ import { sha256 } from "../src/common";
 import { cloudflareSend } from "../src/outbound";
 import { prepareAttachments, uploadAttachment } from "../src/attachments";
 import { recoverForwarding } from "../src/forwarding";
+import { pollEvents } from "../src/events";
+import type { Principal } from "../src/auth";
 import type { Env, Job } from "../src/types";
 
 const bindings: Env = env;
@@ -25,6 +27,37 @@ async function inbox() {
     .bind(id, `${id}@example.com`, id)
     .run();
   return id;
+}
+
+function observedEventReads(rowsRead: number[]) {
+  return new Proxy(bindings.DB, {
+    get(target, key) {
+      if (key !== "prepare") {
+        const value = Reflect.get(target, key);
+        return typeof value === "function" ? value.bind(target) : value;
+      }
+      return (sql: string) => {
+        const statement = target.prepare(sql);
+        if (!sql.startsWith("SELECT seq, id, name, data, created_at FROM events")) return statement;
+        return new Proxy(statement, {
+          get(prepared, member) {
+            if (member !== "bind") return Reflect.get(prepared, member);
+            return (...values: unknown[]) =>
+              new Proxy(prepared.bind(...values), {
+                get(query, operation) {
+                  if (operation !== "all") return Reflect.get(query, operation);
+                  return async () => {
+                    const result = await query.all();
+                    rowsRead.push(result.meta.rows_read);
+                    return result;
+                  };
+                },
+              });
+          },
+        });
+      };
+    },
+  });
 }
 
 test("queue publication chunks compact jobs at the 100-message platform boundary", async () => {
@@ -179,7 +212,52 @@ test("oversize retained MIME never becomes parsed or ready and remains recoverab
 });
 
 test("recovery and webhook publication queries use indexes instead of scanning delivery history", async () => {
+  const boxes = Array.from({ length: 200 }, () => crypto.randomUUID());
+  await bindings.DB.batch(
+    boxes.map((id) =>
+      bindings.DB.prepare(
+        "INSERT INTO inboxes(id,address,label,token_hash,created_at) VALUES (?,?,'',?,0)",
+      ).bind(id, `${id}@example.com`, id),
+    ),
+  );
+  const principal: Principal = {
+    admin: true,
+    credential: "token",
+    inboxId: null,
+    tokenHash: await sha256("plan-admin"),
+  };
+  const eventQuery = {
+    name: "message.received" as const,
+    arguments: { inbox_id: boxes[0] },
+    maxEvents: 100,
+  };
+  const checkpoint = await pollEvents(bindings, principal, eventQuery);
+  await bindings.DB.batch(
+    Array.from({ length: 2000 }, (_, index) =>
+      bindings.DB.prepare(
+        "INSERT INTO events(id,name,inbox_id,data,created_at) VALUES (?,'message.received',?,'{}',0)",
+      ).bind(`plan-${index}`, boxes[index % boxes.length]),
+    ),
+  );
+  await bindings.DB.prepare("PRAGMA optimize").run();
+  const reads: number[] = [];
+  const page = await pollEvents({ ...bindings, DB: observedEventReads(reads) }, principal, {
+    ...eventQuery,
+    cursor: checkpoint.cursor,
+  });
+  expect(page.events).toHaveLength(10);
+  expect(reads).toHaveLength(1);
+  expect(reads[0]).toBeLessThanOrEqual(50);
   const queries = [
+    ["SELECT id FROM inboxes ORDER BY created_at DESC, id DESC LIMIT 50", "inboxes_created"],
+    [
+      "SELECT id FROM inboxes WHERE owner_id = 'owner' ORDER BY created_at DESC, id DESC LIMIT 50",
+      "inboxes_owner",
+    ],
+    [
+      "SELECT seq, id, name, data, created_at FROM events WHERE seq > 0 AND seq <= 2000 AND name = 'message.received' AND inbox_id = 'inbox' AND (NULL IS NULL OR created_at >= NULL) ORDER BY seq LIMIT 51",
+      "events_inbox_name_seq",
+    ],
     [
       "SELECT id FROM outbox WHERE status = 'pending' AND available_at <= 1 ORDER BY available_at, created_at, id LIMIT 100",
       "outbox_pending",

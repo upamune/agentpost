@@ -3,8 +3,8 @@ import { inboxMetadataSchema, inboxUrlsSchema } from "./inbox-schema";
 import type { Env, Inbox } from "./types";
 import type { Principal } from "./auth";
 
-export const publicInboxColumns = "id, address, label, notes, urls_json, active, created_at";
-export type PublicInboxRow = Pick<
+const publicInboxColumns = "id, address, label, notes, urls_json, active, created_at";
+type PublicInboxRow = Pick<
   Inbox,
   "id" | "address" | "label" | "notes" | "urls_json" | "active" | "created_at"
 >;
@@ -29,6 +29,22 @@ export function publicInbox(row: PublicInboxRow) {
     active: row.active,
     created_at: row.created_at,
   };
+}
+
+export async function listInboxMetadata(
+  env: Env,
+  owner: string | null,
+  limit: number,
+  offset: number,
+) {
+  const scope =
+    owner === null ? { sql: "", values: [] } : { sql: " WHERE owner_id = ?", values: [owner] };
+  const rows = await env.DB.prepare(
+    `SELECT ${publicInboxColumns} FROM inboxes${scope.sql} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
+  )
+    .bind(...scope.values, limit, offset)
+    .all<PublicInboxRow>();
+  return rows.results.map(publicInbox);
 }
 
 export async function updateInboxMetadata(

@@ -21,11 +21,10 @@ import { authConfiguration } from "./auth-config";
 import { inboxInputSchema, inboxMetadataSchema } from "./inbox-schema";
 import {
   inboxCreationMetadata,
+  listInboxMetadata,
   publicInbox,
-  publicInboxColumns,
   updateInboxMetadata,
 } from "./inbox-metadata";
-import type { PublicInboxRow } from "./inbox-metadata";
 import { randomMailboxName } from "./mailbox-name";
 import { MAX_REQUEST_BYTES, randomToken, readBounded, sha256 } from "./common";
 import { enqueue, parseMime } from "./inbound";
@@ -224,14 +223,10 @@ app.get("/v1/inboxes", async (context) => {
   if (!principal.admin && !principal.ownerId) throw new ApiError(403, "Inbox listing forbidden");
   const owner = principal.admin ? null : principal.ownerId!;
   const { limit, offset } = inboxPagination(context);
-  const rows = await context.env.DB.prepare(
-    `SELECT ${publicInboxColumns} FROM inboxes WHERE (? IS NULL OR owner_id = ?) ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
-  )
-    .bind(owner, owner, limit, offset)
-    .all<PublicInboxRow>();
+  const items = await listInboxMetadata(context.env, owner, limit, offset);
   return context.json({
-    items: rows.results.map(publicInbox),
-    next_offset: rows.results.length === limit ? offset + limit : null,
+    items,
+    next_offset: items.length === limit ? offset + limit : null,
   });
 });
 
