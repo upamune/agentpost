@@ -1,3 +1,5 @@
+import { npmArchiveName } from "./npm-package";
+
 export const executableTargets = [
   { id: "darwin-arm64", target: "bun-darwin-arm64", runner: "macos-15" },
   { id: "darwin-x64", target: "bun-darwin-x64", runner: "macos-15-intel" },
@@ -23,5 +25,6 @@ export function releasePayloads(version: string): string[] {
   return [
     `agentpost-${version}.tar.gz`,
     ...executableTargets.map(({ id }) => executableName(version, id)),
+    npmArchiveName(version),
   ];
 }

@@ -1,6 +1,6 @@
 {
   "name": "agentpost",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Create as many email addresses as your AI agents need. Send and receive mail on your own domain with an API, CLI, and MCP.",
   "homepage": "https://github.com/upamune/agentpost#readme",
@@ -23,7 +23,7 @@
     "lint": "oxlint",
     "knip": "knip",
     "typecheck": "tsc --noEmit",
-    "test": "bun run test:worker && bun test ./test/client.bun.ts ./test/adversarial-client.bun.ts ./test/security-workflows.bun.ts ./test/release.bun.ts ./test/release-workflow.bun.ts ./test/formal-runner.bun.ts ./test/complexity.bun.ts ./test/refactor-contracts.bun.ts ./test/executables.bun.ts",
+    "test": "bun run test:worker && bun test ./test/client.bun.ts ./test/adversarial-client.bun.ts ./test/security-workflows.bun.ts ./test/release.bun.ts ./test/release-workflow.bun.ts ./test/formal-runner.bun.ts ./test/complexity.bun.ts ./test/refactor-contracts.bun.ts ./test/executables.bun.ts ./test/npm.bun.ts",
     "test:worker": "vitest run",
     "fuzz": "bun test ./test/security.fuzz.ts",
     "mcp": "bun run src/mcp.ts",

@@ -29,7 +29,7 @@ test("the native CI matrix covers every advertised executable target", async () 
     executableTargets.map(({ id, runner }) => ({ platform: id, runner })),
   );
   expect(executableTargets).toHaveLength(7);
-  expect(new Set(releasePayloads("1.2.3")).size).toBe(8);
+  expect(new Set(releasePayloads("1.2.3")).size).toBe(9);
   expect(executableName("1.2.3", "windows-x64")).toBe("agentpost-1.2.3-windows-x64.exe");
   expect(() => executableTarget("windows-arm64")).toThrow("supported");
   expect(() => executableTarget("../../private")).toThrow("supported");
@@ -75,8 +75,8 @@ async function fixture() {
   }
   expect((await run("build-release")).code).toBe(0);
   const release = join(directory, "dist/release");
-  for (const { id } of executableTargets)
-    await writeFile(join(release, executableName("1.2.3", id)), `synthetic executable ${id}\n`);
+  for (const name of releasePayloads("1.2.3").slice(1))
+    await writeFile(join(release, name), `synthetic payload ${name}\n`);
   return {
     directory,
     release,
@@ -86,7 +86,7 @@ async function fixture() {
   };
 }
 
-test("release finalization signs up all eight payloads with deterministic checksums and identity", async () => {
+test("release finalization signs up all nine payloads with deterministic checksums and identity", async () => {
   const files = await fixture();
   try {
     expect(await files.run("finalize-release")).toMatchObject({ code: 0, stderr: "" });

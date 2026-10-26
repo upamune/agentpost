@@ -19,6 +19,8 @@ export function assertCommittedInputs(): void {
     "--untracked-files=all",
     "--",
     "src",
+    "npm",
+    "LICENSE",
     "scripts",
     "mise.toml",
     "package.json",

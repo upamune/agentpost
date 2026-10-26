@@ -1,4 +1,4 @@
-import { mkdir, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { z } from "zod";
 import { MailApiError, MailClient } from "./client";
@@ -14,8 +14,15 @@ function assertRetryablePoll(error: unknown): void {
 }
 
 async function checkpointCursor(cursor: EventQuery["cursor"], file: string | undefined) {
-  if (!file || !(await Bun.file(file).exists())) return cursor;
-  return z.object({ cursor: z.string() }).parse(JSON.parse(await Bun.file(file).text())).cursor;
+  if (!file) return cursor;
+  let content: string;
+  try {
+    content = await readFile(file, "utf8");
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") return cursor;
+    throw error;
+  }
+  return z.object({ cursor: z.string() }).parse(JSON.parse(content)).cursor;
 }
 
 async function saveCheckpoint(file: string, cursor: string): Promise<void> {
