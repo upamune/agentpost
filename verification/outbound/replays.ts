@@ -63,6 +63,99 @@ function latch() {
   return { promise, release };
 }
 
+function pausedDatabase(
+  database: D1Database,
+  matches: (sql: string) => boolean,
+  after: boolean,
+  gate: { paused: ReturnType<typeof latch>; resumed: ReturnType<typeof latch> },
+) {
+  const { paused, resumed } = gate;
+  const proxy = new Proxy(database, {
+    get(target, key) {
+      if (key !== "prepare") return Reflect.get(target, key);
+      return (sql: string) => {
+        const statement = target.prepare(sql);
+        if (!matches(sql)) return statement;
+        return new Proxy(statement, {
+          get(prepared, member) {
+            if (member !== "bind") return Reflect.get(prepared, member);
+            return (...values: unknown[]) => {
+              const bound = prepared.bind(...values);
+              return new Proxy(bound, {
+                get(query, operation) {
+                  if (operation !== "first") return Reflect.get(query, operation);
+                  return async () => {
+                    if (!after) {
+                      paused.release();
+                      await resumed.promise;
+                    }
+                    const result = await query.first();
+                    if (after) {
+                      paused.release();
+                      await resumed.promise;
+                    }
+                    return result;
+                  };
+                },
+              });
+            };
+          },
+        });
+      };
+    },
+  });
+  return { database: proxy, paused: paused.promise, resume: resumed.release };
+}
+
+async function delayedDisableRace(first: "disable" | "dispatch") {
+  const { box, outbox } = await setup();
+  const stub = coordinator(bindings, box.id);
+  // Both incarnations share real SQLite/D1. Keep their I/O in one test request
+  // context; the old projection has already fenced before replacement occurs.
+  await runInDurableObject(stub, async (instance, state) => {
+    const originalEnv: Env = Reflect.get(instance, "env");
+    const older = pausedDatabase(
+      originalEnv.DB,
+      (sql) => sql.startsWith("UPDATE inboxes SET active ="),
+      false,
+      { paused: latch(), resumed: latch() },
+    );
+    Reflect.set(instance, "env", { ...originalEnv, DB: older.database });
+    const newer = pausedDatabase(
+      originalEnv.DB,
+      (sql) =>
+        first === "disable"
+          ? sql === "SELECT active FROM inboxes WHERE id = ?"
+          : sql.startsWith("UPDATE inboxes SET active_version ="),
+      true,
+      { paused: latch(), resumed: latch() },
+    );
+    const replacement = new InboxCoordinator(state, { ...originalEnv, DB: newer.database });
+    const oldDisable = instance.setActive(box.id, false).then(
+      () => true,
+      (error: unknown) => error,
+    );
+    await older.paused;
+    const delivery = replacement.deliver(outbox.id, box.id);
+    try {
+      await newer.paused;
+      older.resume();
+      const disabled = await oldDisable;
+      if (first === "disable") expect(disabled).toBe(true);
+      else expect(disabled).toBeInstanceOf(Error);
+      expect(fetch).not.toHaveBeenCalled();
+    } finally {
+      older.resume();
+      newer.resume();
+      await delivery;
+      await oldDisable;
+    }
+  });
+  expect(await status(outbox.id)).toBe(first === "disable" ? "failed" : "accepted");
+  expect(fetch).toHaveBeenCalledTimes(first === "disable" ? 0 : 1);
+  vi.mocked(fetch).mockClear();
+}
+
 async function pauseInboxRead(inboxId: string, point: "before" | "after" = "after") {
   const paused = latch();
   const resumed = latch();
@@ -215,8 +308,11 @@ cases.push([
     const { box, outbox } = await setup();
     const stub = coordinator(bindings, box.id);
     await runInDurableObject(stub, (instance) => {
+      const originalFence = Reflect.get(instance, "fence").bind(instance);
+      let fences = 0;
       Reflect.set(instance, "fence", () => {
-        throw new Error("Actor ownership lost");
+        if (++fences === 2) throw new Error("Actor ownership lost");
+        return originalFence();
       });
     });
     await expect(deliver(bindings, outbox.id)).rejects.toThrow("Actor ownership lost");
@@ -316,4 +412,14 @@ cases.push([
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(await status(outbox.id)).toBe("unknown");
   },
+]);
+
+cases.push([
+  "a delayed old disable committing after an active read blocks the replacement dispatch",
+  () => delayedDisableRace("disable"),
+]);
+
+cases.push([
+  "a replacement dispatch barrier rejects a delayed old disable projection",
+  () => delayedDisableRace("dispatch"),
 ]);

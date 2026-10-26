@@ -1,5 +1,5 @@
 {
-  "verifiedProductCommit": "741a80e7d576a33746c1b1b2919364104094fc2e",
+  "verifiedProductCommit": "32497e235c6d973f4b59d08897c914743f257800",
   "bounds": {
     "workers": 2,
     "maxClaims": 8,
@@ -14,27 +14,39 @@
   "sourceFiles": [
     {
       "path": "src/coordinator.ts",
-      "sha256": "8a0d5827a054fff3798f9818ba3d2dda18ae5fec36bc3362f318429036858124"
+      "sha256": "3eead6e30132df24273821c65840d8170c9e62cda123c3de9815f318276b9ebf"
     },
     {
       "path": "src/outbound.ts",
-      "sha256": "83311a5b32e07d325c3dc765e9f7019afc906a41aef64ea008ccf79c11478cf8"
+      "sha256": "d2c0f60acf99a6488076d663937bc732a724703a614eaef6b1996a1bbab4cf02"
+    },
+    {
+      "path": "src/dispatch-barrier.ts",
+      "sha256": "0a096c0ea4716b910b4c8cb6764621676cd3005adcf76e936d27755503fee65d"
+    },
+    {
+      "path": "src/attachments.ts",
+      "sha256": "44047255c25ed9e74548cee2cd1790de603d7d894a71be1ddbbca4e44d229d79"
+    },
+    {
+      "path": "src/attachment-policy.ts",
+      "sha256": "2b638e65863e54bdfc8d2524551bd1d6866db431c5504e8a41ba1bbc390ae8c1"
     },
     {
       "path": "src/maintenance.ts",
-      "sha256": "df3a48ec4da2930acab6ad6ebb16eb452f581c289915ad48e6e46112602949d9"
+      "sha256": "7aaa23b99e2771bf99b47ade452cf2a2e4149cb5d279753077484d4a0703d448"
     },
     {
       "path": "src/api.ts",
-      "sha256": "39306c5f7fa31760439fad71473217ffac68344f0af2bdab605661833024ae27"
+      "sha256": "dda3093c1428e94c022aab18e6c9e173960ad5c74d22ff95f92fddb8473fa392"
     },
     {
       "path": "src/index.ts",
-      "sha256": "bdf45340a6ff0cba7a46ed5063e03b1d7cd731fe132f0ed955328ff3e972b5f3"
+      "sha256": "217604304680df2b276216c97f249ef90a58623643039cb8b014f777df7f15ed"
     },
     {
       "path": "wrangler.jsonc",
-      "sha256": "33b9723190d1cbdcfb225452e72bd71c7174e797c4a66fb49966c0eb8ffc8f2c"
+      "sha256": "d7cbc8efc0dc9c904f1581467e92b97ac96f347617978be5a4cbd4f28c4d97c6"
     },
     {
       "path": "migrations/0001_mail.sql",
@@ -48,31 +60,38 @@
   "checks": [
     {
       "check": "TypeOK",
-      "outcome": "passed"
+      "outcome": "passed",
+      "log": "Outbound-baseline.log"
     },
     {
       "check": "AtMostOneAcceptance",
-      "outcome": "passed"
+      "outcome": "passed",
+      "log": "Outbound-baseline.log"
     },
     {
       "check": "NoBlindRetry",
-      "outcome": "passed"
+      "outcome": "passed",
+      "log": "Outbound-baseline.log"
     },
     {
       "check": "NoDispatchAfterDisable",
-      "outcome": "passed"
+      "outcome": "passed",
+      "log": "Outbound-baseline.log"
     },
     {
       "check": "NoDispatchAfterUnknown",
-      "outcome": "passed"
+      "outcome": "passed",
+      "log": "Outbound-baseline.log"
     },
     {
       "check": "ActiveVersionTypeOK",
-      "outcome": "passed"
+      "outcome": "passed",
+      "log": "ActiveVersion-baseline.log"
     },
     {
       "check": "NoStaleActiveWrite",
-      "outcome": "passed"
+      "outcome": "passed",
+      "log": "ActiveVersion-baseline.log"
     }
   ],
   "replay": {
@@ -80,10 +99,32 @@
     "cases": [
       {
         "ancestorTitles": [],
+        "fullName": "a delayed old disable committing after an active read blocks the replacement dispatch",
+        "status": "passed",
+        "title": "a delayed old disable committing after an active read blocks the replacement dispatch",
+        "duration": 33,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
         "fullName": "no new provider request starts after disabling the inbox has completed",
         "status": "passed",
         "title": "no new provider request starts after disabling the inbox has completed",
-        "duration": 34,
+        "duration": 39,
+        "failureMessages": [],
+        "meta": {},
+        "tags": [],
+        "benchmarks": []
+      },
+      {
+        "ancestorTitles": [],
+        "fullName": "a replacement dispatch barrier rejects a delayed old disable projection",
+        "status": "passed",
+        "title": "a replacement dispatch barrier rejects a delayed old disable projection",
+        "duration": 35,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -94,7 +135,7 @@
         "fullName": "provider accepts the same request at most once with duplicate queue jobs",
         "status": "passed",
         "title": "provider accepts the same request at most once with duplicate queue jobs",
-        "duration": 31,
+        "duration": 32,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -105,7 +146,7 @@
         "fullName": "ownership fence failure after the active read prevents dispatch",
         "status": "passed",
         "title": "ownership fence failure after the active read prevents dispatch",
-        "duration": 28,
+        "duration": 32,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -116,7 +157,7 @@
         "fullName": "actor failure releases serialization without allowing a cross-inbox claim",
         "status": "passed",
         "title": "actor failure releases serialization without allowing a cross-inbox claim",
-        "duration": 28,
+        "duration": 51,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -127,7 +168,7 @@
         "fullName": "a fresh actor recovers an orphaned sending request without dispatching",
         "status": "passed",
         "title": "a fresh actor recovers an orphaned sending request without dispatching",
-        "duration": 34,
+        "duration": 40,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -138,7 +179,7 @@
         "fullName": "stale worker does not start a provider call after Cron marks the outcome unknown",
         "status": "passed",
         "title": "stale worker does not start a provider call after Cron marks the outcome unknown",
-        "duration": 36,
+        "duration": 38,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -149,7 +190,7 @@
         "fullName": "unknown outcomes never create a new automatic provider attempt",
         "status": "passed",
         "title": "unknown outcomes never create a new automatic provider attempt",
-        "duration": 36,
+        "duration": 37,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -160,7 +201,7 @@
         "fullName": "a delayed old enable cannot overwrite a newer disable after actor handoff",
         "status": "passed",
         "title": "a delayed old enable cannot overwrite a newer disable after actor handoff",
-        "duration": 41,
+        "duration": 57,
         "failureMessages": [],
         "meta": {},
         "tags": [],

@@ -153,11 +153,13 @@ async function sourceHashes() {
 
 try {
   await mkdir(output, { recursive: true });
+  const baselinePath = join(output, "result.json");
+  const selftestPath = join(output, "selftest-result.json");
+  await rm(baselinePath, { force: true });
+  await rm(selftestPath, { force: true });
   await symlink(join(root, "node_modules"), join(scratch, "node_modules"), "dir");
   const types = run(["bun", "run", "tsc", "--project", "verification/attachments/tsconfig.json"]);
   if (types.code !== 0) throw new Error(`Attachment verification typecheck failed: ${types.log}`);
-  const resultPath = join(output, selftest ? "selftest-result.json" : "result.json");
-  await rm(resultPath, { force: true });
   await copyFile(join(import.meta.dir, "Attachments.tla"), join(scratch, "Attachments.tla"));
   const jar = await verifierJar();
   const base = await readFile(join(import.meta.dir, "Attachments.cfg"), "utf8");
@@ -166,38 +168,33 @@ try {
   for (const [scenario, checks] of Object.entries(scenarios)) {
     results.push(await check(jar, scenario, configuration(base, scenario as Scenario, checks, [])));
   }
+  const evidence = {
+    bounds: {
+      inboxes: 2,
+      immutableFiles: 2,
+      concurrentRequests: 2,
+      idempotencyKeys: 1,
+      storageFaults: 1,
+    },
+    assumptions: [
+      "Collision-free content and descriptor hashes",
+      "Atomic D1 uniqueness and conditional R2 puts",
+      "One immutable R2 GET snapshot",
+      "Provider ambiguity and actor fencing remain covered by Outbound.tla",
+    ],
+    checks: results,
+    sourceMutations,
+    sources: await sourceHashes(),
+  };
+  await writeFile(baselinePath, JSON.stringify(evidence, null, 2));
   if (selftest) {
     for (const mutant of mutants) {
       const config = configuration(base, mutant.scenario, [mutant.check], mutant.flags);
       results.push(await check(jar, mutant.name, config, mutant.check));
     }
     sourceMutations = await checkSourceMutations(root, scratch, output);
+    await writeFile(selftestPath, JSON.stringify({ ...evidence, sourceMutations }, null, 2));
   }
-  await writeFile(
-    resultPath,
-    JSON.stringify(
-      {
-        bounds: {
-          inboxes: 2,
-          immutableFiles: 2,
-          concurrentRequests: 2,
-          idempotencyKeys: 1,
-          storageFaults: 1,
-        },
-        assumptions: [
-          "Collision-free content and descriptor hashes",
-          "Atomic D1 uniqueness and conditional R2 puts",
-          "One immutable R2 GET snapshot",
-          "Provider ambiguity and actor fencing remain covered by Outbound.tla",
-        ],
-        checks: results,
-        sourceMutations,
-        sources: await sourceHashes(),
-      },
-      null,
-      2,
-    ),
-  );
 } catch (error) {
   console.error(error instanceof Error ? error.message : "Attachment verification tool failed");
   process.exitCode =

@@ -1,5 +1,5 @@
 {
-  "verifiedProductCommit": "741a80e7d576a33746c1b1b2919364104094fc2e",
+  "verifiedProductCommit": "32497e235c6d973f4b59d08897c914743f257800",
   "bounds": {
     "originals": 3,
     "valid": 2,
@@ -25,15 +25,15 @@
     },
     {
       "path": "src/maintenance.ts",
-      "sha256": "df3a48ec4da2930acab6ad6ebb16eb452f581c289915ad48e6e46112602949d9"
+      "sha256": "7aaa23b99e2771bf99b47ade452cf2a2e4149cb5d279753077484d4a0703d448"
     },
     {
       "path": "src/index.ts",
-      "sha256": "bdf45340a6ff0cba7a46ed5063e03b1d7cd731fe132f0ed955328ff3e972b5f3"
+      "sha256": "217604304680df2b276216c97f249ef90a58623643039cb8b014f777df7f15ed"
     },
     {
       "path": "src/api.ts",
-      "sha256": "39306c5f7fa31760439fad71473217ffac68344f0af2bdab605661833024ae27"
+      "sha256": "dda3093c1428e94c022aab18e6c9e173960ad5c74d22ff95f92fddb8473fa392"
     },
     {
       "path": "migrations/0001_mail.sql",
@@ -51,27 +51,33 @@
   "checks": [
     {
       "check": "TypeOK",
-      "outcome": "passed"
+      "outcome": "passed",
+      "log": "Inbound-baseline.log"
     },
     {
       "check": "OriginalRetained",
-      "outcome": "passed"
+      "outcome": "passed",
+      "log": "Inbound-baseline.log"
     },
     {
       "check": "IndexHasOriginal",
-      "outcome": "passed"
+      "outcome": "passed",
+      "log": "Inbound-baseline.log"
     },
     {
       "check": "ReadyHasParsed",
-      "outcome": "passed"
+      "outcome": "passed",
+      "log": "Inbound-baseline.log"
     },
     {
       "check": "PoisonVisible",
-      "outcome": "passed"
+      "outcome": "passed",
+      "log": "Inbound-baseline.log"
     },
     {
       "check": "EventuallyReady",
-      "outcome": "passed"
+      "outcome": "passed",
+      "log": "Inbound-baseline.log"
     }
   ],
   "replay": {
@@ -82,7 +88,7 @@
         "fullName": "a D1 failure after raw persistence is repaired from the original metadata",
         "status": "passed",
         "title": "a D1 failure after raw persistence is repaired from the original metadata",
-        "duration": 43,
+        "duration": 30,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -93,7 +99,7 @@
         "fullName": "queue outage and duplicate recovery preserve one message and one received event",
         "status": "passed",
         "title": "queue outage and duplicate recovery preserve one message and one received event",
-        "duration": 26,
+        "duration": 23,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -104,7 +110,7 @@
         "fullName": "failures before parsed storage and before ready commit retain the original and recover",
         "status": "passed",
         "title": "failures before parsed storage and before ready commit retain the original and recover",
-        "duration": 18,
+        "duration": 17,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -115,7 +121,7 @@
         "fullName": "poisoned first page cannot starve healthy later raw objects and stays visible in health",
         "status": "passed",
         "title": "poisoned first page cannot starve healthy later raw objects and stays visible in health",
-        "duration": 18,
+        "duration": 21,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -126,7 +132,7 @@
         "fullName": "orphaned inbox metadata is reported, retried and cleared after the inbox is restored",
         "status": "passed",
         "title": "orphaned inbox metadata is reported, retried and cleared after the inbox is restored",
-        "duration": 16,
+        "duration": 18,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -137,7 +143,7 @@
         "fullName": "cursor commit failure repeats safe inserts without downgrading ready messages",
         "status": "passed",
         "title": "cursor commit failure repeats safe inserts without downgrading ready messages",
-        "duration": 19,
+        "duration": 18,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -148,7 +154,7 @@
         "fullName": "failed inbound republishing does not prevent outbound republishing",
         "status": "passed",
         "title": "failed inbound republishing does not prevent outbound republishing",
-        "duration": 15,
+        "duration": 16,
         "failureMessages": [],
         "meta": {},
         "tags": [],
@@ -159,7 +165,7 @@
         "fullName": "failed attention persistence keeps the cursor before the poisoned original",
         "status": "passed",
         "title": "failed attention persistence keeps the cursor before the poisoned original",
-        "duration": 11,
+        "duration": 14,
         "failureMessages": [],
         "meta": {},
         "tags": [],

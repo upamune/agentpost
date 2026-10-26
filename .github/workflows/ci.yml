@@ -12,6 +12,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  MISE_TASK_RUN_AUTO_INSTALL: "false"
+
 jobs:
   executables:
     uses: $/.github/workflows/executables.yml
@@ -33,7 +36,7 @@ jobs:
       - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           version: 2026.10.17
-          install_args: bun node pinact actionlint
+          install_args: bun
       - run: bun install --frozen-lockfile
       - run: mise run format:check
   lint:
@@ -57,7 +60,7 @@ jobs:
       - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           version: 2026.10.17
-          install_args: bun node pinact actionlint
+          install_args: bun node
       - run: bun install --frozen-lockfile
       - run: mise run typecheck
   test:
@@ -69,7 +72,7 @@ jobs:
       - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           version: 2026.10.17
-          install_args: bun node pinact actionlint jq java github:tlaplus/tlaplus github:moznion/cccc
+          install_args: bun node jq java github:tlaplus/tlaplus github:moznion/cccc
       - run: bun install --frozen-lockfile
       - run: mise run test
   build:
@@ -81,7 +84,7 @@ jobs:
       - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           version: 2026.10.17
-          install_args: bun node pinact actionlint
+          install_args: bun node
       - run: bun install --frozen-lockfile
       - run: mise run build
   pinact:
@@ -112,7 +115,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        area: [outbound, inbound, attachments]
+        area: [outbound, inbound, attachments, webhooks]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -122,9 +125,7 @@ jobs:
           version: 2026.10.17
           install_args: bun node java github:tlaplus/tlaplus
       - run: bun install --frozen-lockfile
-      - run: mise run "verify:$VERIFY_AREA"
-        env:
-          VERIFY_AREA: ${{ matrix.area }}
+      # Selftests include the complete baseline and save both evidence reports.
       - run: mise run "verify:$VERIFY_AREA:selftest"
         env:
           VERIFY_AREA: ${{ matrix.area }}

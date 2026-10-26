@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": { "allowImportingTsExtensions": true },
+  "include": ["./*.ts", "../tlc.ts", "../model-results.ts", "../../test/env.d.ts"]
+}

@@ -1,0 +1,87 @@
+{
+  "baseline": "result.json",
+  "mutations": [
+    {
+      "name": "claim",
+      "checks": ["AtMostOneAcceptance", "NoBlindRetry"],
+      "baseline": "replay",
+      "model": "violated",
+      "source": "assertion-failed"
+    },
+    {
+      "name": "serialization",
+      "checks": ["NoDispatchAfterDisable", "NoDispatchAfterUnknown"],
+      "baseline": "replay",
+      "model": "violated",
+      "source": "assertion-failed"
+    },
+    {
+      "name": "fence",
+      "checks": ["NoDispatchAfterDisable", "NoDispatchAfterUnknown"],
+      "baseline": "replay",
+      "model": "violated",
+      "source": "assertion-failed"
+    },
+    {
+      "name": "version",
+      "checks": ["NoStaleActiveWrite"],
+      "baseline": "replay",
+      "model": "violated",
+      "source": "assertion-failed"
+    }
+  ],
+  "sourceMutations": [
+    {
+      "name": "dispatch-barrier",
+      "baseline": "replay",
+      "source": "assertion-failed",
+      "complementaryModel": "verification/webhooks/DispatchBarrier.tla (EmailOnly = TRUE)"
+    }
+  ],
+  "sourceFiles": [
+    {
+      "path": "src/coordinator.ts",
+      "sha256": "3eead6e30132df24273821c65840d8170c9e62cda123c3de9815f318276b9ebf"
+    },
+    {
+      "path": "src/outbound.ts",
+      "sha256": "d2c0f60acf99a6488076d663937bc732a724703a614eaef6b1996a1bbab4cf02"
+    },
+    {
+      "path": "src/dispatch-barrier.ts",
+      "sha256": "0a096c0ea4716b910b4c8cb6764621676cd3005adcf76e936d27755503fee65d"
+    },
+    {
+      "path": "src/attachments.ts",
+      "sha256": "44047255c25ed9e74548cee2cd1790de603d7d894a71be1ddbbca4e44d229d79"
+    },
+    {
+      "path": "src/attachment-policy.ts",
+      "sha256": "2b638e65863e54bdfc8d2524551bd1d6866db431c5504e8a41ba1bbc390ae8c1"
+    },
+    {
+      "path": "src/maintenance.ts",
+      "sha256": "7aaa23b99e2771bf99b47ade452cf2a2e4149cb5d279753077484d4a0703d448"
+    },
+    {
+      "path": "src/api.ts",
+      "sha256": "dda3093c1428e94c022aab18e6c9e173960ad5c74d22ff95f92fddb8473fa392"
+    },
+    {
+      "path": "src/index.ts",
+      "sha256": "217604304680df2b276216c97f249ef90a58623643039cb8b014f777df7f15ed"
+    },
+    {
+      "path": "wrangler.jsonc",
+      "sha256": "d7cbc8efc0dc9c904f1581467e92b97ac96f347617978be5a4cbd4f28c4d97c6"
+    },
+    {
+      "path": "migrations/0001_mail.sql",
+      "sha256": "19e4db34a1f7703fea52aff0af80511d09f2f14c32a3d919f4d04cbfb9b19953"
+    },
+    {
+      "path": "migrations/0004_inbox_active_version.sql",
+      "sha256": "e78b7beb536493c1dc19717d17d4c1ec899cd74b3fc3171f3e8da935b2ea1b81"
+    }
+  ]
+}

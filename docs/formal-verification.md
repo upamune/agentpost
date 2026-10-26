@@ -8,19 +8,20 @@ The synchronized product revision is recorded in [`verification/product-revision
 
 ## Results
 
-| Property                                                              | Model checking                      | Real-code evidence                                              |
-| --------------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------- |
-| An outbox request is not accepted twice                               | No counterexample                   | Duplicate jobs call provider once                               |
-| Uncertainty does not create a new send attempt                        | No counterexample                   | Replaying unknown work does not dispatch                        |
-| No new external call starts while disabled after successful disabling | Old model fails; fixed model passes | Disable waits for earlier work and rejects later sends          |
-| Old execution cannot dispatch after Cron marks it unknown             | Old model fails; fixed model passes | Recovery waits for live work and recovers interrupted execution |
-| An old enable write cannot undo a newer disable                       | No counterexample                   | Two instances sharing SQLite reject a delayed write             |
-| Repair/parsing retains saved original MIME                            | No counterexample                   | Original survives D1, parsed-R2, and queue failures             |
-| Ready commits only after parsed content persists                      | No counterexample                   | Recovery from parsed-write and ready-write failures             |
-| Poison metadata cannot indefinitely block valid later originals       | Conditional EventuallyReady holds   | Repair crosses real R2 pages                                    |
-| Repair cursor cannot advance before failure attention persists        | No counterexample                   | Failed attention persistence retains scan position              |
+| Property                                                              | Model checking                      | Real-code evidence                                                 |
+| --------------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------ |
+| An outbox request is not accepted twice                               | No counterexample                   | Duplicate jobs call provider once                                  |
+| Uncertainty does not create a new send attempt                        | No counterexample                   | Replaying unknown work does not dispatch                           |
+| No new external call starts while disabled after successful disabling | Old model fails; fixed model passes | Disable waits for earlier work and rejects later sends             |
+| Old execution cannot dispatch after Cron marks it unknown             | Old model fails; fixed model passes | Recovery waits for live work and recovers interrupted execution    |
+| An old enable write cannot undo a newer disable                       | No counterexample                   | Two instances sharing SQLite reject a delayed write                |
+| An old pending disable cannot invalidate authorized dispatch ordering | No counterexample                   | Disable-first blocks dispatch; barrier-first rejects the old write |
+| Repair/parsing retains saved original MIME                            | No counterexample                   | Original survives D1, parsed-R2, and queue failures                |
+| Ready commits only after parsed content persists                      | No counterexample                   | Recovery from parsed-write and ready-write failures                |
+| Poison metadata cannot indefinitely block valid later originals       | Conditional EventuallyReady holds   | Repair crosses real R2 pages                                       |
+| Repair cursor cannot advance before failure attention persists        | No counterexample                   | Failed attention persistence retains scan position                 |
 
-Eight outbound and eight inbound verification replays supplement the ordinary tests. External sending is stubbed; no real mail is sent.
+Ten outbound and eight inbound verification replays supplement the ordinary tests. External sending is stubbed; no real mail is sent.
 
 ## F1 and F2: disable/recovery races
 
@@ -99,13 +100,13 @@ mise run verify
 mise run ci
 ```
 
-Individual tasks are `verify:outbound`, `verify:inbound`, `verify:attachments`, and each area's `:selftest`. Normal checks return 0 on success, 1 on property/assertion failure, and 2 on tool/harness failure. Missing cases and runtime startup failures never count as success.
+Individual tasks are `verify:outbound`, `verify:inbound`, `verify:attachments`, `verify:webhooks`, and each area's `:selftest`. Each selftest includes its complete baseline, so CI runs it once per area and saves both reports. Compatible properties share a traversal; after a grouped failure, each property is checked separately before reporting named outcomes. Normal checks return 0 on success, 1 on property/assertion failure, and 2 on tool/harness failure. Missing cases and runtime startup failures never count as success. See [CI performance](ci-performance.md) for measurements and preserved checks.
 
 Each TLC JVM receives a private `java.io.tmpdir` inside the runner's scratch directory. The pinned tool extracts standard modules by basename and deletes them on exit; sharing the system temporary directory caused a reproduced parser failure during parallel checks. Real-TLC regressions check inherited-file preservation and distinct extraction paths under concurrent execution. Models, properties, bounds, and failure handling remain unchanged.
 
-Selftests inspect scratch copies with conditional claims, serialization, fencing, version checks, poison continuation, original retention, parsed persistence, or attention persistence broken. Each original outbound/inbound mutation passes only when both its model and real-code check detect it. Attachment selftests separately report six model and two source mutations, as described below. Product files stay intact.
+Selftests inspect scratch copies with conditional claims, serialization, fencing, version checks, poison continuation, original retention, parsed persistence, or attention persistence broken. Each original outbound/inbound mutation passes only when both its model and real-code check detect it. Outbound selftests additionally remove dispatch authorization and require its designated real-code assertion to fail; its complementary model is checked in the webhooks area. Attachment selftests separately report six model and two source mutations, as described below. Product files stay intact.
 
-GitHub Actions has separate outbound, inbound, and attachment jobs for models, replays, and mutations. TLC's jar is SHA-256 checked, and Actions are SHA pinned. `.verification/outbound/`, `.verification/inbound/`, and `.verification/attachments/` results/logs are retained as CI artifacts for 14 days. Snapshots live in `verification/*/evidence/results.json`.
+GitHub Actions has separate outbound, inbound, attachment, and webhook jobs for models, replays, and mutations. TLC's jar is SHA-256 checked, and Actions are SHA pinned. `.verification/outbound/`, `.verification/inbound/`, `.verification/attachments/`, and `.verification/webhooks/` results/logs are retained as CI artifacts for 14 days. Snapshots live in `verification/*/evidence/results.json`.
 
 Outbound replays run in separate isolates: leaving injected Object closures across reset crashed local workerd. Isolation does not ignore product exceptions or failures.
 
@@ -144,3 +145,15 @@ mise run ci
 ```
 
 CI runs an `attachments` formal matrix job and retains raw logs/reports. To regenerate a chart, copy `Attachments.tla`, the selected evidence `Attachments.cfg`, and the matching `Upload.map.mjs`, `Queue.map.mjs`, or `Attachments.map.mjs` into a scratch directory. Run `node .agents/skills/statechart/scripts/statechart.mjs from-spec /scratch/Attachments.tla --map /scratch/Attachments.map.mjs --cover --png` from a checkout with the pinned tools; render outputs outside the repository and inspect each PNG.
+
+## Delayed projections and dispatch authorization
+
+An old coordinator can reserve a version and start a D1 disable write before handoff, while the replacement reads an enabled inbox. The old write can then finish and acknowledge disabling before the replacement's final ownership fence. Ownership alone does not reject that stale active-state snapshot.
+
+After attachment preparation, outbound dispatch now requires `outboundDispatchBarrier` to atomically advance `active_version` while the inbox remains enabled. If disabling committed first, authorization fails and no provider request starts. If authorization committed first, the older disable projection is superseded and cannot acknowledge success. A final synchronous ownership fence still runs after that awaited D1 write and immediately before provider initiation.
+
+[`DispatchBarrier.tla`](../verification/webhooks/DispatchBarrier.tla), with `EmailOnly = TRUE`, complements the existing outbound state machine. It separates an old in-flight projection, handoff, preparation, barrier reservation/commit, a second handoff, a newer disable, the final fence, and dispatch. Bounds are one inbox, three coordinator incarnations, one old disable projection, and one later owner change. `NoObsoleteDispatch` checks that stale preparation cannot initiate a send. Removing the D1 barrier or the final fence produces a model counterexample; `verify:webhooks:selftest` runs both mutants.
+
+Two additional outbound replays use the actual coordinator classes over shared SQLite and D1: disable commits after the new actor's active read, or the new actor's barrier commits before the old disable. They run in separate isolates and controlled request contexts; they simulate handoff rather than force Cloudflare replacement. `verify:outbound:selftest` also removes the actual authorization guard and requires the first replay to fail an assertion. This source-only mutation is reported separately from the four existing model/code mutation pairs. The final-fence replay lets the authorization reservation succeed, then injects ownership loss at the final fence.
+
+The same bounded model with `EmailOnly = FALSE` also checks webhook configuration replacement. The email scenario explores 39 distinct states; the webhook scenario explores 77. The webhook area additionally models versioned configuration, durable event/delivery identity, conditional claims and settlement, and generated/explicit idempotency-key retention. All seven baseline scenarios pass, all twelve model mutants produce the designated violation, and all five separately reported real-code mutants fail their assertions. See the [model bounds and source mapping](../verification/webhooks/README.md). Cryptography, UUID collision resistance, exact-origin policy, HTTP behavior, elapsed time, delivery, and whole-program correctness are outside these finite models; real-code tests cover their concrete boundaries.

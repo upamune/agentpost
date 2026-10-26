@@ -2,6 +2,8 @@ import { mkdtemp, mkdir, readFile, writeFile, copyFile, rm, symlink } from "node
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 import { tlcCommand } from "./tlc";
+import { groupedOutcomes, modelOutcome } from "./model-results";
+import { checkDispatchBarrierMutation } from "./outbound/source-mutations";
 
 const root = resolve(import.meta.dir, "..");
 const area = process.argv[2];
@@ -10,6 +12,7 @@ const selftest = process.argv.includes("--selftest");
 const output = resolve(root, process.env.AGENTPOST_FORMAL_OUTPUT ?? `.verification/${area}`);
 const scratch = await mkdtemp(join(tmpdir(), `agentpost-${area}-`));
 const moduleName = area === "outbound" ? "Outbound" : "Inbound";
+const replayCount = area === "outbound" ? 10 : 8;
 const invariants =
   area === "outbound"
     ? [
@@ -26,6 +29,7 @@ const sourceFiles =
     ? [
         "src/coordinator.ts",
         "src/outbound.ts",
+        "src/dispatch-barrier.ts",
         "src/attachments.ts",
         "src/attachment-policy.ts",
         "src/maintenance.ts",
@@ -54,6 +58,7 @@ type Mutation = {
   needle: string;
   replacement: string;
   pattern: string;
+  testFiles?: string[];
   model?: string;
 };
 const mutations: Mutation[] =
@@ -67,6 +72,7 @@ const mutations: Mutation[] =
           needle: "AND status = 'pending' AND available_at",
           replacement: "AND available_at",
           pattern: "provider accepts the same request|unknown outcomes",
+          testFiles: ["duplicate", "unknown"],
         },
         {
           name: "serialization",
@@ -76,6 +82,7 @@ const mutations: Mutation[] =
           needle: "const result = this.tail.then(operation);",
           replacement: "const result = operation();",
           pattern: "no new provider|stale worker",
+          testFiles: ["disable", "stale"],
         },
         {
           name: "fence",
@@ -85,6 +92,7 @@ const mutations: Mutation[] =
           needle: "  beforeDispatch();",
           replacement: "  // removed ownership fence",
           pattern: "ownership fence failure",
+          testFiles: ["fence"],
         },
         {
           name: "version",
@@ -94,6 +102,7 @@ const mutations: Mutation[] =
           needle: "AND active_version < ?",
           replacement: "AND ? > 0",
           pattern: "delayed old enable",
+          testFiles: ["version"],
           model: "ActiveVersion",
         },
       ]
@@ -150,24 +159,6 @@ function run(args: string[], extra: Record<string, string | undefined> = {}) {
   return { code: result.exitCode, log };
 }
 
-function tlcOutcome(selected: string, result: ReturnType<typeof run>): "violated" | "passed" {
-  const violated = modelViolation(selected, result.log);
-  if (result.code !== 0 && !violated) throw new Error(`${selected} could not run: ${result.log}`);
-  if (
-    result.code === 0 &&
-    !result.log.includes("Model checking completed. No error has been found")
-  )
-    throw new Error(`Missing TLC completion: ${selected}`);
-  return violated ? "violated" : "passed";
-}
-
-function modelViolation(selected: string, log: string): boolean {
-  return (
-    log.includes(`Invariant ${selected} is violated`) ||
-    (properties.includes(selected) && log.includes("Temporal properties were violated"))
-  );
-}
-
 type ReplayCase = { title: string; status: string; failureMessages: string[] };
 type ReplayReport = {
   testResults: { assertionResults: ReplayCase[]; message?: string }[];
@@ -181,7 +172,7 @@ function assertReplayPopulation(
   cases: ReplayCase[],
   pattern?: string,
 ) {
-  const expected = pattern ? undefined : 8;
+  const expected = pattern ? undefined : replayCount;
   if (!cases.length || (expected && cases.length !== expected) || replayRuntimeFailed(report))
     throw new Error(
       `Replay did not run correctly; inspect ${name}-report.json: ${JSON.stringify(report.testResults.map((item) => item.message))}`,
@@ -190,6 +181,15 @@ function assertReplayPopulation(
 
 function replayRuntimeFailed(report: ReplayReport): boolean {
   return report.numRuntimeErrorTestSuites > 0 || report.numUnhandledErrors > 0;
+}
+
+function assertionFailed(item: ReplayCase): boolean {
+  return (
+    item.status === "failed" &&
+    item.failureMessages.some((message) =>
+      /AssertionError|at Assertion\.__VITEST_(?:REJECTS|RESOLVES)__/.test(message),
+    )
+  );
 }
 
 type MutantSource = { file: string; path: string };
@@ -202,7 +202,7 @@ function replayEnvironment(mutant?: MutantSource) {
   };
 }
 
-async function replay(name: string, mutant?: MutantSource, pattern?: string) {
+async function replay(name: string, mutant?: MutantSource, pattern?: string, testFiles?: string[]) {
   const reportFile = join(scratch, `${name}.json`);
   const args = [
     "bun",
@@ -215,6 +215,7 @@ async function replay(name: string, mutant?: MutantSource, pattern?: string) {
     "--outputFile",
     reportFile,
   ];
+  if (testFiles) args.push(...testFiles.map((file) => `verification/${area}/${file}.test.ts`));
   if (pattern) args.push("-t", pattern);
   const result = run(args, replayEnvironment(mutant));
   await writeFile(join(output, `${name}.log`), result.log);
@@ -236,7 +237,8 @@ async function replay(name: string, mutant?: MutantSource, pattern?: string) {
 try {
   await mkdir(output, { recursive: true });
   await symlink(join(root, "node_modules"), join(scratch, "node_modules"), "dir");
-  if (!selftest) await rm(join(output, "result.json"), { force: true });
+  await rm(join(output, "result.json"), { force: true });
+  await rm(join(output, "selftest-result.json"), { force: true });
   const types = run(["bun", "run", "tsc", "--project", `verification/${area}/tsconfig.json`]);
   if (types.code !== 0) throw new Error(`Verification harness typecheck failed: ${types.log}`);
   const installed = run(["mise", "where", "github:tlaplus/tlaplus"]);
@@ -267,11 +269,19 @@ try {
       : "";
   const config = await readFile(join(root, `verification/${area}/${moduleName}.cfg`), "utf8");
   const bare = config.replace(/^(?:INVARIANT|PROPERTY).*\n/gm, "");
-  async function tlc(name: string, selected: string, configuration = bare, model = moduleName) {
+  async function tlcRun(
+    name: string,
+    selected: string[],
+    configuration = bare,
+    model = moduleName,
+  ) {
     const selectedConfig = join(scratch, `${name}.cfg`);
     await writeFile(
       selectedConfig,
-      `${configuration}${properties.includes(selected) ? "PROPERTY" : "INVARIANT"} ${selected}\n`,
+      configuration +
+        selected
+          .map((check) => `${properties.includes(check) ? "PROPERTY" : "INVARIANT"} ${check}\n`)
+          .join(""),
     );
     const result = run(
       await tlcCommand(
@@ -289,17 +299,82 @@ try {
       ),
     );
     await writeFile(join(output, `${name}.log`), result.log);
-    return { check: selected, outcome: tlcOutcome(selected, result) };
+    return result;
   }
-  if (selftest) {
+  async function tlc(name: string, selected: string, configuration = bare, model = moduleName) {
+    return modelOutcome(selected, await tlcRun(name, [selected], configuration, model), properties);
+  }
+  async function baselineChecks(selected: string[], configuration = bare, model = moduleName) {
+    const name = `${model}-baseline`;
+    const combined = await tlcRun(name, selected, configuration, model);
+    const results = await groupedOutcomes(selected, properties, combined, (check) =>
+      tlcRun(`${name}-${check}`, [check], configuration, model),
+    );
+    return results.map((result) => ({
+      ...result,
+      log: `${combined.code === 0 ? name : `${name}-${result.check}`}.log`,
+    }));
+  }
+  const checks = await baselineChecks([...invariants, ...properties]);
+  if (area === "outbound") {
+    const version = await baselineChecks(
+      ["TypeOK", "NoStaleActiveWrite"],
+      versionConfig,
+      "ActiveVersion",
+    );
+    checks.push(
+      ...version.map((result) => ({
+        ...result,
+        check: result.check === "TypeOK" ? "ActiveVersionTypeOK" : result.check,
+      })),
+    );
+  }
+  for (const check of checks) console.log(`${area}/${check.check}: ${check.outcome}`);
+  const actual = await replay("replay");
+  const hashes = await Promise.all(
+    sourceFiles.map(async (path) => ({
+      path,
+      sha256: new Bun.CryptoHasher("sha256").update(await readFile(join(root, path))).digest("hex"),
+    })),
+  );
+  const evidence = {
+    verifiedProductCommit: (
+      await readFile(join(root, "verification/product-revision.txt"), "utf8")
+    ).trim(),
+    bounds:
+      area === "outbound"
+        ? { workers: 2, maxClaims: 8, actualRetryLimit: 8 }
+        : { originals: 3, valid: 2, poisoned: 1, pageSize: 1, transientFaults: 2 },
+    assumptions:
+      area === "outbound"
+        ? [
+            "D1 statements atomic; no rollback",
+            "429/explicit rejection never accepted mail",
+            "unknown may have accepted mail",
+            "actor serialization and synchronous ownership fence; delayed replaced actors included",
+          ]
+        : [
+            "originals already successfully persisted",
+            "finite stable corpus",
+            "at most two transient faults",
+            "weakly fair successful Cron, queue and parse actions",
+            "two valid originals fit MIME and 16 MiB parsed-output limits and parse successfully; one poisoned metadata object",
+          ],
+    sourceFiles: hashes,
+    checks,
+    replay: actual,
+  };
+  await writeFile(join(output, "result.json"), JSON.stringify(evidence, null, 2));
+  console.log(`Evidence: ${output}`);
+  const baselineFailed =
+    checks.some((check) => check.outcome === "violated") || actual.exitCode !== 0;
+  if (baselineFailed) {
+    process.exitCode = 1;
+  } else if (selftest) {
+    const results = [];
     for (const mutation of mutations) {
       const baselineConfig = mutation.model ? versionConfig : bare;
       for (const check of mutation.checks) {
-        if (
-          (await tlc(`original-${mutation.name}-${check}`, check, baselineConfig, mutation.model))
-            .outcome !== "passed"
-        )
-          throw new Error(`Baseline ${check} failed`);
         const config = baselineConfig.replace(
           `${mutation.constant} = FALSE`,
           `${mutation.constant} = TRUE`,
@@ -327,79 +402,47 @@ try {
       }
       const path = join(scratch, `${mutation.file}.ts`);
       await writeFile(path, broken.replaceAll('from "./', `from "${root}/src/`));
-      const good = await replay(`original-${mutation.name}`, undefined, mutation.pattern);
       const bad = await replay(
         `mutant-${mutation.name}`,
         { file: mutation.file, path },
         mutation.pattern,
+        mutation.testFiles,
       );
+      const expectedCases = actual.cases.filter((item) =>
+        new RegExp(mutation.pattern).test(item.title),
+      ).length;
       if (
-        good.exitCode !== 0 ||
+        !expectedCases ||
+        bad.cases.length !== expectedCases ||
         bad.exitCode === 0 ||
-        !bad.cases.some((item) => item.status === "failed")
+        !bad.cases.every(assertionFailed)
       )
         throw new Error(`Real-code mutation not detected: ${mutation.name}`);
       console.log(`${area}/${mutation.name}: model and real-code mutations detected`);
+      results.push({
+        name: mutation.name,
+        checks: mutation.checks,
+        baseline: "replay",
+        model: "violated",
+        source: "assertion-failed",
+      });
     }
-  } else {
-    const checks = [];
-    for (const check of [...invariants, ...properties]) {
-      const result = await tlc(check, check);
-      checks.push(result);
-      console.log(`${area}/${check}: ${result.outcome}`);
-    }
-    if (area === "outbound") {
-      const types = await tlc("ActiveVersionTypeOK", "TypeOK", versionConfig, "ActiveVersion");
-      checks.push({ ...types, check: "ActiveVersionTypeOK" });
-      const result = await tlc(
-        "NoStaleActiveWrite",
-        "NoStaleActiveWrite",
-        versionConfig,
-        "ActiveVersion",
-      );
-      checks.push(result);
-      console.log(`${area}/NoStaleActiveWrite: ${result.outcome}`);
-    }
-    const actual = await replay("replay");
-    const hashes = await Promise.all(
-      sourceFiles.map(async (path) => ({
-        path,
-        sha256: new Bun.CryptoHasher("sha256")
-          .update(await readFile(join(root, path)))
-          .digest("hex"),
-      })),
+    await writeFile(
+      join(output, "selftest-result.json"),
+      JSON.stringify(
+        {
+          baseline: "result.json",
+          mutations: results,
+          sourceMutations:
+            area === "outbound"
+              ? [await checkDispatchBarrierMutation(root, scratch, actual, replay)]
+              : [],
+          sourceFiles: hashes,
+        },
+        null,
+        2,
+      ),
     );
-    const evidence = {
-      verifiedProductCommit: (
-        await readFile(join(root, "verification/product-revision.txt"), "utf8")
-      ).trim(),
-      bounds:
-        area === "outbound"
-          ? { workers: 2, maxClaims: 8, actualRetryLimit: 8 }
-          : { originals: 3, valid: 2, poisoned: 1, pageSize: 1, transientFaults: 2 },
-      assumptions:
-        area === "outbound"
-          ? [
-              "D1 statements atomic; no rollback",
-              "429/explicit rejection never accepted mail",
-              "unknown may have accepted mail",
-              "actor serialization and synchronous ownership fence; delayed replaced actors included",
-            ]
-          : [
-              "originals already successfully persisted",
-              "finite stable corpus",
-              "at most two transient faults",
-              "weakly fair successful Cron, queue and parse actions",
-              "two valid originals fit MIME and 16 MiB parsed-output limits and parse successfully; one poisoned metadata object",
-            ],
-      sourceFiles: hashes,
-      checks,
-      replay: actual,
-    };
-    await writeFile(join(output, "result.json"), JSON.stringify(evidence, null, 2));
-    console.log(`Evidence: ${output}`);
-    process.exitCode =
-      checks.some((check) => check.outcome === "violated") || actual.exitCode !== 0 ? 1 : 0;
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : "Verification tool failed");
