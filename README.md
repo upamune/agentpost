@@ -14,9 +14,9 @@
 
 [English](README.md) | [日本語](README.ja.md) | [Website](https://upamune.github.io/agentpost/)
 
-**A different email address for every site. Managed by your AI agent.**
+**A different email address for every site. Receive, send, and reply with your AI agent.**
 
-Use a fresh alias for each signup, receipt, or newsletter instead of sharing your personal email address everywhere. Agentpost creates independent inboxes on your own domain, lets your agent read and reply through CLI, MCP, or API, and lets you disable an unwanted address without affecting the others. Open source and self-hosted on your Cloudflare account.
+Use a fresh alias for each signup, receipt, or newsletter instead of sharing your personal email address everywhere. Agentpost creates independent inboxes on your own domain, lets your agent receive, forward, send, and reply through CLI, MCP, or API, and lets you disable an unwanted address without affecting the others. Open source and self-hosted on your Cloudflare account.
 
 ```sh
 # 1. Create an alias for one site (with administrator credentials).
@@ -27,11 +27,19 @@ agentpost inbox create --label shop.example
 agentpost message list INBOX_ID
 agentpost message get INBOX_ID MESSAGE_ID
 
-# 3. Stop mail to this address when you no longer need it (administrator).
+# 3. Reply from the same alias, with an attachment.
+agentpost reply INBOX_ID MESSAGE_ID \
+  --text 'Thanks! Here is the requested document.' --attach document.pdf
+
+# 4. Start a new conversation from the alias, too.
+agentpost send INBOX_ID --to support@shop.example \
+  --subject 'Invoice request' --text 'Could you send a copy of my invoice?'
+
+# 5. Stop mail to this address when you no longer need it (administrator).
 agentpost inbox disable INBOX_ID
 ```
 
-The commands require a [configured instance and credentials](INSTALL.md). New names default to three random English words joined by hyphens; `--local-part` still lets you choose one. Save the returned inbox ID and credentials privately. Inbox tokens can read and send mail; creating and disabling addresses requires administrator access (OAuth agents can create owned inboxes).
+The examples need a [configured instance and credentials](INSTALL.md); IDs are placeholders and the attachment example needs a local `document.pdf`. New names default to three random English words joined by hyphens; `--local-part` lets you choose one. Inbox tokens can read and send mail; creating and disabling addresses requires administrator access (OAuth agents can create owned inboxes). See [sending and safe retries](#send-a-message) for outbox states and idempotency keys.
 
 This is the **per-site alias** use case familiar from DuckDuckGo Email Protection, with inboxes your agents can operate. Optional [native forwarding](docs/forwarding.md) sends copies to verified, operator-allowed destinations, using a global default or per-inbox inherit/custom/off settings. Agentpost **does not remove email trackers**. Mail is stored in your own Cloudflare account. Your domain and message content may still link accounts; aliases do not guarantee anonymity. Disabling rejects new inbound mail and blocks new sends; it retains stored messages and reserves the address.
 
