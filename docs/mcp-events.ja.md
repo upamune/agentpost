@@ -112,3 +112,7 @@ watchは通知をNDJSONで標準出力に書き、書き出し完了後にカー
 ## ドメイン診断ツール
 
 `check_domain` は空の引数 `{}` を取り、設定済みのドメインを読み取り専用で診断します。管理者トークンまたはOAuth `admin` が必要です。失敗項目も通常の構造化レポートとして返し、イベント購読・送信・DNS変更は行いません。[診断の範囲](domain-diagnostics.ja.md)を参照してください。
+
+## 送信添付ツール
+
+`upload_attachment` は受信箱ID・ファイル名・正規Base64を受け取り、非公開の添付IDと `scan_status: not_scanned` を返します。`send_email`・`reply_email` の `attachments` にIDを指定します。リモート要求上限は5 MiB、1ファイルと本文込みの内容合計は3 MiB、添付は最大10個です。通常の送信JSONは512 KiB以内です。[送信添付ガイド](outbound-attachments.ja.md)に許可形式・保持方針・再試行の手順があります。Eventsの内容にはバイナリを含めず、core・Events draftの版は変えません。

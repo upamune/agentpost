@@ -1,0 +1,11 @@
+{"version": 2, "width": 100, "height": 36, "timestamp": 1792985214, "title": "Agentpost local fixture demo", "env": {"TERM": "xterm-256color"}}
+[0, "o", "Agentpost | your domain, an inbox for every agent\r\nLocal fixture demo - no external email\r\n\r\n"]
+[1, "o", "$ agentpost inbox create --local-part research | jq '{id,address}'\r\n"]
+[3, "o", "{\r\n  \"id\": \"b745adfc-1aa3-4c57-8000-216b049023dd\",\r\n  \"address\": \"research@example.com\"\r\n}\r\n\r\n"]
+[8, "o", "# Receive a fixture email through local Wrangler\r\n"]
+[11, "o", "$ agentpost message list \"$INBOX_ID\" | jq ' .items[] | {id,subject,status}'\r\n"]
+[13, "o", "{\r\n  \"id\": \"f5ccab64d40cda32985f68b2bc480e7944fb709b8a5e1de1a152baff767708de\",\r\n  \"subject\": \"Please send the results\",\r\n  \"status\": \"ready\"\r\n}\r\n\r\n"]
+[20, "o", "$ agentpost reply \"$INBOX_ID\" \"$MESSAGE_ID\" \\\r\n    --text \"The results are attached.\" --attach ./report.csv \\\r\n    --idempotency-key demo-reply-1\r\n"]
+[23, "o", "{\r\n  \"id\": \"0b266c4a-bb47-4df8-b288-0f36ff1404fe\",\r\n  \"status\": \"pending\",\r\n  \"attachments\": [\r\n    \"7c2a3604bbaf46782c51202fb9e0ff0945160c88da20481ae07daf486a4f4066\"\r\n  ]\r\n}\r\n\r\n"]
+[28, "o", "Queued locally. Provider acceptance and delivery are separate checks.\r\n"]
+[30, "o", ""]

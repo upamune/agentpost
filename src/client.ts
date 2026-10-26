@@ -1,3 +1,4 @@
+import { validateAttachment } from "./attachment-policy";
 import { MAX_REQUEST_BYTES, readBounded } from "./common";
 import { stringifyBoundedJson } from "./bounded-json";
 import { hasUrlExtras, hasUrlUserInfo, isHttpsOrLoopbackHttp } from "./transport-url";
@@ -96,7 +97,7 @@ export class MailClient {
     key?: string,
     signal?: AbortSignal,
   ): Promise<Response> {
-    const response = await this.request(this.target(path), {
+    return this.perform(path, {
       method,
       redirect: "manual",
       signal: signal
@@ -105,8 +106,28 @@ export class MailClient {
       headers: this.headers(body, key),
       body: requestBody(body),
     });
+  }
+
+  private async perform(path: string, init: RequestInit): Promise<Response> {
+    const response = await this.request(this.target(path), init);
     if (!response.ok) rejectApiResponse(response);
     return response;
+  }
+
+  async uploadAttachment(inbox: string, filename: string, bytes: Uint8Array): Promise<unknown> {
+    validateAttachment(bytes, filename);
+    const response = await this.perform(`/v1/inboxes/${encodeURIComponent(inbox)}/attachments`, {
+      method: "POST",
+      redirect: "manual",
+      signal: AbortSignal.timeout(30_000),
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        "Content-Type": "application/octet-stream",
+        "Agentpost-Filename": encodeURIComponent(filename),
+      },
+      body: bytes,
+    });
+    return this.json(response);
   }
 
   private headers(body: unknown, key: string | undefined): HeadersInit {
@@ -125,6 +146,10 @@ export class MailClient {
     signal?: AbortSignal,
   ): Promise<unknown> {
     const response = await this.response(method, path, body, key, signal);
+    return this.json(response);
+  }
+
+  private async json(response: Response): Promise<unknown> {
     try {
       if (oversizedJson(response)) {
         void response.body?.cancel().catch(() => {});

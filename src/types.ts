@@ -55,7 +55,10 @@ export interface SendPayload {
   text: string;
   html?: string;
   headers?: Record<string, string>;
+  attachments?: { content: string; filename: string; type: string; disposition: "attachment" }[];
 }
+
+export type StoredSendPayload = Omit<SendPayload, "attachments"> & { attachments?: string[] };
 
 export interface Outbox {
   id: string;

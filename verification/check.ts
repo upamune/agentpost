@@ -26,6 +26,8 @@ const sourceFiles =
     ? [
         "src/coordinator.ts",
         "src/outbound.ts",
+        "src/attachments.ts",
+        "src/attachment-policy.ts",
         "src/maintenance.ts",
         "src/api.ts",
         "src/index.ts",
@@ -80,8 +82,8 @@ const mutations: Mutation[] =
           constant: "UnsafeFence",
           checks: ["NoDispatchAfterDisable", "NoDispatchAfterUnknown"],
           file: "outbound",
-          needle: "    beforeDispatch();",
-          replacement: "    // removed ownership fence",
+          needle: "  beforeDispatch();",
+          replacement: "  // removed ownership fence",
           pattern: "ownership fence failure",
         },
         {

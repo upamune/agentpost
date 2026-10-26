@@ -5,7 +5,7 @@ function oversizedFile(limit: number): Error {
   return new Error(`Local file exceeds the ${limit}-byte size limit`);
 }
 
-async function readContents(file: FileHandle, limit: number): Promise<string> {
+async function readContents(file: FileHandle, limit: number): Promise<Uint8Array> {
   const bytes = new Uint8Array(limit + 1);
   let size = 0;
   while (size < bytes.byteLength) {
@@ -14,13 +14,11 @@ async function readContents(file: FileHandle, limit: number): Promise<string> {
     size += bytesRead;
   }
   if (size > limit) throw oversizedFile(limit);
-  return new TextDecoder("utf-8", { fatal: false, ignoreBOM: true }).decode(
-    bytes.subarray(0, size),
-  );
+  return bytes.subarray(0, size);
 }
 
 /** Follow regular-file symlinks, but never consume devices, FIFOs, or an unbounded file. */
-export async function readLocalText(path: string, limit: number): Promise<string> {
+export async function readLocalBytes(path: string, limit: number): Promise<Uint8Array> {
   const file = await open(path, constants.O_RDONLY | constants.O_NONBLOCK);
   try {
     const info = await file.stat();
@@ -31,4 +29,10 @@ export async function readLocalText(path: string, limit: number): Promise<string
   } finally {
     await file.close();
   }
+}
+
+export async function readLocalText(path: string, limit: number): Promise<string> {
+  return new TextDecoder("utf-8", { fatal: false, ignoreBOM: true }).decode(
+    await readLocalBytes(path, limit),
+  );
 }

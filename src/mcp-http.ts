@@ -1,3 +1,4 @@
+import { MAX_MCP_REQUEST_BYTES } from "./attachment-policy";
 import { createMcpHandler } from "@modelcontextprotocol/server";
 import app from "./api";
 import { authenticate } from "./auth";
@@ -24,7 +25,7 @@ export async function handleMcp(
     },
   });
   const handler = createMcpHandler(() => createMailServer(client), {
-    maxRequestBodySize: 512 * 1024,
+    maxRequestBodySize: MAX_MCP_REQUEST_BYTES,
     maxSubscriptions: 32,
     onerror: () => console.error(JSON.stringify({ event: "mcp_request_failed" })),
   });

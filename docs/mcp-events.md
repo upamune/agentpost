@@ -111,3 +111,7 @@ Errors go to stderr. Authorization failures and invalid cursors are not skipped 
 ## Domain diagnostic tool
 
 `check_domain` accepts `{}` and returns a read-only report for the configured mail domain. It requires an admin token or OAuth `admin`. Failed findings remain normal structured diagnostic data; this tool neither subscribes to events nor sends mail or modifies DNS. See [diagnostic scope](domain-diagnostics.md).
+
+## Outbound attachment tools
+
+`upload_attachment` takes an inbox ID, filename, and canonical Base64 and returns a private attachment ID with `scan_status: not_scanned`. Pass IDs in `attachments` to `send_email` or `reply_email`. Remote requests are capped at 5 MiB, individual files and combined decoded mail content at 3 MiB, and attachments at ten. Standard send JSON remains bounded at 512 KiB. See [file policy, retention, and retry instructions](outbound-attachments.md). Events contain no binary content; this feature changes neither the core nor the pinned Events draft version.

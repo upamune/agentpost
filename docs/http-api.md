@@ -81,3 +81,7 @@ Disabling waits for earlier send processing and persists the disabled state befo
 ## Domain diagnostics
 
 `GET /v1/domain/check` is read-only and fixed to the configured mail domain. A completed report uses HTTP 200 even for failed checks; inspect JSON `status` and `checks`. An admin token or OAuth `admin` grant is required. It neither sends mail nor modifies DNS. See [scope, exit codes and limits](domain-diagnostics.md).
+
+## Attachment uploads
+
+`POST /v1/inboxes/{inbox}/attachments` accepts `application/octet-stream` and a percent-encoded `Agentpost-Filename`, returning a private attachment ID. Send and reply accept an optional `attachments` array of IDs. Binary content is not included in the send JSON. See [limits, idempotency, and file policy](outbound-attachments.md).

@@ -100,3 +100,7 @@ CLI・stdio MCPの成功JSON応答は64 MiBまでです。大きなoutbox一覧�
 ## ドメイン診断
 
 `GET /v1/domain/check` は設定済みのドメインに固定した読み取り専用の診断です。レポートを生成できれば検査がfailでもHTTP 200を返すため、JSONの `status` と `checks` を確認してください。管理者トークンまたはOAuth `admin` が必要です。送信やDNS変更は行いません。[検査範囲・終了コード・制限](domain-diagnostics.ja.md)を参照してください。
+
+## 添付アップロード
+
+`POST /v1/inboxes/{inbox}/attachments` は `application/octet-stream` とパーセントエンコードした `Agentpost-Filename` を受け取り、非公開の添付IDを返します。送信・返信は任意の `attachments` ID配列を受け付けます。バイナリはJSON本体に含めません。[上限・冪等性・危険ファイルの扱い](outbound-attachments.ja.md)を参照してください。

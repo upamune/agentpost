@@ -5,16 +5,19 @@ description: Check agentpost outbound claims, actor ownership, inbox disabling, 
 
 # Verify outbound safety
 
-Run in the source checkout. Last synchronized with product commit `741a80e7d576a33746c1b1b2919364104094fc2e`, following the original findings at `ed15d43123471a7de7c89be7f77f5380da136dc9`.
+Run in the source checkout. Last synchronized with product commit `cf0404a122affd2205664b8f77a21d48510385b6`, following the original findings at `ed15d43123471a7de7c89be7f77f5380da136dc9`.
 
 ## Covered code
 
 - `src/coordinator.ts`: `serialize` holds a per-inbox operation across awaits; `fence` synchronously checks ownership immediately before dispatch; `setActive` versions its D1 projection; `recover` rechecks stale state inside serialization.
+- `src/attachments.ts` and `src/attachment-policy.ts`: inbox-scoped immutable uploads, bounded file policy, digest verification and provider preparation; `verification/attachments/Attachments.tla` checks upload, queue and preparation snapshots.
 - `src/outbound.ts`: `processOutbound` conditionally claims a matching inbox/outbox, reads active state, fences and starts the provider in the same JavaScript turn, then `settleSend` conditionally saves the outcome. `cloudflareSend` classifies ambiguous acceptance and explicit rejection.
 - `src/api.ts` inbox PATCH, `src/index.ts` queue and `src/maintenance.ts` stale recovery all route through the same named coordinator. `wrangler.jsonc` binds the class and SQLite migration.
 - `migrations/0001_mail.sql` preserves idempotency and claim state; `0004_inbox_active_version.sql` rejects old active-state projections.
 
-Inspect covered-code changes since the sync commit, including uncommitted changes. `Outbound.tla` separates mutex acquisition, D1 claim, active read, dispatch, outcome persistence, crash and ownership replacement. A replaced event may resume until the storage fence rejects it. `ActiveVersion.tla` independently checks an old enable write arriving after a newer disable. Each D1 statement and each synchronous SQLite operation is atomic; external awaits remain separate.
+Run `mise run verify:attachments` and `mise run verify:attachments:selftest` for attachment changes as well. The latter checks six model mutants and two real-code mutations (inbox authorization and digest verification); four remaining mutants are model-only. `test/attachment-handoff.test.ts` separately exercises ownership loss while real R2 reads await.
+
+Inspect covered-code changes since the sync commit, including uncommitted changes. `Outbound.tla` separates mutex acquisition, D1 claim, active read, attachment preparation success/failure, dispatch, outcome persistence, crash and ownership replacement. A replaced event may resume until the storage fence rejects it. `ActiveVersion.tla` independently checks an old enable write arriving after a newer disable. Each D1 statement and each synchronous SQLite operation is atomic; external awaits remain separate.
 
 ## Run
 

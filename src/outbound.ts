@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { prepareAttachments } from "./attachments";
+import { AttachmentError } from "./attachment-policy";
 import type { Env, Outbox, SendPayload } from "./types";
 
 const providerResponse = z.object({
@@ -113,10 +115,7 @@ export async function processOutbound(
     .first<{ active: number }>();
   let result: SendResult;
   if (inbox?.active) {
-    const payload = JSON.parse(row.payload);
-    beforeDispatch();
-    // No await between the ownership fence and starting the provider request.
-    result = await sender(env, payload);
+    result = await dispatchPrepared(env, row, beforeDispatch, sender);
   } else {
     result = { status: "failed", error: "Inbox is disabled" };
   }
@@ -153,4 +152,26 @@ async function settleSend(
 function providerOutcomeFields(result: SendResult) {
   if (result.status === "accepted") return { providerResult: result.result, error: null };
   return { providerResult: null, error: result.error };
+}
+
+async function dispatchPrepared(
+  env: Env,
+  row: Outbox,
+  beforeDispatch: () => void,
+  sender: typeof cloudflareSend,
+): Promise<SendResult> {
+  let payload: SendPayload;
+  try {
+    payload = await prepareAttachments(env, row.inbox_id, JSON.parse(row.payload));
+  } catch (error) {
+    if (error instanceof AttachmentError) return { status: "failed", error: error.message };
+    return {
+      status: "retry",
+      error: "Attachment storage unavailable before dispatch; no provider request was made",
+      delay: 30,
+    };
+  }
+  beforeDispatch();
+  // No await between the ownership fence and starting the provider request.
+  return sender(env, payload);
 }

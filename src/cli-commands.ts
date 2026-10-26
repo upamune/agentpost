@@ -1,3 +1,5 @@
+import { basename } from "node:path";
+import { MAX_ATTACHMENT_BYTES, MAX_ATTACHMENTS, attachmentIdsSchema } from "./attachment-policy";
 import { parseArgs } from "node:util";
 import { open } from "node:fs/promises";
 import { z } from "zod";
@@ -5,7 +7,7 @@ import { MAX_MAIL_BYTES, MAX_REQUEST_BYTES, readBounded } from "./common";
 import { MailClient } from "./client";
 import { inboxInputSchema } from "./inbox-schema";
 import { watchEvents } from "./watch";
-import { readLocalText } from "./local-file";
+import { readLocalBytes, readLocalText } from "./local-file";
 
 export function parseCliArgs(args: string[]) {
   return parseArgs({
@@ -26,6 +28,8 @@ export function parseCliArgs(args: string[]) {
       "max-age-ms": { type: "string" },
       to: { type: "string", multiple: true },
       subject: { type: "string" },
+      attach: { type: "string", multiple: true },
+      "attachment-id": { type: "string", multiple: true },
       text: { type: "string" },
       "text-file": { type: "string" },
       "html-file": { type: "string" },
@@ -170,27 +174,71 @@ function outboxCommand(
   }
 }
 
+async function uploadFile(client: MailClient, id: string, file: string) {
+  return client.uploadAttachment(
+    id,
+    basename(file),
+    await readLocalBytes(file, MAX_ATTACHMENT_BYTES),
+  );
+}
+
+async function attachmentBody(client: MailClient, id: string, values: Values) {
+  const files = values.attach ?? [];
+  const ids = [...(values["attachment-id"] ?? [])];
+  if (files.length + ids.length > MAX_ATTACHMENTS)
+    throw new Error("At most 10 attachments are allowed");
+  for (const file of files) {
+    const result = z.object({ id: z.string() }).parse(await uploadFile(client, id, file));
+    ids.push(result.id);
+  }
+  const attachments = attachmentIdsSchema.parse(ids);
+  return attachments ? { attachments } : {};
+}
+
+async function attachmentCommand(client: MailClient, args: Arguments) {
+  const [, action, id, file] = args.positionals;
+  if (action !== "upload") throw new Error("Unknown attachment command");
+  return uploadFile(client, inboxId(id), required(file, "FILE"));
+}
+
 async function sendCommand(client: MailClient, { values, positionals: [, id] }: Arguments) {
+  const inbox = inboxId(id);
+  const subject = required(values.subject, "--subject");
+  const key = required(values["idempotency-key"], "--idempotency-key");
+  const to = z
+    .array(z.email())
+    .min(1)
+    .max(50)
+    .parse(values.to ?? []);
+  const body = await mailBody(values);
   return client.call(
     "POST",
-    `${path(id)}/send`,
+    `${path(inbox)}/send`,
     {
-      to: values.to ?? [],
-      subject: required(values.subject, "--subject"),
-      ...(await mailBody(values)),
+      to,
+      subject,
+      ...body,
+      ...(await attachmentBody(client, inbox, values)),
     },
-    required(values["idempotency-key"], "--idempotency-key"),
+    key,
   );
 }
 async function replyCommand(
   client: MailClient,
   { values, positionals: [, id, message] }: Arguments,
 ) {
+  const inbox = inboxId(id);
+  const messageId = encoded(message, "MESSAGE_ID");
+  const key = required(values["idempotency-key"], "--idempotency-key");
+  const body = await mailBody(values);
   return client.call(
     "POST",
-    `${path(id)}/messages/${encoded(message, "MESSAGE_ID")}/reply`,
-    await mailBody(values),
-    required(values["idempotency-key"], "--idempotency-key"),
+    `${path(inbox)}/messages/${messageId}/reply`,
+    {
+      ...body,
+      ...(await attachmentBody(client, inbox, values)),
+    },
+    key,
   );
 }
 
@@ -244,6 +292,7 @@ const commands = new Map<string, CliCommand>([
   ["domain", withOutput(domainCommand)],
   ["inbox", withOutput(inboxCommand)],
   ["message", withOutput(messageCommand)],
+  ["attachment", withOutput(attachmentCommand)],
   ["outbox", withOutput(outboxCommand)],
   ["send", withOutput(sendCommand)],
   ["reply", withOutput(replyCommand)],

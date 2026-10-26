@@ -1,0 +1,87 @@
+{
+  "bounds": {
+    "inboxes": 2,
+    "immutableFiles": 2,
+    "concurrentRequests": 2,
+    "idempotencyKeys": 1,
+    "storageFaults": 1
+  },
+  "assumptions": [
+    "Collision-free content and descriptor hashes",
+    "Atomic D1 uniqueness and conditional R2 puts",
+    "One immutable R2 GET snapshot",
+    "Provider ambiguity and actor fencing remain covered by Outbound.tla"
+  ],
+  "checks": [
+    {
+      "name": "upload",
+      "outcome": "passed"
+    },
+    {
+      "name": "isolation",
+      "outcome": "passed"
+    },
+    {
+      "name": "queue",
+      "outcome": "passed"
+    },
+    {
+      "name": "prepare",
+      "outcome": "passed"
+    },
+    {
+      "name": "conditional-put",
+      "outcome": "mutation-detected"
+    },
+    {
+      "name": "inbox-binding",
+      "outcome": "mutation-detected"
+    },
+    {
+      "name": "payload-hash",
+      "outcome": "mutation-detected"
+    },
+    {
+      "name": "integrity",
+      "outcome": "mutation-detected"
+    },
+    {
+      "name": "missing-object-validation",
+      "outcome": "mutation-detected"
+    },
+    {
+      "name": "snapshot",
+      "outcome": "mutation-detected"
+    }
+  ],
+  "sourceMutations": [
+    {
+      "name": "inbox-binding",
+      "baseline": "passed",
+      "mutation": "assertion-failed"
+    },
+    {
+      "name": "integrity",
+      "baseline": "passed",
+      "mutation": "assertion-failed"
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/attachments.ts",
+      "sha256": "44047255c25ed9e74548cee2cd1790de603d7d894a71be1ddbbca4e44d229d79"
+    },
+    {
+      "path": "src/attachment-policy.ts",
+      "sha256": "2b638e65863e54bdfc8d2524551bd1d6866db431c5504e8a41ba1bbc390ae8c1"
+    },
+    {
+      "path": "src/api.ts",
+      "sha256": "b73d78e0ae6a49d889f2b71572237c72e989993b0ad7892683276be0b4dd1939"
+    },
+    {
+      "path": "src/outbound.ts",
+      "sha256": "d597582bb737f09ece50a5cd5150bef313327a87ef557519e9c0a7c3a8848bb2"
+    }
+  ]
+}

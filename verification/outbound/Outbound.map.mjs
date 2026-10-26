@@ -1,10 +1,16 @@
 export const readerActions = ["Disable"];
 function stage(v) {
   const stages = Object.values(v.pc);
-  if (stages.includes("waiting")) return "Provider request in flight";
-  if (stages.includes("checked")) return checkedStage(v);
-  if (stages.includes("claimed")) return "Worker claimed request";
-  if (stages.includes("result")) return "Provider result awaits saving";
+  const labels = new Map([
+    ["waiting", "Provider request in flight"],
+    ["prepared", "Attachments verified; ready to check ownership"],
+    ["checked", checkedStage(v)],
+    ["claimed", "Worker claimed request"],
+    ["result", "Send result awaits saving"],
+  ]);
+  for (const [name, label] of labels) {
+    if (stages.includes(name)) return label;
+  }
   return v.status === "pending" ? "Queued for a worker" : "No provider call running";
 }
 function checkedStage(v) {
@@ -25,6 +31,8 @@ const labels = {
   FenceRejected: "Stop the old actor before it can send",
   Claim: "Worker claims queued request",
   ReadActive: "Read whether inbox is enabled",
+  PrepareSuccess: "Read and verify private attachments",
+  PrepareFailure: "Stop before provider; missing, invalid or unavailable attachment",
   Dispatch: "Start a request to the email provider",
   RejectDisabled: "Reject a disabled inbox",
   ProviderReply: "Provider replies",

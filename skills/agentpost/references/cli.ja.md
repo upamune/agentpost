@@ -68,3 +68,7 @@ agentpost events watch \
 ## ドメインを診断する
 
 許可された管理者として `agentpost domain check` を実行します。警告も失敗にする場合は`--strict`を付けます。設定上の問題があってもJSONを出力し、終了コードは0がpass/warning、1がfail（またはstrict時のwarning）、2が既知のfailはなくunknownがある場合です。HTTP 200や終了コード0だけで配送済みと判断せず、全項目を確認します。対象は運用者の設定済みドメインであり、送信やDNS変更は行いません。
+
+## 添付付き送信・返信
+
+`--attach /absolute/path/report.pdf` をsend/replyに繰り返し指定できます。再試行に備える場合は `attachment upload INBOX_ID FILE` のIDを保存し、`--attachment-id ID` で再利用します。[添付の手順](attachments.ja.md)で上限・危険ファイル・保持方針を確認してください。

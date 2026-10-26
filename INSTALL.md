@@ -157,3 +157,7 @@ Report the executable or checkout path, CLI version, skill installation scope, a
 ## Diagnose domain configuration
 
 After hosting setup, or when investigating authentication/deliverability, use MCP `check_domain` or CLI `domain check` with authorized administrator access. Do not automatically replace inbox/OAuth-agent credentials with admin credentials. Inspect pass/warning/fail/unknown findings and remediation; diagnostics do not guarantee delivery. Do not send a test message without a specified, authorized recipient or automatically edit DNS. See [setup and limits](docs/domain-diagnostics.md).
+
+## Send and reply with attachments
+
+Repeat `--attach /absolute/path/report.pdf` on `send` or `reply`. Use `attachment upload INBOX_ID FILE` to upload first, then `--attachment-id ID` to reuse saved IDs. MCP uses `upload_attachment` followed by `send_email` or `reply_email`. Both the Worker and client must support attachments. Read [formats, limits, retention, and retries](docs/outbound-attachments.md). Real recipients and content still require the user's authorization.

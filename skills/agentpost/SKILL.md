@@ -34,6 +34,8 @@ Send or reply only within the user's authorized recipient and purpose. Installin
 
 Before calling `send_email` or `reply_email`, persist one idempotency key with the inbox and exact payload for that logical message. Keep that same key and payload for retries, including after a network timeout or lost response. If inbox creation times out, inspect the existing inbox list instead of blindly allocating another address.
 
+For attachment sends/replies, first read [attachment workflow](references/attachments.md). Upload only user-authorized artifacts and save the returned inbox-scoped IDs with the exact payload/key. Prefer CLI `--attach` for local files; remote MCP uses `upload_attachment` with canonical Base64. Files are retained privately and are not virus-scanned.
+
 Save the returned outbox ID and use `get_send_status` or `list_outbox` to inspect the result:
 
 | State                 | Meaning and action                                                                               |

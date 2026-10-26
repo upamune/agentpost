@@ -2,6 +2,12 @@
 
 [English](CHANGELOG.md) | [日本語](CHANGELOG.ja.md)
 
+## 0.2.0
+
+- Send and reply with private, inbox-scoped attachments through the API, CLI, and MCP. Validate content integrity before dispatch, preserve idempotency, and document file limits, retention, and the absence of antivirus scanning.
+- Add attachment safety models, deliberate mutation checks, and real-storage/actor-handoff regressions to CI.
+- Lead the README with the product workflow, four badges, and a 30-second local fixture demo.
+
 ## 0.1.4
 
 - Bound local mail and checkpoint file reads, reject devices/FIFOs, and enforce the complete serialized API request limit before submission. Preserve Unicode mail and stop on invalid saved checkpoints.

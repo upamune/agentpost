@@ -1,3 +1,5 @@
+import { executeCli, parseCliArgs } from "../src/cli-commands";
+import { MAX_ATTACHMENT_BYTES, encodeAttachment } from "../src/attachment-policy";
 import { afterEach, describe, expect, test } from "bun:test";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { createMcpHandler } from "@modelcontextprotocol/server";
@@ -863,4 +865,176 @@ describe("agent client and MCP", () => {
       await server.close();
     }
   });
+});
+
+test("CLI uploads binary files before send and reply, with stable attachment references", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "agentpost-outbound-"));
+  const file = join(directory, "report.csv");
+  const data = new TextEncoder().encode("name,value\nanswer,42\n");
+  await writeFile(file, data);
+  const requests: { path: string; headers: Headers; body: BodyInit | null | undefined }[] = [];
+  const id = "a".repeat(64);
+  const inbox = "ce2a9661-bef3-4d2c-9eb8-cd7bacb79720";
+  const client = new MailClient({
+    url: "https://mail.example.com",
+    token: "inbox-secret",
+    fetch: async (url, init) => {
+      requests.push({ path: url.pathname, headers: new Headers(init.headers), body: init.body });
+      return Response.json(
+        url.pathname.endsWith("/attachments")
+          ? { id, scan_status: "not_scanned" }
+          : { id: "send", status: "pending" },
+      );
+    },
+  });
+  try {
+    for (const command of [
+      ["send", inbox, "--to", "recipient@example.net", "--subject", "Report"],
+      ["reply", inbox, "b".repeat(64)],
+    ]) {
+      await executeCli(
+        client,
+        parseCliArgs([
+          ...command,
+          "--text",
+          "Attached.",
+          "--attach",
+          file,
+          "--idempotency-key",
+          "report-1",
+        ]),
+      );
+    }
+    expect(requests).toHaveLength(4);
+    expect(await new Response(requests[0]!.body).text()).toBe(new TextDecoder().decode(data));
+    expect(requests[0]!.headers.get("Agentpost-Filename")).toBe("report.csv");
+    for (const index of [1, 3])
+      expect(JSON.parse(String(requests[index]!.body)).attachments).toEqual([id]);
+    await writeFile(file, new Uint8Array(MAX_ATTACHMENT_BYTES + 1));
+    await expect(
+      executeCli(client, parseCliArgs(["attachment", "upload", inbox, file])),
+    ).rejects.toThrow("size limit");
+    expect(requests).toHaveLength(4);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("attachment upload keeps credentials on the configured origin and never follows redirects", async () => {
+  let calls = 0;
+  const client = new MailClient({
+    url: "https://mail.example.com",
+    token: "secret",
+    fetch: async (url, init) => {
+      calls++;
+      expect(url.origin).toBe("https://mail.example.com");
+      expect(init.redirect).toBe("manual");
+      expect(new Headers(init.headers).get("Authorization")).toBe("Bearer secret");
+      return new Response("secret", {
+        status: 307,
+        headers: { Location: "https://attacker.example" },
+      });
+    },
+  });
+  await expect(
+    client.uploadAttachment("inbox", "report.txt", new TextEncoder().encode("report")),
+  ).rejects.toThrow("Mail API HTTP 307");
+  expect(calls).toBe(1);
+});
+
+test("MCP uploads canonical Base64 and sends or replies with IDs using finalized core", async () => {
+  const id = "a".repeat(64);
+  const inbox = "ce2a9661-bef3-4d2c-9eb8-cd7bacb79720";
+  const data = new TextEncoder().encode("report\n");
+  const requests: { path: string; body: unknown }[] = [];
+  const server = createMcpHandler(() =>
+    createMailServer(
+      new MailClient({
+        url: "https://mail.example.com",
+        token: "inbox-secret",
+        fetch: async (url, init) => {
+          requests.push({
+            path: url.pathname,
+            body: url.pathname.endsWith("/attachments")
+              ? new Uint8Array(await new Response(init.body).arrayBuffer())
+              : JSON.parse(String(init.body)),
+          });
+          return Response.json(
+            url.pathname.endsWith("/attachments")
+              ? { id, scan_status: "not_scanned" }
+              : { id: "send", status: "pending" },
+          );
+        },
+      }),
+    ),
+  );
+  const client = new Client(
+    { name: "attachment-test", version: "1" },
+    { versionNegotiation: { mode: { pin: "2026-07-28" } } },
+  );
+  await client.connect(
+    new StreamableHTTPClientTransport(new URL("http://localhost/mcp"), {
+      fetch: (url, init) => server.fetch(new Request(url, init)),
+    }),
+  );
+  try {
+    expect((await client.listTools()).tools.map((tool) => tool.name)).toContain(
+      "upload_attachment",
+    );
+    expect(
+      (
+        await client.callTool({
+          name: "upload_attachment",
+          arguments: {
+            inbox_id: inbox,
+            filename: "report.txt",
+            content_base64: encodeAttachment(data),
+          },
+        })
+      ).isError,
+    ).not.toBe(true);
+    expect(
+      (
+        await client.callTool({
+          name: "send_email",
+          arguments: {
+            inbox_id: inbox,
+            to: ["recipient@example.net"],
+            subject: "Report",
+            text: "Attached.",
+            attachments: [id],
+            idempotency_key: "report-1",
+          },
+        })
+      ).isError,
+    ).not.toBe(true);
+    expect(
+      (
+        await client.callTool({
+          name: "reply_email",
+          arguments: {
+            inbox_id: inbox,
+            message_id: "b".repeat(64),
+            text: "Attached.",
+            attachments: [id],
+            idempotency_key: "reply-1",
+          },
+        })
+      ).isError,
+    ).not.toBe(true);
+    expect(requests[0]?.body).toEqual(data);
+    expect(requests[1]?.body).toMatchObject({ attachments: [id] });
+    expect(requests[2]?.body).toMatchObject({ attachments: [id] });
+    expect(
+      (
+        await client.callTool({
+          name: "upload_attachment",
+          arguments: { inbox_id: inbox, filename: "report.txt", content_base64: "cmVwb3J0\n" },
+        })
+      ).isError,
+    ).toBe(true);
+    expect(requests).toHaveLength(3);
+  } finally {
+    await client.close();
+  }
 });

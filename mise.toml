@@ -94,9 +94,17 @@ run = "bun run verification/check.ts inbound"
 [tasks."verify:inbound:selftest"]
 run = "bun run verification/check.ts inbound --selftest"
 
+[tasks."verify:attachments"]
+run = "bun run verification/attachments/check.ts"
+
+[tasks."verify:attachments:selftest"]
+run = "bun run verification/attachments/check.ts --selftest"
+
 [tasks.verify]
 depends = [
   "verify:outbound",
+  "verify:attachments",
+  "verify:attachments:selftest",
   "verify:inbound",
   "verify:outbound:selftest",
   "verify:inbound:selftest",
