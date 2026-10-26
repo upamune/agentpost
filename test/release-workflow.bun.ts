@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { appendFile, chmod, cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
+import { releasePayloads } from "../scripts/executable-targets";
 
 const workflow = await readFile(resolve(".github/workflows/release.yml"), "utf8");
 const finalStep = "Verify uploaded draft assets and publish an immutable release";
@@ -9,8 +10,8 @@ const admissionStep = "Recheck integrity before publishing";
 const repository = "example/agentpost";
 const commit = "a".repeat(40);
 const tag = "v1.2.3";
-const archive = "agentpost-1.2.3.tar.gz";
-const sourceFiles = [archive, "SHA256SUMS", "release-manifest.json"];
+const payloadFiles = releasePayloads("1.2.3").sort();
+const sourceFiles = [...payloadFiles, "SHA256SUMS", "release-manifest.json"];
 const bash = process.env.AGENTPOST_TEST_BASH ?? Bun.which("bash") ?? "bash";
 
 // Execute the maintained workflow commands rather than a test-side reimplementation.
@@ -95,10 +96,14 @@ async function fixture(options: FixtureOptions = {}) {
   const remote = join(directory, "remote");
   const bin = join(directory, "bin");
   await Promise.all([mkdir(release), mkdir(bin)]);
-  const bytes = Buffer.from("synthetic committed source archive\n");
-  const digest = new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
-  await writeFile(join(release, archive), bytes);
-  await writeFile(join(release, "SHA256SUMS"), `${digest}  ${archive}\n`);
+  const checksums = [];
+  for (const name of payloadFiles) {
+    const bytes = Buffer.from(`synthetic committed payload ${name}\n`);
+    const digest = new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
+    await writeFile(join(release, name), bytes);
+    checksums.push(`${digest}  ${name}\n`);
+  }
+  await writeFile(join(release, "SHA256SUMS"), checksums.join(""));
   await writeFile(join(release, "release-manifest.json"), `${JSON.stringify({ commit, tag })}\n`);
   const subjects: Record<string, string> = {};
   for (const name of sourceFiles)
@@ -233,7 +238,9 @@ test("release shell rejects a changed live tag after checking all source attesta
   try {
     const result = await files.run();
     expect(result.code, JSON.stringify(result)).not.toBe(0);
-    expect(result.commands.filter((args) => args[0] === "attestation")).toHaveLength(3);
+    expect(result.commands.filter((args) => args[0] === "attestation")).toHaveLength(
+      sourceFiles.length,
+    );
     expect(edits(result.commands)).toEqual([]);
   } finally {
     await files.close();
@@ -260,7 +267,9 @@ test("published immutable release retries verify existing provenance and skip ed
   try {
     const result = await files.run();
     expect(result.code).toBe(0);
-    expect(result.commands.filter((args) => args[0] === "attestation")).toHaveLength(3);
+    expect(result.commands.filter((args) => args[0] === "attestation")).toHaveLength(
+      sourceFiles.length,
+    );
     expect(edits(result.commands)).toEqual([]);
   } finally {
     await files.close();

@@ -55,6 +55,15 @@ run = "cccc --config cccc.toml --no-cache --pretty src scripts verification"
 [tasks."release:build"]
 run = "bun run scripts/build-release.ts"
 
+[tasks."cli:build"]
+run = "bun run scripts/build-executable.ts"
+
+[tasks."cli:smoke"]
+run = "bun run scripts/smoke-executable.ts"
+
+[tasks."release:finalize"]
+run = "bun run scripts/finalize-release.ts"
+
 [tasks.secrets]
 run = "gitleaks git --redact --no-banner --log-opts=--all"
 

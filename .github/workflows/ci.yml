@@ -13,6 +13,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  executables:
+    uses: ./.github/workflows/executables.yml
   format:
     runs-on: ubuntu-24.04
     steps:

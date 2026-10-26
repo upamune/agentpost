@@ -14,9 +14,25 @@ Use this document when a user asks an AI agent to install or configure agentpost
 
 Reuse the user's existing checkout, tools, credentials, and MCP configuration when available. If the repository is private, Git access must already be configured; report an access failure instead of changing repository visibility.
 
+## Install a standalone executable
+
+Use a [GitHub Release](https://github.com/upamune/agentpost/releases) that lists a binary for the destination OS, architecture and Linux libc. Follow [release verification](docs/releases.md#verify-a-download) for the selected executable, `SHA256SUMS`, manifest and provenance bundle before running it. Older source-only releases, including v0.1.1, have no executable assets; use source installation if a suitable release is unavailable. Missing/invalid provenance stops installation.
+
+The executable embeds Bun and supports both CLI commands and stdio MCP (`agentpost mcp`). It needs no Bun, Node.js or source checkout. Preserve existing installations; choose a new versioned directory and record its absolute executable path. After verification on macOS/Linux (with `version` and `asset` set by the verification procedure):
+
+```sh
+install_dir="/absolute/unused/path/agentpost-${version}"
+mkdir "$install_dir" && install -m 755 "$asset" "$install_dir/agentpost" && \
+  "$install_dir/agentpost" --version && "$install_dir/agentpost" --help
+```
+
+On Windows, create a new directory with `New-Item -ItemType Directory -ErrorAction Stop`, copy the verified `.exe` there as `agentpost.exe`, then run it using its absolute path. Add the selected directory to PATH only if requested. Client file arguments are relative to the current working directory; use absolute task paths when configuring agents.
+
+The standalone executable does not autoload `.env`, `bunfig.toml`, `package.json` or `tsconfig.json` from its working directory. Inject credentials through the calling process or private MCP environment configuration. Worker deployment/local development still use the source checkout below.
+
 ## Install from source
 
-Prerequisites: Git and [mise](https://mise.jdx.dev/getting-started.html). The CLI runs with Bun; Wrangler uses Node.js. There is currently no published npm package or standalone CLI binary.
+Prerequisites: Git and [mise](https://mise.jdx.dev/getting-started.html). The CLI runs with Bun; Wrangler uses Node.js. There is no published npm package; standalone clients are separate release assets.
 
 Choose a persistent directory for the checkout. Inspect an existing destination before reusing it; preserve local changes.
 
@@ -37,7 +53,7 @@ mise exec --cd /absolute/path/to/agentpost -- bun run src/cli.ts --help
 ```
 
 This command changes the working directory to the checkout. Use absolute paths for message files, attachments, and cursor files that belong to a different project.
-Raw email and attachment downloads create new files with permissions 0600; choose an unused output path. Existing files and symlinks are refused.
+Raw email and attachment downloads create new files with permissions 0600; choose an unused output path. Existing files and symlinks are refused. POSIX modes apply where supported; on Windows, use a private user directory with suitable ACLs.
 
 ## Install a verified release archive
 
@@ -53,12 +69,12 @@ An inbox token allows sending as well as reading. Keep admin credentials outside
 Verify access without sending a message. With a supplied inbox UUID, use:
 
 ```sh
-mise exec --cd /absolute/path/to/agentpost -- bun run src/cli.ts inbox get INBOX_UUID
+/absolute/path/to/agentpost inbox get INBOX_UUID
 ```
 
 When the user authorizes provisioning, `inbox create --local-part research` chooses `research` on the configured domain; omit the option for a random name. Existing names conflict even when disabled, and provisioning never reassigns them.
 
-An admin token can instead use `inbox list --limit 1`. `health` also requires admin access, so its rejection does not mean an inbox token is invalid. If the URL, credentials, or inbox identity are missing, finish source installation and report the missing connection configuration. Do not create an inbox or send mail just to prove installation.
+An admin token can instead use `inbox list --limit 1`. `health` also requires admin access, so its rejection does not mean an inbox token is invalid. If the URL, credentials, or inbox identity are missing, finish CLI installation and report the missing connection configuration. Do not create an inbox or send mail just to prove installation.
 
 ## Configure MCP
 
@@ -70,17 +86,8 @@ For token-based stdio MCP, merge an `agentpost` entry into the client's existing
 {
   "mcpServers": {
     "agentpost": {
-      "command": "mise",
-      "args": [
-        "exec",
-        "--cd",
-        "/absolute/path/to/agentpost",
-        "--",
-        "bun",
-        "run",
-        "src/cli.ts",
-        "mcp"
-      ],
+      "command": "/absolute/path/to/agentpost",
+      "args": ["mcp"],
       "env": {
         "AGENTPOST_API_URL": "https://YOUR_WORKER.workers.dev",
         "AGENTPOST_API_TOKEN": "YOUR_INBOX_TOKEN"
@@ -90,7 +97,7 @@ For token-based stdio MCP, merge an `agentpost` entry into the client's existing
 }
 ```
 
-Replace the path and inject credentials using the client's private configuration. Keep stdio stdout reserved for MCP messages. Validate connection and tool discovery through the actual client before reporting MCP as connected; writing configuration alone is not a connection test.
+For Windows, use the absolute `agentpost.exe` path. Source installations can instead use `command: "mise"` with `args: ["exec", "--cd", "/absolute/path/to/agentpost", "--", "bun", "run", "src/cli.ts", "mcp"]`. Replace the path and inject credentials using the client's private configuration. Keep stdio stdout reserved for MCP messages. Validate connection and tool discovery through the actual client before reporting MCP as connected; writing configuration alone is not a connection test.
 
 Clients supporting Streamable HTTP with preconfigured Bearer authentication can connect directly to `https://YOUR_WORKER.workers.dev/mcp`. Alternatively, compatible remote MCP clients can use Cloudflare Access Managed OAuth in oauth/both mode, without copying an API token. Protocol compatibility and the experimental MCP Events draft are documented in [MCP and Events](docs/mcp-events.md).
 
@@ -127,9 +134,9 @@ The smoke test provisions a local inbox, injects a fixture into Wrangler, waits 
 
 ## Build and completion
 
-GitHub Actions runs checks and the Worker dry-run build on pushes to `main` and on pull requests. `mise run build` invokes `wrangler deploy --dry-run`; it does not deploy or publish CLI binaries. Local full checks use `mise install` followed by `mise run ci`.
+GitHub Actions runs checks and the Worker dry-run build on pushes to `main` and on pull requests. `mise run build` invokes `wrangler deploy --dry-run`; it does not deploy or publish CLI binaries. The additional CI executable matrix compiles and smoke-tests all eight platforms. Version-tag releases attach them with signed provenance; see [releases](docs/releases.md). Build locally with `mise run cli:build PLATFORM --verify-reproducible` and test with `mise run cli:smoke --platform PLATFORM`; commit source/package/lock/config/build-script changes first. Local full checks use `mise install` followed by `mise run ci`.
 
-Report the checkout path, CLI version, skill installation scope, and which connection or local checks passed. List missing configuration without exposing values. Distinguish source installation, MCP connection, local Worker verification, and production deployment. Production mail requires the domain, Email Routing, Email Sending Beta, DNS, credentials, and explicit real send/receive checks in the deployment guide. Run a real send test only with a user-specified recipient; installation alone does not authorize sending mail.
+Report the executable or checkout path, CLI version, skill installation scope, and which connection or local checks passed. List missing configuration without exposing values. Distinguish source installation, MCP connection, local Worker verification, and production deployment. Production mail requires the domain, Email Routing, Email Sending Beta, DNS, credentials, and explicit real send/receive checks in the deployment guide. Run a real send test only with a user-specified recipient; installation alone does not authorize sending mail.
 
 ## Diagnose domain configuration
 

@@ -7,24 +7,64 @@ PRで`package.json`のバージョンと`CHANGELOG.md`を確認し、merge commi
 CLIとMCPが返すバージョンも`package.json`から読み込みます。
 リリースPRのマージは管理者が判断してください。
 
-別の[検証付きリリースワークフロー](../.github/workflows/release.yml)が、コミット済みソースのアーカイブ、チェックサム、署名付き SLSA 来歴証明を生成します。全 CI と OSV を通した後で署名し、draft からダウンロードした成果物を再検証して公開します。immutable release により、公開後のタグと成果物の置き換えを防ぎます。このフローはソースのリリースであり、npm への公開、CLI バイナリの配布、本番へのデプロイは含みません。
-Workerの導入・更新は[導入手順](deploy.ja.md)に従って行います。
+[検証付きリリースワークフロー](../.github/workflows/release.yml)は、コミット済みソースのアーカイブ、CLI/MCPの単体実行ファイル、チェックサム、署名付きSLSA来歴証明を生成します。全CIとOSVの成功後に署名し、draftからダウンロードした全成果物を検証して公開します。immutable releaseで公開後のタグと成果物の置き換えを防ぎます。npmへの公開やWorkerのデプロイは行いません。Workerには[導入手順](deploy.ja.md)を使います。
+
+## 単体実行ファイル
+
+Bunを内包し、CLIコマンドと `agentpost mcp` の両方を使えます。利用側にBun・Node.js・ソースcheckoutは不要です。名前は `agentpost-VERSION-SUFFIX` です。
+
+| プラットフォーム        | 成果物の末尾                            |
+| ----------------------- | --------------------------------------- |
+| macOS arm64 / x64       | `darwin-arm64` / `darwin-x64`           |
+| Linux glibc arm64 / x64 | `linux-arm64` / `linux-x64`             |
+| Linux musl arm64 / x64  | `linux-arm64-musl` / `linux-x64-musl`   |
+| Windows arm64 / x64     | `windows-arm64.exe` / `windows-x64.exe` |
+
+Alpine Linuxにはmusl版を選びます。実行ファイルはCLI/MCPクライアントであり、WorkerのホストにはソースとCloudflareのツールが必要です。v0.1.1を含む過去のソース限定リリースにバイナリは追加しません。必要な実行ファイルが実際に掲載されているリリースを選びます。
+
+[共通ビルドワークフロー](../.github/workflows/executables.yml)でBunとネイティブのGitHub-hosted runnerを固定します。全ターゲットを2回コンパイルしてバイト比較し、CLIのリクエスト、stdio MCPのツール検出、Events、作業ディレクトリの `.env`・`bunfig.toml` からの分離を確認します。musl版はdigest固定のBun Alpineイメージで外部ネットワークを無効にして検査します。macOS版にApple notarization、Windows版にAuthenticode署名はなく、配布元の認証にはGitHubの来歴証明を使います。動作要件は[Bun](https://bun.sh/docs/installation)に従います。
 
 ## ダウンロードの検証
 
-同じ[リリース](https://github.com/upamune/agentpost/releases)から、バージョン付きアーカイブ、`SHA256SUMS`、`release-manifest.json`、`provenance.sigstore.json` を取得します。展開や実行の前に来歴を検証してください。
+新しいダウンロード先を使い、`X.Y.Z` を選んだバージョンへ置き換えます。同じ[リリース](https://github.com/upamune/agentpost/releases)から実行ファイル1つ（またはソースの `agentpost-VERSION.tar.gz`）と検証用ファイルを取得します。実行・展開の前に3つの対象の来歴を認証します。
 
 ```sh
-gh attestation verify agentpost-0.1.1.tar.gz --repo upamune/agentpost \
-  --bundle provenance.sigstore.json \
-  --signer-workflow upamune/agentpost/.github/workflows/release.yml \
-  --source-ref refs/tags/v0.1.1 --deny-self-hosted-runners
-sha256sum --check SHA256SUMS
+version="X.Y.Z" # Select a release that lists standalone assets.
+asset="agentpost-${version}-darwin-arm64" # Choose the platform from the table.
+gh release download "v$version" --repo upamune/agentpost \
+  --pattern "$asset" --pattern SHA256SUMS --pattern release-manifest.json \
+  --pattern provenance.sigstore.json
+for file in "$asset" SHA256SUMS release-manifest.json; do
+  gh attestation verify "$file" --repo upamune/agentpost \
+    --bundle provenance.sigstore.json \
+    --signer-workflow upamune/agentpost/.github/workflows/release.yml \
+    --source-ref "refs/tags/v$version" --deny-self-hosted-runners || exit 1
+done
+awk -v name="$asset" '$2 == name {print}' SHA256SUMS > selected.sha256
+test "$(wc -l < selected.sha256)" -eq 1 || exit 1
+shasum -a 256 -c selected.sha256 # On Linux, sha256sum -c selected.sha256 also works.
 ```
 
-ファイル名とタグは実際のバージョンに合わせます。macOS のチェックサム確認は `shasum -a 256 -c SHA256SUMS` を使ってください。チェックサムだけでは配布者を認証できません。Sigstore bundle は署名と検証用の情報を保持し、`provenance.intoto.jsonl` は同じ署名済み DSSE envelope を SLSA 利用者に提供します。来歴の署名は出所を確認するものであり、バグの不在や独立した SLSA 認証を意味しません。
+PowerShellでは次のように検証します。
 
-`mise run release:build` は Git HEAD の決定的なアーカイブを `dist/release/` に作ります。未コミットの変更、無視ファイル、ローカルの導入用資格情報は含めません。アーカイブの回帰テストで除外と再現性を確認します。
+```powershell
+$Version = "X.Y.Z"
+$Asset = "agentpost-$Version-windows-arm64.exe"
+gh release download "v$Version" --repo upamune/agentpost --pattern $Asset --pattern SHA256SUMS --pattern release-manifest.json --pattern provenance.sigstore.json
+if ($LASTEXITCODE -ne 0) { throw "Download failed" }
+foreach ($File in @($Asset, "SHA256SUMS", "release-manifest.json")) {
+  gh attestation verify $File --repo upamune/agentpost --bundle provenance.sigstore.json --signer-workflow upamune/agentpost/.github/workflows/release.yml --source-ref "refs/tags/v$Version" --deny-self-hosted-runners
+  if ($LASTEXITCODE -ne 0) { throw "Provenance verification failed" }
+}
+$Rows = @(Get-Content SHA256SUMS | Where-Object { $_ -match ('^[a-f0-9]{64}  ' + [regex]::Escape($Asset) + '$') })
+if ($Rows.Count -ne 1) { throw "Missing or ambiguous checksum" }
+$Expected = ($Rows[0] -split '  ', 2)[0]
+if ((Get-FileHash -Algorithm SHA256 $Asset).Hash.ToLowerInvariant() -ne $Expected) { throw "Checksum mismatch" }
+```
+
+チェックサムだけでは配布元を認証できません。bundleには署名と検証資料を含み、`provenance.intoto.jsonl` は同じ署名付きDSSE envelopeをSLSA向けに公開します。署名は配布元の証明であり、バグ不在や独立したSLSA認証の証明ではありません。`release-manifest.json` にソースのコミット、バージョン、Bunのバージョン、全payloadのサイズとdigestを記録します。一部だけ取得した場合は選んだチェックサムの行を検証し、全payloadを取得した場合は `SHA256SUMS` 全体を検証できます。
+
+`mise run release:build` はGit HEADのアーカイブを `dist/release/` に作り、未コミットの変更、無視されたファイル、ローカルの導入用資格情報を含めません。`mise run cli:build PLATFORM --verify-reproducible` は `dist/executables/` に実行ファイルを作り、ソース・package・lockfile・TypeScriptとツールの設定・ビルドスクリプトのコミットを必須にします。検査済みの8ビルドを集め、`mise run release:finalize` で不足・余分・空・symlinkの成果物を拒否してチェックサムとmanifestをまとめます。ソースの本人性と元アーカイブのdigestも確認します。PR・mainのCIも同じ共通ワークフローで全ターゲットのビルド・起動確認を行います。
 
 ## プレビューと再実行
 
