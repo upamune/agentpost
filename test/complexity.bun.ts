@@ -23,7 +23,8 @@ afterEach(async () => {
 async function fixture(code = source(1)) {
   const root = await mkdtemp(join(tmpdir(), "agentpost-complexity-"));
   temporary.push(root);
-  for (const folder of ["src", "scripts", "verification"]) await mkdir(join(root, folder));
+  for (const folder of ["src", "scripts", "verification", "website"])
+    await mkdir(join(root, folder));
   await writeFile(
     join(root, "cccc.toml"),
     await Bun.file(new URL("../cccc.toml", import.meta.url)).text(),

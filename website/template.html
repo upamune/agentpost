@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="{{lang}}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0b0c10" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; connect-src 'none'"
+    />
+    <title>{{page.title}}</title>
+    <meta name="description" content="{{page.description}}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="{{page.title}}" />
+    <meta property="og:description" content="{{page.description}}" />
+    <meta property="og:url" content="{{canonical}}" />
+    <meta property="og:image" content="{{social}}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="canonical" href="{{canonical}}" />
+    <link rel="alternate" hreflang="en" href="{{english}}" />
+    <link rel="alternate" hreflang="ja" href="{{japanese}}" />
+    <link rel="alternate" hreflang="x-default" href="{{english}}" />
+    <link rel="icon" type="image/svg+xml" href="{{assets}}favicon.svg" />
+    <link rel="stylesheet" href="{{stylesheet}}" />
+    <script src="{{script}}" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">{{skip}}</a>
+    <header class="header">
+      <div class="container nav">
+        <a class="brand" href="{{home}}" aria-label="Agentpost"
+          ><img src="{{assets}}logo.svg" width="151" height="30" alt="agentpost"
+        /></a>
+        <nav aria-label="{{nav.label}}">
+          <a href="#workflow">{{nav.workflow}}</a><a href="#architecture">{{nav.hosting}}</a
+          ><a href="https://github.com/upamune/agentpost/blob/main/INSTALL.md">{{nav.docs}}</a>
+        </nav>
+        <div class="nav-actions">
+          <a class="language" href="{{otherLanguage}}" lang="{{otherLang}}" hreflang="{{otherLang}}"
+            >{{otherName}}</a
+          ><a class="github-link" href="https://github.com/upamune/agentpost"
+            >GitHub <span aria-hidden="true">↗</span></a
+          >
+        </div>
+      </div>
+    </header>
+    <main id="main">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="container hero-inner">
+          <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span>{{hero.eyebrow}}</p>
+          <h1 id="hero-title">{{hero.title}}<span>{{hero.title2}}</span></h1>
+          <p class="hero-description">{{hero.description}}</p>
+          <div class="hero-actions">
+            <a class="button primary" href="#start"
+              >{{hero.cta}} <span aria-hidden="true">→</span></a
+            ><a class="button secondary" href="#workflow"
+              >{{hero.demo}} <span aria-hidden="true">↓</span></a
+            >
+          </div>
+          <p class="hero-note">{{hero.note}}</p>
+        </div>
+      </section>
+
+      <section class="workflow container" id="workflow" aria-labelledby="workflow-title">
+        <div class="section-top">
+          <div>
+            <p class="eyebrow">{{workflow.eyebrow}}</p>
+            <h2 id="workflow-title">{{workflow.title}}</h2>
+          </div>
+          <span class="example-label">{{workflow.example}}</span>
+        </div>
+        <div class="walkthrough" data-tabs>
+          <div class="steps" role="tablist" aria-label="{{workflow.label}}">
+            <button
+              id="step-create"
+              class="step"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              aria-controls="panel-create"
+              tabindex="0"
+            >
+              <span class="step-number">01</span
+              ><span><strong>{{create.title}}</strong><span>{{create.description}}</span></span
+              ><span class="step-arrow" aria-hidden="true">↗</span>
+            </button>
+            <button
+              id="step-receive"
+              class="step"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="panel-receive"
+              tabindex="-1"
+            >
+              <span class="step-number">02</span
+              ><span><strong>{{receive.title}}</strong><span>{{receive.description}}</span></span
+              ><span class="step-arrow" aria-hidden="true">↗</span>
+            </button>
+            <button
+              id="step-reply"
+              class="step"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="panel-reply"
+              tabindex="-1"
+            >
+              <span class="step-number">03</span
+              ><span><strong>{{reply.title}}</strong><span>{{reply.description}}</span></span
+              ><span class="step-arrow" aria-hidden="true">↗</span>
+            </button>
+          </div>
+          <div class="demo-surface">
+            <div class="demo-toolbar">
+              <span class="demo-title"
+                ><img
+                  src="{{assets}}symbol.svg"
+                  width="19"
+                  height="19"
+                  alt=""
+                />{{demo.title}}</span
+              ><span class="domain-label">example.com</span>
+            </div>
+            <div
+              class="demo-panel"
+              id="panel-create"
+              role="tabpanel"
+              aria-labelledby="step-create"
+              tabindex="0"
+            >
+              <div class="demo-content create-content">
+                <p class="small-label">{{demo.agent}}</p>
+                <div class="agent-identity">
+                  <span class="agent-avatar" aria-hidden="true">R</span>
+                  <div><strong>research-agent</strong><span>{{demo.task}}</span></div>
+                  <span class="subtle-tag">MCP / CLI / API</span>
+                </div>
+                <div class="flow-stem" aria-hidden="true"></div>
+                <div class="address-result">
+                  <span class="mail-icon" aria-hidden="true">↳</span>
+                  <div>
+                    <span class="small-label">{{demo.address}}</span
+                    ><strong>research@example.com</strong>
+                  </div>
+                  <span class="check" aria-hidden="true">✓</span>
+                </div>
+                <div class="inbox-properties">
+                  <span><span class="tiny-dot"></span>{{demo.scoped}}</span
+                  ><span>{{demo.named}}</span>
+                </div>
+              </div>
+              <div class="command">
+                <div class="command-heading">
+                  <span>CLI</span
+                  ><button
+                    class="copy-button js-only"
+                    type="button"
+                    data-copy="code-create"
+                    data-copied="{{copied}}"
+                    data-failure="{{copyFailure}}"
+                  >
+                    {{copy}}
+                  </button>
+                </div>
+                <pre><code id="code-create">agentpost inbox create \
+  --local-part research \
+  --label research-agent</code></pre>
+              </div>
+            </div>
+            <div
+              class="demo-panel"
+              id="panel-receive"
+              role="tabpanel"
+              aria-labelledby="step-receive"
+              tabindex="0"
+              hidden
+            >
+              <div class="demo-content receive-content">
+                <div class="message-heading">
+                  <span class="small-label">research@example.com</span
+                  ><span class="state-badge"><span class="tiny-dot"></span>{{demo.received}}</span>
+                </div>
+                <div class="mail-subject">{{demo.subject}}</div>
+                <p class="mail-from">
+                  analyst@example.net <span aria-hidden="true">→</span> research@example.com
+                </p>
+                <div class="message-body">
+                  <p>{{demo.body}}</p>
+                  <span class="file"
+                    ><span class="file-icon" aria-hidden="true">↧</span> findings.csv
+                    <span>2.4 KB</span></span
+                  >
+                </div>
+              </div>
+              <div class="command">
+                <div class="command-heading">
+                  <span>CLI</span
+                  ><button
+                    class="copy-button js-only"
+                    type="button"
+                    data-copy="code-receive"
+                    data-copied="{{copied}}"
+                    data-failure="{{copyFailure}}"
+                  >
+                    {{copy}}
+                  </button>
+                </div>
+                <pre><code id="code-receive">agentpost message list INBOX_ID
+agentpost message get INBOX_ID MESSAGE_ID</code></pre>
+              </div>
+            </div>
+            <div
+              class="demo-panel"
+              id="panel-reply"
+              role="tabpanel"
+              aria-labelledby="step-reply"
+              tabindex="0"
+              hidden
+            >
+              <div class="demo-content reply-content">
+                <div class="message-heading">
+                  <span class="small-label"
+                    >research@example.com
+                    <span aria-hidden="true">→</span> analyst@example.net</span
+                  ><span class="state-badge queued">{{demo.queued}}</span>
+                </div>
+                <div class="mail-subject">Re: {{demo.subject}}</div>
+                <div class="message-body">
+                  <p>{{demo.reply}}</p>
+                  <span class="file"
+                    ><span class="file-icon" aria-hidden="true">↥</span> summary.pdf
+                    <span>184 KB</span></span
+                  >
+                </div>
+                <p class="queue-note">{{demo.queueNote}}</p>
+              </div>
+              <div class="command">
+                <div class="command-heading">
+                  <span>CLI</span
+                  ><button
+                    class="copy-button js-only"
+                    type="button"
+                    data-copy="code-reply"
+                    data-copied="{{copied}}"
+                    data-failure="{{copyFailure}}"
+                  >
+                    {{copy}}
+                  </button>
+                </div>
+                <pre><code id="code-reply">agentpost reply INBOX_ID MESSAGE_ID \
+  --text "Here is the summary." \
+  --attach ./summary.pdf \
+  --idempotency-key research-reply-1</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="demo-caption">{{workflow.caption}}</p>
+      </section>
+
+      <section class="capabilities container" aria-labelledby="capabilities-title">
+        <div class="section-heading">
+          <p class="eyebrow">{{capabilities.eyebrow}}</p>
+          <h2 id="capabilities-title">{{capabilities.title}}</h2>
+          <p>{{capabilities.description}}</p>
+        </div>
+        <div class="feature-rows">
+          <article class="feature-row">
+            <span class="feature-index">01 /</span>
+            <div>
+              <h3>{{feature1.title}}</h3>
+              <p>{{feature1.description}}</p>
+            </div>
+            <div class="feature-visual address-stack" aria-hidden="true">
+              <span>research@example.com</span><span>build-7f2a@example.com</span
+              ><span>receipts@example.com</span>
+            </div>
+          </article>
+          <article class="feature-row">
+            <span class="feature-index">02 /</span>
+            <div>
+              <h3>{{feature2.title}}</h3>
+              <p>{{feature2.description}}</p>
+            </div>
+            <div class="feature-visual file-list" aria-hidden="true">
+              <span>PDF<span>summary.pdf</span></span
+              ><span>CSV<span>results.csv</span></span
+              ><span>PNG<span>chart.png</span></span>
+            </div>
+          </article>
+          <article class="feature-row">
+            <span class="feature-index">03 /</span>
+            <div>
+              <h3>{{feature3.title}}</h3>
+              <p>{{feature3.description}}</p>
+            </div>
+            <div class="feature-visual event-visual" aria-hidden="true">
+              <span class="event-line"><span class="tiny-dot"></span>message.received</span
+              ><span class="event-detail">inbox_id <span>9bf73f56…</span></span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="hosting" id="architecture" aria-labelledby="hosting-title">
+        <div class="container">
+          <div class="section-heading">
+            <p class="eyebrow">{{hosting.eyebrow}}</p>
+            <h2 id="hosting-title">{{hosting.title}}</h2>
+            <p>{{hosting.description}}</p>
+          </div>
+          <div class="architecture" aria-label="{{hosting.diagramLabel}}">
+            <div class="arch-node">
+              <span class="arch-symbol" aria-hidden="true">&gt;_</span
+              ><strong>{{hosting.agents}}</strong><span>CLI · MCP · HTTP API</span>
+            </div>
+            <div class="arch-connection">
+              <span>{{hosting.auth}}</span><i aria-hidden="true"></i>
+            </div>
+            <div class="arch-node worker-node">
+              <img src="{{assets}}symbol.svg" width="34" height="34" alt="" /><strong
+                >agentpost</strong
+              ><span>Cloudflare Worker</span>
+            </div>
+            <div class="arch-connection">
+              <span>{{hosting.storage}}</span><i aria-hidden="true"></i>
+            </div>
+            <div class="arch-node">
+              <span class="arch-symbol storage-symbol" aria-hidden="true">▤</span
+              ><strong>{{hosting.account}}</strong><span>D1 · R2 · Queues</span>
+            </div>
+          </div>
+          <div class="hosting-details">
+            <div>
+              <strong>{{hosting.domainTitle}}</strong>
+              <p>{{hosting.domainDescription}}</p>
+            </div>
+            <div>
+              <strong>{{hosting.accessTitle}}</strong>
+              <p>{{hosting.accessDescription}}</p>
+            </div>
+            <div>
+              <strong>{{hosting.retentionTitle}}</strong>
+              <p>{{hosting.retentionDescription}}</p>
+            </div>
+          </div>
+          <a
+            class="text-link"
+            href="https://github.com/upamune/agentpost/blob/main/docs/security-checks.md"
+            >{{hosting.security}} <span aria-hidden="true">↗</span></a
+          >
+        </div>
+      </section>
+
+      <section class="get-started container" id="start" aria-labelledby="start-title">
+        <div class="start-copy">
+          <p class="eyebrow">{{start.eyebrow}}</p>
+          <h2 id="start-title">{{start.title}}</h2>
+          <p>{{start.description}}</p>
+          <a class="button primary" href="https://github.com/upamune/agentpost/blob/main/INSTALL.md"
+            >{{start.cta}} <span aria-hidden="true">↗</span></a
+          ><a
+            class="text-link agent-guide"
+            href="https://github.com/upamune/agentpost/blob/main/skills/agentpost/SKILL.md"
+            >{{start.skill}} <span aria-hidden="true">↗</span></a
+          >
+        </div>
+        <div class="install-panel">
+          <div class="command-heading">
+            <span>{{start.install}}</span
+            ><button
+              class="copy-button js-only"
+              type="button"
+              data-copy="code-install"
+              data-copied="{{copied}}"
+              data-failure="{{copyFailure}}"
+            >
+              {{copy}}
+            </button>
+          </div>
+          <pre><code id="code-install">npm install --global @upamune/agentpost
+agentpost --help</code></pre>
+          <p class="install-note">{{start.clientNote}}</p>
+          <ol class="setup-steps">
+            <li>
+              <span>1</span>
+              <div>
+                <strong>{{start.step1}}</strong>
+                <p>{{start.step1Description}}</p>
+              </div>
+            </li>
+            <li>
+              <span>2</span>
+              <div>
+                <strong>{{start.step2}}</strong>
+                <p>{{start.step2Description}}</p>
+              </div>
+            </li>
+            <li>
+              <span>3</span>
+              <div>
+                <strong>{{start.step3}}</strong>
+                <p>{{start.step3Description}}</p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+      <aside class="release-note container">
+        <span class="beta-tag">BETA</span>
+        <p>{{beta}}</p>
+      </aside>
+    </main>
+    <footer class="container footer">
+      <a class="brand" href="{{home}}" aria-label="Agentpost"
+        ><img src="{{assets}}logo.svg" width="126" height="25" alt="agentpost"
+      /></a>
+      <p>{{footer.note}}</p>
+      <div>
+        <a href="https://github.com/upamune/agentpost">GitHub</a
+        ><a href="https://github.com/upamune/agentpost/blob/main/LICENSE">MIT License</a
+        ><a href="{{otherLanguage}}" lang="{{otherLang}}">{{otherName}}</a>
+      </div>
+    </footer>
+    <div
+      class="sr-only"
+      role="status"
+      aria-live="polite"
+      id="copy-status"
+      data-error="{{copyError}}"
+    ></div>
+  </body>
+</html>

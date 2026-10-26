@@ -18,7 +18,7 @@ export async function runComplexity(root: string, tool = "cccc"): Promise<number
   if (version.exitCode !== 0 || version.stdout.toString().trim() !== `cccc ${policy.toolVersion}`)
     throw new Error("Pinned cccc version is unavailable or differs from the complexity policy.");
   const child = Bun.spawn(
-    [tool, "--config", "cccc.toml", "--no-cache", "src", "scripts", "verification"],
+    [tool, "--config", "cccc.toml", "--no-cache", "src", "scripts", "verification", "website"],
     {
       cwd: root,
       stdout: "pipe",
