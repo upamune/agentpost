@@ -916,3 +916,41 @@ tasks:
       push_comments: false
     created_at: 2026-10-26T02:00:41.966Z
     updated_at: 2026-10-26T02:20:02.901Z
+  - id: task_032
+    title: Wait for npm package metadata before signature verification
+    description: "v0.1.4 publication exposed a registry race: version endpoint and
+      archive are ready before the package packument consumed by npm audit
+      signatures. Verify both metadata views against signed archive and avoid
+      stale npm cache; preserve fail-closed identity checks and never republish
+      automatically."
+    source_links: []
+    status: done
+    priority: P1
+    labels: []
+    repo_targets: []
+    acceptance_criteria:
+      - Regression reproduces ready version metadata with lagging package
+        metadata
+      - Known identity or integrity mismatches fail immediately and only missing
+        metadata is retried
+      - OIDC publishing still skips exact existing versions and npm signature
+        checks remain mandatory
+    dependencies: []
+    planning:
+      split_status: pending
+      risk: medium
+    execution_defaults:
+      manual_approval_required: false
+      auto_commit: true
+      push_when_done: true
+      create_pr: false
+      merge_pr: false
+      worktree_mode: direct
+      preferred_agents: []
+      max_subagents: 5
+    sync:
+      source_of_truth: backlog
+      push_status: false
+      push_comments: false
+    created_at: 2026-10-26T02:38:28.540Z
+    updated_at: 2026-10-26T02:49:51.335Z
