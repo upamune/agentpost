@@ -119,6 +119,8 @@ async function registryFixture(mode: string, status = 200, mutation?: string) {
   if (mutation === "version") metadata.version = "1.2.4";
   if (mutation === "name") metadata.name = "unrelated";
   if (mutation === "provenance") metadata.dist.attestations.url = "";
+  if (mutation === "provenance-type")
+    metadata.dist.attestations.provenance.predicateType = "unsupported";
   if (mutation === "origin") metadata.dist.tarball = "https://attacker.invalid/package.tgz";
   const script = join(directory, "verify.mjs");
   await writeFile(
@@ -155,7 +157,14 @@ async function registryFixture(mode: string, status = 200, mutation?: string) {
   };
 }
 
-for (const mutation of ["integrity", "version", "name", "provenance", "origin"]) {
+for (const mutation of [
+  "integrity",
+  "version",
+  "name",
+  "provenance",
+  "provenance-type",
+  "origin",
+]) {
   test(`npm publication rejects registry ${mutation} mismatch`, async () => {
     const fixture = await registryFixture("verify", 200, mutation);
     try {
