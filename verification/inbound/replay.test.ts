@@ -133,9 +133,10 @@ test("queue outage and duplicate recovery preserve one message and one received 
     ...bindings,
     JOBS: {
       ...bindings.JOBS,
-      async send(job) {
-        published.push(job);
-        return bindings.JOBS.send(job);
+      async sendBatch(items) {
+        const batch = [...items];
+        published.push(...batch.map((item) => item.body));
+        return bindings.JOBS.sendBatch(batch);
       },
     },
   });
@@ -290,9 +291,10 @@ test("failed inbound republishing does not prevent outbound republishing", async
       ...broken,
       JOBS: {
         ...bindings.JOBS,
-        async send(job) {
-          published.push(job);
-          return bindings.JOBS.send(job);
+        async sendBatch(items) {
+          const batch = [...items];
+          published.push(...batch.map((item) => item.body));
+          return bindings.JOBS.sendBatch(batch);
         },
       },
     }),

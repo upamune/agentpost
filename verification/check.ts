@@ -29,6 +29,9 @@ const sourceFiles =
     ? [
         "src/coordinator.ts",
         "src/outbound.ts",
+        "src/common.ts",
+        "src/mail-storage.ts",
+        "src/queue-jobs.ts",
         "src/dispatch-barrier.ts",
         "src/attachments.ts",
         "src/attachment-policy.ts",
@@ -38,10 +41,14 @@ const sourceFiles =
         "wrangler.jsonc",
         "migrations/0001_mail.sql",
         "migrations/0004_inbox_active_version.sql",
+        "migrations/0009_recovery_indexes.sql",
       ]
     : [
         "src/inbound.ts",
         "src/bounded-json.ts",
+        "src/common.ts",
+        "src/mail-storage.ts",
+        "src/queue-jobs.ts",
         "src/forwarding.ts",
         "src/forwarding-policy.ts",
         "src/forwarding-store.ts",
@@ -52,6 +59,8 @@ const sourceFiles =
         "migrations/0001_mail.sql",
         "migrations/0002_events.sql",
         "migrations/0003_raw_recovery.sql",
+        "migrations/0009_recovery_indexes.sql",
+        "wrangler.jsonc",
       ];
 
 type Mutation = {

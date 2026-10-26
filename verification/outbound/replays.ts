@@ -160,6 +160,7 @@ async function pauseInboxRead(inboxId: string, point: "before" | "after" = "afte
   const paused = latch();
   const resumed = latch();
   const queued = latch();
+  let secondStarted = false;
   const stub = coordinator(bindings, inboxId);
   await runInDurableObject(stub, (instance) => {
     const originalEnv: Env = Reflect.get(instance, "env");
@@ -167,8 +168,12 @@ async function pauseInboxRead(inboxId: string, point: "before" | "after" = "afte
     const originalSerialize = originalMethod.bind(instance);
     let operations = 0;
     Reflect.set(instance, "serialize", (operation: () => Promise<unknown>) => {
-      const result = originalSerialize(operation);
-      if (++operations === 2) queued.release();
+      const order = ++operations;
+      const result = originalSerialize(async () => {
+        if (order === 2) secondStarted = true;
+        return operation();
+      });
+      if (order === 2) queued.release();
       return result;
     });
     const database = new Proxy(originalEnv.DB, {
@@ -207,7 +212,12 @@ async function pauseInboxRead(inboxId: string, point: "before" | "after" = "afte
     });
     Reflect.set(instance, "env", { ...originalEnv, DB: database });
   });
-  return { paused: paused.promise, queued: queued.promise, resume: resumed.release };
+  return {
+    paused: paused.promise,
+    queued: queued.promise,
+    resume: resumed.release,
+    secondStarted: () => secondStarted,
+  };
 }
 
 async function status(id: string) {
@@ -244,6 +254,7 @@ cases.push([
       await gate.paused;
       disabled = api(`inboxes/${box.id}`, { active: false });
       await gate.queued;
+      expect(gate.secondStarted()).toBe(false);
       // The API has reached the actor but cannot complete its write past the live send.
       expect(
         (await bindings.DB.prepare("SELECT active FROM inboxes WHERE id = ?").bind(box.id).first())
@@ -276,6 +287,7 @@ cases.push([
         .run();
       recovery = maintain(bindings);
       await gate.queued;
+      expect(gate.secondStarted()).toBe(false);
       expect(await status(outbox.id)).toBe("sending");
       expect(fetch).not.toHaveBeenCalled();
     } finally {

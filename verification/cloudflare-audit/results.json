@@ -1,0 +1,919 @@
+{
+  "schemaVersion": 1,
+  "productRevision": "a69799e125a0edf39bcbee243994ff8303b81c33",
+  "previousSync": "0f2689da7e4fc9ccdad75bd64e761c84ff645d37",
+  "checkedOn": "2026-10-27",
+  "modelOutcome": "in-sync",
+  "verificationOutcome": "updated",
+  "command": "mise run ci",
+  "localCI": "passed",
+  "workerTests": 185,
+  "clientAndDistributionTests": 162,
+  "fuzzTests": 5,
+  "areas": {
+    "outbound": {
+      "bounds": {
+        "workers": 2,
+        "maxClaims": 8,
+        "actualRetryLimit": 8
+      },
+      "assumptions": [
+        "D1 statements atomic; no rollback",
+        "429/explicit rejection never accepted mail",
+        "unknown may have accepted mail",
+        "actor serialization and synchronous ownership fence; delayed replaced actors included"
+      ],
+      "checks": [
+        {
+          "check": "TypeOK",
+          "outcome": "passed",
+          "log": "Outbound-baseline.log"
+        },
+        {
+          "check": "AtMostOneAcceptance",
+          "outcome": "passed",
+          "log": "Outbound-baseline.log"
+        },
+        {
+          "check": "NoBlindRetry",
+          "outcome": "passed",
+          "log": "Outbound-baseline.log"
+        },
+        {
+          "check": "NoDispatchAfterDisable",
+          "outcome": "passed",
+          "log": "Outbound-baseline.log"
+        },
+        {
+          "check": "NoDispatchAfterUnknown",
+          "outcome": "passed",
+          "log": "Outbound-baseline.log"
+        },
+        {
+          "check": "ActiveVersionTypeOK",
+          "outcome": "passed",
+          "log": "ActiveVersion-baseline.log"
+        },
+        {
+          "check": "NoStaleActiveWrite",
+          "outcome": "passed",
+          "log": "ActiveVersion-baseline.log"
+        }
+      ],
+      "sources": [
+        {
+          "path": "src/coordinator.ts",
+          "sha256": "3eead6e30132df24273821c65840d8170c9e62cda123c3de9815f318276b9ebf"
+        },
+        {
+          "path": "src/outbound.ts",
+          "sha256": "29e8db7eb3fda3c607069d24326b3a7e6868e906f3f593baed7060c9d5b66e6d"
+        },
+        {
+          "path": "src/common.ts",
+          "sha256": "0d5fa58e68a91660a16c74e29610c39e984053ff125e9e013459ede5b54b21a9"
+        },
+        {
+          "path": "src/mail-storage.ts",
+          "sha256": "44f0b535e851a584e6a5453d9950724a2452bf148ae0c57d6ceb8ed3df98e70b"
+        },
+        {
+          "path": "src/queue-jobs.ts",
+          "sha256": "2c508fea249f7a35542d41e1cfaa7d9c810be3f760e2e4a84f1c39c53b6a92c8"
+        },
+        {
+          "path": "src/dispatch-barrier.ts",
+          "sha256": "0a096c0ea4716b910b4c8cb6764621676cd3005adcf76e936d27755503fee65d"
+        },
+        {
+          "path": "src/attachments.ts",
+          "sha256": "34ba038278c8fd453fa0d0d78c6284ad81a8b19dd0505106a60b05986c16ba6d"
+        },
+        {
+          "path": "src/attachment-policy.ts",
+          "sha256": "2b638e65863e54bdfc8d2524551bd1d6866db431c5504e8a41ba1bbc390ae8c1"
+        },
+        {
+          "path": "src/maintenance.ts",
+          "sha256": "d905d33bb67f5e99626daf6851631f02233947c013d652f454529ec3399144bb"
+        },
+        {
+          "path": "src/api.ts",
+          "sha256": "1caf277261c01309a798097227b2e16375434da951f9e1ec382f7fd9595a176b"
+        },
+        {
+          "path": "src/index.ts",
+          "sha256": "c2d5869b1e73017e2475d1922602f884e4ecf31e871d946d3df5a06d284f9403"
+        },
+        {
+          "path": "wrangler.jsonc",
+          "sha256": "3536298f0182c204767d0958364f47378a33bc22b33fa154a403259ba99d82bb"
+        },
+        {
+          "path": "migrations/0001_mail.sql",
+          "sha256": "19e4db34a1f7703fea52aff0af80511d09f2f14c32a3d919f4d04cbfb9b19953"
+        },
+        {
+          "path": "migrations/0004_inbox_active_version.sql",
+          "sha256": "e78b7beb536493c1dc19717d17d4c1ec899cd74b3fc3171f3e8da935b2ea1b81"
+        },
+        {
+          "path": "migrations/0009_recovery_indexes.sql",
+          "sha256": "283fc8d9c832b0b861bc66e72233bf165ab3fb237e037460ddeb858d98d07818"
+        }
+      ],
+      "replays": [
+        {
+          "title": "a delayed old disable committing after an active read blocks the replacement dispatch",
+          "status": "passed"
+        },
+        {
+          "title": "no new provider request starts after disabling the inbox has completed",
+          "status": "passed"
+        },
+        {
+          "title": "a replacement dispatch barrier rejects a delayed old disable projection",
+          "status": "passed"
+        },
+        {
+          "title": "provider accepts the same request at most once with duplicate queue jobs",
+          "status": "passed"
+        },
+        {
+          "title": "ownership fence failure after the active read prevents dispatch",
+          "status": "passed"
+        },
+        {
+          "title": "actor failure releases serialization without allowing a cross-inbox claim",
+          "status": "passed"
+        },
+        {
+          "title": "a fresh actor recovers an orphaned sending request without dispatching",
+          "status": "passed"
+        },
+        {
+          "title": "stale worker does not start a provider call after Cron marks the outcome unknown",
+          "status": "passed"
+        },
+        {
+          "title": "unknown outcomes never create a new automatic provider attempt",
+          "status": "passed"
+        },
+        {
+          "title": "a delayed old enable cannot overwrite a newer disable after actor handoff",
+          "status": "passed"
+        }
+      ],
+      "mutations": [
+        {
+          "name": "claim",
+          "checks": ["AtMostOneAcceptance", "NoBlindRetry"],
+          "baseline": "replay",
+          "model": "violated",
+          "source": "assertion-failed"
+        },
+        {
+          "name": "serialization",
+          "checks": ["NoDispatchAfterDisable", "NoDispatchAfterUnknown"],
+          "baseline": "replay",
+          "model": "violated",
+          "source": "assertion-failed"
+        },
+        {
+          "name": "fence",
+          "checks": ["NoDispatchAfterDisable", "NoDispatchAfterUnknown"],
+          "baseline": "replay",
+          "model": "violated",
+          "source": "assertion-failed"
+        },
+        {
+          "name": "version",
+          "checks": ["NoStaleActiveWrite"],
+          "baseline": "replay",
+          "model": "violated",
+          "source": "assertion-failed"
+        }
+      ],
+      "implementationMutations": [
+        {
+          "name": "dispatch-barrier",
+          "baseline": "replay",
+          "source": "assertion-failed",
+          "complementaryModel": "verification/webhooks/DispatchBarrier.tla (EmailOnly = TRUE)"
+        }
+      ]
+    },
+    "inbound": {
+      "bounds": {
+        "originals": 3,
+        "valid": 2,
+        "poisoned": 1,
+        "pageSize": 1,
+        "transientFaults": 2,
+        "forwardingHandlers": 2,
+        "forwardingTargets": 3
+      },
+      "assumptions": [
+        "originals already successfully persisted in recovery model; conditional R2 put in forwarding model",
+        "native forwarding exists only during SMTP handler; claims never reset; no D1 rollback",
+        "forwarding configuration is captured at admission; later changes do not cancel admitted work",
+        "verified-destination enforcement and SMTP delivery are external assumptions",
+        "finite stable corpus",
+        "at most two transient faults",
+        "weakly fair successful Cron, queue and parse actions",
+        "two valid originals fit MIME and 16 MiB parsed-output limits and parse successfully; one poisoned metadata object"
+      ],
+      "checks": [
+        {
+          "check": "TypeOK",
+          "outcome": "passed",
+          "log": "Inbound-baseline.log"
+        },
+        {
+          "check": "OriginalRetained",
+          "outcome": "passed",
+          "log": "Inbound-baseline.log"
+        },
+        {
+          "check": "IndexHasOriginal",
+          "outcome": "passed",
+          "log": "Inbound-baseline.log"
+        },
+        {
+          "check": "ReadyHasParsed",
+          "outcome": "passed",
+          "log": "Inbound-baseline.log"
+        },
+        {
+          "check": "PoisonVisible",
+          "outcome": "passed",
+          "log": "Inbound-baseline.log"
+        },
+        {
+          "check": "EventuallyReady",
+          "outcome": "passed",
+          "log": "Inbound-baseline.log"
+        },
+        {
+          "check": "ForwardingTypeOK",
+          "outcome": "passed",
+          "log": "Forwarding-baseline.log"
+        },
+        {
+          "check": "ForwardingRawBeforeForward",
+          "outcome": "passed",
+          "log": "Forwarding-baseline.log"
+        },
+        {
+          "check": "ForwardingSnapshotPreserved",
+          "outcome": "passed",
+          "log": "Forwarding-baseline.log"
+        },
+        {
+          "check": "ForwardingTrustedDestination",
+          "outcome": "passed",
+          "log": "Forwarding-baseline.log"
+        },
+        {
+          "check": "ForwardingAtMostOneForward",
+          "outcome": "passed",
+          "log": "Forwarding-baseline.log"
+        },
+        {
+          "check": "ForwardingNoBlindRetry",
+          "outcome": "passed",
+          "log": "Forwarding-baseline.log"
+        }
+      ],
+      "sources": [
+        {
+          "path": "src/inbound.ts",
+          "sha256": "e8920d4427ec3b4267e2f310fbadc7be63ef0d4aae12760425ef1149a6df9110"
+        },
+        {
+          "path": "src/bounded-json.ts",
+          "sha256": "1a847ef629c4712a81bd83261c8f8728db149456cf32a59d116927721cd503b0"
+        },
+        {
+          "path": "src/common.ts",
+          "sha256": "0d5fa58e68a91660a16c74e29610c39e984053ff125e9e013459ede5b54b21a9"
+        },
+        {
+          "path": "src/mail-storage.ts",
+          "sha256": "44f0b535e851a584e6a5453d9950724a2452bf148ae0c57d6ceb8ed3df98e70b"
+        },
+        {
+          "path": "src/queue-jobs.ts",
+          "sha256": "2c508fea249f7a35542d41e1cfaa7d9c810be3f760e2e4a84f1c39c53b6a92c8"
+        },
+        {
+          "path": "src/forwarding.ts",
+          "sha256": "783742f249425146b4dd2a131d36c7cf5f7cacb854bf512fad322675b2c9d073"
+        },
+        {
+          "path": "src/forwarding-policy.ts",
+          "sha256": "02137ac6ff761c8fefb2188bed814d4b3434d338dd14677ae9bb3552c966825c"
+        },
+        {
+          "path": "src/forwarding-store.ts",
+          "sha256": "62b618c6febd800e1c2dea630620e74a159dd640e18d2b55c37490d9f6ab02f5"
+        },
+        {
+          "path": "migrations/0007_forwarding.sql",
+          "sha256": "bc033db783daf2525f5c45f926512c5a2cff403db58f0b92016fe2172865c6d1"
+        },
+        {
+          "path": "src/maintenance.ts",
+          "sha256": "d905d33bb67f5e99626daf6851631f02233947c013d652f454529ec3399144bb"
+        },
+        {
+          "path": "src/index.ts",
+          "sha256": "c2d5869b1e73017e2475d1922602f884e4ecf31e871d946d3df5a06d284f9403"
+        },
+        {
+          "path": "src/api.ts",
+          "sha256": "1caf277261c01309a798097227b2e16375434da951f9e1ec382f7fd9595a176b"
+        },
+        {
+          "path": "migrations/0001_mail.sql",
+          "sha256": "19e4db34a1f7703fea52aff0af80511d09f2f14c32a3d919f4d04cbfb9b19953"
+        },
+        {
+          "path": "migrations/0002_events.sql",
+          "sha256": "1f1beb2e59e4aec125c0f82009a5abc8a2e0e1183f844ce862748c43718df820"
+        },
+        {
+          "path": "migrations/0003_raw_recovery.sql",
+          "sha256": "657488eada56313dd675661fe39e300c187e766f31f0ac298f5d7a16449aede5"
+        },
+        {
+          "path": "migrations/0009_recovery_indexes.sql",
+          "sha256": "283fc8d9c832b0b861bc66e72233bf165ab3fb237e037460ddeb858d98d07818"
+        },
+        {
+          "path": "wrangler.jsonc",
+          "sha256": "3536298f0182c204767d0958364f47378a33bc22b33fa154a403259ba99d82bb"
+        }
+      ],
+      "replays": [
+        {
+          "title": "global defaults, custom overrides, explicit off and restored inheritance are independent",
+          "status": "passed"
+        },
+        {
+          "title": "configuration and destination history are administrator-only even for the inbox token",
+          "status": "passed"
+        },
+        {
+          "title": "destinations reject open relay targets, same-domain loops, malformed policy and input",
+          "status": "passed"
+        },
+        {
+          "title": "native forwarding starts only after durable MIME, indexing and a conditional claim",
+          "status": "passed"
+        },
+        {
+          "title": "explicit off skips forwarding while other inboxes use the default or their custom destination",
+          "status": "passed"
+        },
+        {
+          "title": "duplicate SMTP delivery never forwards twice or adopts a changed destination",
+          "status": "passed"
+        },
+        {
+          "title": "enabling a default never replays an earlier skipped message",
+          "status": "passed"
+        },
+        {
+          "title": "simultaneous duplicates share one native attempt",
+          "status": "passed"
+        },
+        {
+          "title": "a native exception retains mail, reports unknown and cannot cause an automatic resend",
+          "status": "passed"
+        },
+        {
+          "title": "loop markers and a withdrawn allowlist block disclosure without losing original mail",
+          "status": "passed"
+        },
+        {
+          "title": "raw-storage failure prevents forwarding",
+          "status": "passed"
+        },
+        {
+          "title": "raw-index repair restores forwarding intent but never performs a native forward",
+          "status": "passed"
+        },
+        {
+          "title": "stale recovery and late completion preserve unknown without repeating a native call",
+          "status": "passed"
+        },
+        {
+          "title": "racing first receipts preserve the winning raw snapshot across a global-setting change",
+          "status": "passed"
+        },
+        {
+          "title": "a disabled recipient cannot admit a native forward",
+          "status": "passed"
+        },
+        {
+          "title": "disabling after retention but before the native claim prevents forwarding",
+          "status": "passed"
+        },
+        {
+          "title": "a D1 failure after raw persistence is repaired from the original metadata",
+          "status": "passed"
+        },
+        {
+          "title": "queue outage and duplicate recovery preserve one message and one received event",
+          "status": "passed"
+        },
+        {
+          "title": "failures before parsed storage and before ready commit retain the original and recover",
+          "status": "passed"
+        },
+        {
+          "title": "poisoned first page cannot starve healthy later raw objects and stays visible in health",
+          "status": "passed"
+        },
+        {
+          "title": "orphaned inbox metadata is reported, retried and cleared after the inbox is restored",
+          "status": "passed"
+        },
+        {
+          "title": "cursor commit failure repeats safe inserts without downgrading ready messages",
+          "status": "passed"
+        },
+        {
+          "title": "failed inbound republishing does not prevent outbound republishing",
+          "status": "passed"
+        },
+        {
+          "title": "failed attention persistence keeps the cursor before the poisoned original",
+          "status": "passed"
+        }
+      ],
+      "mutations": [
+        {
+          "name": "poison",
+          "checks": ["EventuallyReady"],
+          "baseline": "replay",
+          "model": "violated",
+          "source": "assertion-failed"
+        },
+        {
+          "name": "retention",
+          "checks": ["OriginalRetained", "IndexHasOriginal"],
+          "baseline": "replay",
+          "model": "violated",
+          "source": "assertion-failed"
+        },
+        {
+          "name": "ready",
+          "checks": ["ReadyHasParsed"],
+          "baseline": "replay",
+          "model": "violated",
+          "source": "assertion-failed"
+        },
+        {
+          "name": "attention",
+          "checks": ["PoisonVisible"],
+          "baseline": "replay",
+          "model": "violated",
+          "source": "assertion-failed"
+        },
+        {
+          "name": "forward-snapshot",
+          "checks": ["SnapshotPreserved"],
+          "baseline": "replay",
+          "model": "violated",
+          "source": "assertion-failed"
+        },
+        {
+          "name": "forward-claim",
+          "checks": ["NoBlindRetry", "AtMostOneForward"],
+          "baseline": "replay",
+          "model": "violated",
+          "source": "assertion-failed"
+        },
+        {
+          "name": "forward-retry",
+          "checks": ["NoBlindRetry"],
+          "baseline": "replay",
+          "model": "violated",
+          "source": "assertion-failed"
+        },
+        {
+          "name": "forward-policy",
+          "checks": ["TrustedDestination"],
+          "baseline": "replay",
+          "model": "violated",
+          "source": "assertion-failed"
+        }
+      ],
+      "implementationMutations": []
+    },
+    "attachments": {
+      "bounds": {
+        "inboxes": 2,
+        "immutableFiles": 2,
+        "concurrentRequests": 2,
+        "idempotencyKeys": 1,
+        "storageFaults": 1
+      },
+      "assumptions": [
+        "Collision-free content and descriptor hashes",
+        "Atomic D1 uniqueness and conditional R2 puts",
+        "One immutable R2 GET snapshot",
+        "Provider ambiguity and actor fencing remain covered by Outbound.tla"
+      ],
+      "checks": [
+        {
+          "name": "upload",
+          "outcome": "passed"
+        },
+        {
+          "name": "isolation",
+          "outcome": "passed"
+        },
+        {
+          "name": "queue",
+          "outcome": "passed"
+        },
+        {
+          "name": "prepare",
+          "outcome": "passed"
+        }
+      ],
+      "sources": [
+        {
+          "path": "src/attachments.ts",
+          "sha256": "34ba038278c8fd453fa0d0d78c6284ad81a8b19dd0505106a60b05986c16ba6d"
+        },
+        {
+          "path": "src/attachment-policy.ts",
+          "sha256": "2b638e65863e54bdfc8d2524551bd1d6866db431c5504e8a41ba1bbc390ae8c1"
+        },
+        {
+          "path": "src/api.ts",
+          "sha256": "1caf277261c01309a798097227b2e16375434da951f9e1ec382f7fd9595a176b"
+        },
+        {
+          "path": "src/outbound.ts",
+          "sha256": "29e8db7eb3fda3c607069d24326b3a7e6868e906f3f593baed7060c9d5b66e6d"
+        },
+        {
+          "path": "src/common.ts",
+          "sha256": "0d5fa58e68a91660a16c74e29610c39e984053ff125e9e013459ede5b54b21a9"
+        }
+      ],
+      "mutations": [],
+      "implementationMutations": [
+        {
+          "name": "inbox-binding",
+          "baseline": "passed",
+          "mutation": "assertion-failed"
+        },
+        {
+          "name": "integrity",
+          "baseline": "passed",
+          "mutation": "assertion-failed"
+        }
+      ]
+    },
+    "webhooks": {
+      "bounds": {
+        "inboxes": 2,
+        "coordinatorIncarnations": 3,
+        "configurationWrites": 2,
+        "deliveryClaims": 2,
+        "messagesPerInbox": 1,
+        "logicalSendCalls": 2
+      },
+      "assumptions": [
+        "Atomic D1 writes, triggers, uniqueness and conditional updates",
+        "Monotonic SQLite ownership fences; no await between fence and fetch initiation",
+        "Webhook retries are at-least-once and preserve their delivery identity; receivers deduplicate",
+        "Distinct generated UUIDv4 values are collision-free within this finite model",
+        "Cryptography, exact-origin validation, HTTP behavior and elapsed timeout arithmetic require real-code tests",
+        "The existing outbound model independently protects email unknown-outcome non-retry"
+      ],
+      "checks": [
+        {
+          "name": "outbound-dispatch-barrier",
+          "checks": [
+            {
+              "check": "TypeOK",
+              "outcome": "passed"
+            },
+            {
+              "check": "NoObsoleteDispatch",
+              "outcome": "passed"
+            }
+          ],
+          "generatedStates": 61,
+          "distinctStates": 39
+        },
+        {
+          "name": "dispatch-barrier",
+          "checks": [
+            {
+              "check": "TypeOK",
+              "outcome": "passed"
+            },
+            {
+              "check": "NoObsoleteDispatch",
+              "outcome": "passed"
+            }
+          ],
+          "generatedStates": 121,
+          "distinctStates": 77
+        },
+        {
+          "name": "configuration",
+          "checks": [
+            {
+              "check": "TypeOK",
+              "outcome": "passed"
+            },
+            {
+              "check": "NoStaleConfiguration",
+              "outcome": "passed"
+            }
+          ],
+          "generatedStates": 5,
+          "distinctStates": 4
+        },
+        {
+          "name": "delivery",
+          "checks": [
+            {
+              "check": "TypeOK",
+              "outcome": "passed"
+            },
+            {
+              "check": "NoObsoleteDispatch",
+              "outcome": "passed"
+            },
+            {
+              "check": "ImmutableDestination",
+              "outcome": "passed"
+            },
+            {
+              "check": "ConditionalClaim",
+              "outcome": "passed"
+            },
+            {
+              "check": "ClaimBoundSettlement",
+              "outcome": "passed"
+            }
+          ],
+          "generatedStates": 310,
+          "distinctStates": 177
+        },
+        {
+          "name": "events",
+          "checks": [
+            {
+              "check": "TypeOK",
+              "outcome": "passed"
+            },
+            {
+              "check": "InboxIsolation",
+              "outcome": "passed"
+            },
+            {
+              "check": "ImmutableEventIdentity",
+              "outcome": "passed"
+            },
+            {
+              "check": "OneEventPerTransition",
+              "outcome": "passed"
+            }
+          ],
+          "generatedStates": 14,
+          "distinctStates": 10
+        },
+        {
+          "name": "generated-key",
+          "checks": [
+            {
+              "check": "TypeOK",
+              "outcome": "passed"
+            },
+            {
+              "check": "KeyRetained",
+              "outcome": "passed"
+            },
+            {
+              "check": "NoImplicitRetry",
+              "outcome": "passed"
+            },
+            {
+              "check": "RequestKeyBound",
+              "outcome": "passed"
+            },
+            {
+              "check": "SelectionPolicy",
+              "outcome": "passed"
+            }
+          ],
+          "generatedStates": 41,
+          "distinctStates": 25
+        },
+        {
+          "name": "explicit-key",
+          "checks": [
+            {
+              "check": "TypeOK",
+              "outcome": "passed"
+            },
+            {
+              "check": "KeyRetained",
+              "outcome": "passed"
+            },
+            {
+              "check": "NoImplicitRetry",
+              "outcome": "passed"
+            },
+            {
+              "check": "RequestKeyBound",
+              "outcome": "passed"
+            },
+            {
+              "check": "SelectionPolicy",
+              "outcome": "passed"
+            }
+          ],
+          "generatedStates": 41,
+          "distinctStates": 25
+        }
+      ],
+      "realCodeReplays": 8,
+      "sources": [
+        {
+          "path": "src/webhook-delivery.ts",
+          "sha256": "cb7c87a0a97ec70f586d99a4d79c3a121543f1dfe3aad75d735c05b5a2ca6c38"
+        },
+        {
+          "path": "src/webhooks.ts",
+          "sha256": "1d768a052e37b0598a7e6fb8a9554571d176d5b08d5eccc8b1f5fe881de0b515"
+        },
+        {
+          "path": "src/webhook-policy.ts",
+          "sha256": "68dc17d668f4162b6d3f3a46373e33e9257f573612848383fcb0021a2a5f684a"
+        },
+        {
+          "path": "src/webhook-crypto.ts",
+          "sha256": "ea7f2ee6e47c12621644b2d0496679869f12b6abb1d11f8e85a85f9ee3d03596"
+        },
+        {
+          "path": "src/webhook-store.ts",
+          "sha256": "b5056e53c6aacd00c5f330206e44eca46db7153c68fa2b134900834c7a1f019d"
+        },
+        {
+          "path": "src/coordinator.ts",
+          "sha256": "3eead6e30132df24273821c65840d8170c9e62cda123c3de9815f318276b9ebf"
+        },
+        {
+          "path": "src/inbound.ts",
+          "sha256": "e8920d4427ec3b4267e2f310fbadc7be63ef0d4aae12760425ef1149a6df9110"
+        },
+        {
+          "path": "src/api.ts",
+          "sha256": "1caf277261c01309a798097227b2e16375434da951f9e1ec382f7fd9595a176b"
+        },
+        {
+          "path": "src/maintenance.ts",
+          "sha256": "d905d33bb67f5e99626daf6851631f02233947c013d652f454529ec3399144bb"
+        },
+        {
+          "path": "src/queue-jobs.ts",
+          "sha256": "2c508fea249f7a35542d41e1cfaa7d9c810be3f760e2e4a84f1c39c53b6a92c8"
+        },
+        {
+          "path": "src/index.ts",
+          "sha256": "c2d5869b1e73017e2475d1922602f884e4ecf31e871d946d3df5a06d284f9403"
+        },
+        {
+          "path": "src/idempotency.ts",
+          "sha256": "2edd6fe7d50f78d8fe57daad2926d90365b35fd1eefcf572b965d2132c899c41"
+        },
+        {
+          "path": "src/client.ts",
+          "sha256": "1506442906598936865fdd6da6a47d0e1281fce25e33b4195deba1070c74f823"
+        },
+        {
+          "path": "src/outbound.ts",
+          "sha256": "29e8db7eb3fda3c607069d24326b3a7e6868e906f3f593baed7060c9d5b66e6d"
+        },
+        {
+          "path": "src/dispatch-barrier.ts",
+          "sha256": "0a096c0ea4716b910b4c8cb6764621676cd3005adcf76e936d27755503fee65d"
+        },
+        {
+          "path": "migrations/0006_inbox_webhooks.sql",
+          "sha256": "f7502d26e44c92427b4415d27eb2f2c67c798739b8bbdd2f02e24df404fd52f2"
+        },
+        {
+          "path": "migrations/0009_recovery_indexes.sql",
+          "sha256": "283fc8d9c832b0b861bc66e72233bf165ab3fb237e037460ddeb858d98d07818"
+        },
+        {
+          "path": "wrangler.jsonc",
+          "sha256": "3536298f0182c204767d0958364f47378a33bc22b33fa154a403259ba99d82bb"
+        }
+      ],
+      "mutations": [
+        {
+          "name": "outbound-delayed-projection-barrier",
+          "check": "NoObsoleteDispatch",
+          "outcome": "mutation-detected"
+        },
+        {
+          "name": "outbound-barrier-final-fence",
+          "check": "NoObsoleteDispatch",
+          "outcome": "mutation-detected"
+        },
+        {
+          "name": "delayed-projection-barrier",
+          "check": "NoObsoleteDispatch",
+          "outcome": "mutation-detected"
+        },
+        {
+          "name": "barrier-final-fence",
+          "check": "NoObsoleteDispatch",
+          "outcome": "mutation-detected"
+        },
+        {
+          "name": "configuration-version",
+          "check": "NoStaleConfiguration",
+          "outcome": "mutation-detected"
+        },
+        {
+          "name": "ownership-fence",
+          "check": "NoObsoleteDispatch",
+          "outcome": "mutation-detected"
+        },
+        {
+          "name": "conditional-claim",
+          "check": "ConditionalClaim",
+          "outcome": "mutation-detected"
+        },
+        {
+          "name": "claim-token-settlement",
+          "check": "ClaimBoundSettlement",
+          "outcome": "mutation-detected"
+        },
+        {
+          "name": "inbox-isolation",
+          "check": "InboxIsolation",
+          "outcome": "mutation-detected"
+        },
+        {
+          "name": "event-identity",
+          "check": "ImmutableEventIdentity",
+          "outcome": "mutation-detected"
+        },
+        {
+          "name": "failure-key",
+          "check": "KeyRetained",
+          "outcome": "mutation-detected"
+        },
+        {
+          "name": "implicit-retry",
+          "check": "NoImplicitRetry",
+          "outcome": "mutation-detected"
+        }
+      ],
+      "implementationMutations": [
+        {
+          "name": "configuration-version",
+          "baseline": "passed",
+          "mutation": "assertion-failed"
+        },
+        {
+          "name": "conditional-claim",
+          "baseline": "passed",
+          "mutation": "assertion-failed"
+        },
+        {
+          "name": "ownership-fence",
+          "baseline": "passed",
+          "mutation": "assertion-failed"
+        },
+        {
+          "name": "claim-token",
+          "baseline": "passed",
+          "mutation": "assertion-failed"
+        },
+        {
+          "name": "dispatch-barrier",
+          "baseline": "passed",
+          "mutation": "assertion-failed"
+        }
+      ]
+    }
+  },
+  "limitations": "Finite models; runtime regressions cover platform size/batch/index boundaries. No production deployment, delivery, arbitrary overload, rollback or whole-program proof."
+}

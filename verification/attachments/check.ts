@@ -140,14 +140,16 @@ async function check(jar: string, name: string, config: string, violation?: stri
 
 async function sourceHashes() {
   return Promise.all(
-    ["src/attachments.ts", "src/attachment-policy.ts", "src/api.ts", "src/outbound.ts"].map(
-      async (path) => ({
-        path,
-        sha256: new Bun.CryptoHasher("sha256")
-          .update(await readFile(join(root, path)))
-          .digest("hex"),
-      }),
-    ),
+    [
+      "src/attachments.ts",
+      "src/attachment-policy.ts",
+      "src/api.ts",
+      "src/outbound.ts",
+      "src/common.ts",
+    ].map(async (path) => ({
+      path,
+      sha256: new Bun.CryptoHasher("sha256").update(await readFile(join(root, path))).digest("hex"),
+    })),
   );
 }
 

@@ -1,0 +1,22 @@
+---
+config:
+  markdownAutoWrap: false
+  state:
+    useMaxWidth: false
+---
+stateDiagram-v2
+  classDef group0 fill:#d6eaf8,stroke:#6b757c,color:#1b2631
+  state "Legend" as legend {
+    state "Monotonic configuration" as legendGroup0
+  }
+  class legendGroup0 group0
+  state "Webhook disabled; stored<br/>update 0; deletion not<br/>completed" as s0
+  state "Webhook disabled; stored<br/>update 2; deletion<br/>completed" as s1
+  state "Webhook enabled; stored<br/>update 1; deletion not<br/>completed" as s2
+  [*] --> s0
+  s0 --> s2 : An awaited configuration write<br/>commits or is rejected as<br/>stale
+  s0 --> s1 : An awaited configuration write<br/>commits or is rejected as<br/>stale
+  s2 --> s1 : An awaited configuration write<br/>commits or is rejected as<br/>stale
+  class s0 group0
+  class s1 group0
+  class s2 group0

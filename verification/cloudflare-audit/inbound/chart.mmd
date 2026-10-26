@@ -1,0 +1,41 @@
+---
+config:
+  markdownAutoWrap: false
+  state:
+    useMaxWidth: false
+---
+stateDiagram-v2
+  classDef group0 fill:#d6eaf8,stroke:#6b757c,color:#1b2631
+  classDef group1 fill:#fdebd0,stroke:#7f7668,color:#1b2631
+  state "Legend" as legend {
+    state "All valid mail recovered" as legendGroup0
+    state "Recovery in progress" as legendGroup1
+  }
+  class legendGroup0 group0
+  class legendGroup1 group1
+  state "Both valid emails ready; 2<br/>of 2 ready; bad metadata<br/>recorded for operator" as s0
+  state "Original MIME retained;<br/>waiting for index repair;<br/>0 of 2 ready; bad metadata<br/>not yet recorded" as s1
+  state "Original MIME retained;<br/>waiting for index repair;<br/>0 of 2 ready; bad metadata<br/>recorded for operator" as s2
+  state "Original MIME retained;<br/>waiting for index repair;<br/>1 of 2 ready; bad metadata<br/>recorded for operator" as s3
+  state "Parsed content durable;<br/>ready commit pending; 0 of<br/>2 ready; bad metadata<br/>recorded for operator" as s4
+  state "Parsed content durable;<br/>ready commit pending; 1 of<br/>2 ready; bad metadata<br/>recorded for operator" as s5
+  state "Valid mail indexed;<br/>waiting to parse; 0 of 2<br/>ready; bad metadata<br/>recorded for operator" as s6
+  state "Valid mail indexed;<br/>waiting to parse; 1 of 2<br/>ready; bad metadata<br/>recorded for operator" as s7
+  [*] --> s1
+  s1 --> s2 : Record bad metadata and keep<br/>scanning
+  s2 --> s6 : Repair a valid message index
+  s6 --> s4 : Persist parsed content
+  s4 --> s3 : Commit ready state
+  s3 --> s7 : Repair a valid message index
+  s4 --> s7 : Commit ready state
+  s7 --> s5 : Persist parsed content
+  s4 --> s5 : Commit ready state
+  s5 --> s0 : Commit ready state
+  class s0 group0
+  class s1 group1
+  class s2 group1
+  class s3 group1
+  class s4 group1
+  class s5 group1
+  class s6 group1
+  class s7 group1

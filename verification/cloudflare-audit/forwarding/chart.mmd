@@ -1,0 +1,48 @@
+---
+config:
+  markdownAutoWrap: false
+  state:
+    useMaxWidth: false
+---
+stateDiagram-v2
+  classDef group0 fill:#d6eaf8,stroke:#6b757c,color:#1b2631
+  classDef group1 fill:#fdebd0,stroke:#7f7668,color:#1b2631
+  state "Legend" as legend {
+    state "Native call initiated" as legendGroup0
+    state "No native call" as legendGroup1
+  }
+  class legendGroup0 group0
+  class legendGroup1 group1
+  state "Awaiting forwarding index;<br/>original destination =<br/>off; 0 claims; 0 native<br/>calls" as s0
+  state "Awaiting forwarding index;<br/>original destination =<br/>trusted mailbox; 0 claims;<br/>0 native calls" as s1
+  state "Awaiting forwarding index;<br/>original destination =<br/>unapproved mailbox; 0<br/>claims; 0 native calls" as s2
+  state "Claimed; outcome pending;<br/>original destination =<br/>trusted mailbox; 1 claims;<br/>0 native calls" as s3
+  state "Claimed; outcome pending;<br/>original destination =<br/>trusted mailbox; 1 claims;<br/>1 native calls" as s4
+  state "Forwarding blocked;<br/>original destination =<br/>trusted mailbox; 0 claims;<br/>0 native calls" as s5
+  state "Forwarding blocked;<br/>original destination =<br/>unapproved mailbox; 0<br/>claims; 0 native calls" as s6
+  state "Forwarding was off;<br/>original destination =<br/>off; 0 claims; 0 native<br/>calls" as s7
+  state "Native forwarding<br/>accepted; original<br/>destination = trusted<br/>mailbox; 1 claims; 1<br/>native calls" as s8
+  state "SMTP delivery arrived;<br/>original not retained" as s9
+  state "Waiting for native claim;<br/>original destination =<br/>trusted mailbox; 0 claims;<br/>0 native calls" as s10
+  [*] --> s9
+  s9 --> s0 : Retain original and its<br/>admission decision
+  s9 --> s1 : Retain original and its<br/>admission decision
+  s9 --> s2 : Retain original and its<br/>admission decision
+  s0 --> s7 : Index the retained decision
+  s1 --> s10 : Index the retained decision
+  s2 --> s6 : Index the retained decision
+  s10 --> s5 : Record interrupted work for<br/>operator attention
+  s10 --> s3 : Atomically claim native<br/>forwarding
+  s3 --> s4 : Start the native forwarding<br/>call
+  s4 --> s8 : Persist the native outcome if<br/>still sending
+  class s0 group1
+  class s1 group1
+  class s2 group1
+  class s3 group1
+  class s4 group0
+  class s5 group1
+  class s6 group1
+  class s7 group1
+  class s8 group0
+  class s9 group1
+  class s10 group1

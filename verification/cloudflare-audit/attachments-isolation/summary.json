@@ -1,0 +1,30 @@
+{
+  "view": "customer",
+  "modelStates": 24,
+  "modelTransitions": 34,
+  "chartStates": 21,
+  "chartTransitions": 32,
+  "chartStatus": {
+    "works": 21,
+    "wrong": 0,
+    "fixed": 0,
+    "mixed": 0,
+    "after": 0
+  },
+  "mixedStatus": [],
+  "cover": {
+    "drawn": false,
+    "why": "no step in TLC's graph is a reader action"
+  },
+  "chartGroups": [
+    {
+      "name": "Inbox-owned attachments under one stable key",
+      "color": "#d6eaf8",
+      "states": 21
+    }
+  ],
+  "mixedGroups": [],
+  "classes": [],
+  "codeLike": [],
+  "brokenProperties": []
+}
