@@ -9,7 +9,7 @@ export const inboxInputSchema = z
       .max(64)
       .regex(/^[A-Za-z0-9_+-]+(?:\.[A-Za-z0-9_+-]+)*$/)
       .describe(
-        "Optional mailbox name before @ on the configured domain. ASCII letters, digits, _, +, -, and single internal dots; 1–64 characters. Stored lowercase. Omit for a random address. Existing names return a conflict, even if disabled.",
+        "Optional mailbox name before @ on the configured domain. ASCII letters, digits, _, +, -, and single internal dots; 1–64 characters. Stored lowercase. Omit for three random English words joined by hyphens (e.g. cedar-moon-river). Explicit existing names return a conflict, even if disabled.",
       )
       .optional(),
   })

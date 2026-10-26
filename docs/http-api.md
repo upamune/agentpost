@@ -48,7 +48,9 @@ Save the returned `id` and `address`, and any secret `token` privately. OAuth-au
 
 ### Mailbox names
 
-Omit `local_part` for a random address, or choose the part before `@`:
+Generated names use three independent cryptographic draws from an original 512-word vocabulary (134,217,728 combinations, 27 bits). Word repetition is allowed. Names are public identifiers, not credentials or anonymity guarantees. An atomic insert reserves the address, retrying generated-name collisions up to eight attempts, then returning 503. Explicit name conflicts return 409 without retry. Disabled addresses stay reserved; existing UUID-style addresses continue working without migration.
+
+Omit `local_part` for three random English words joined by hyphens, e.g. `cedar-moon-river@example.com`, or choose the part before `@`:
 
 ```json
 { "local_part": "research.team+1", "label": "research-agent" }
@@ -56,7 +58,7 @@ Omit `local_part` for a random address, or choose the part before `@`:
 
 The result uses the configured domain, e.g. `research.team+1@example.com`. Names accept 1–64 ASCII letters/digits, `_`, `+`, `-`, and internal single dots. Leading/trailing dots, adjacent dots, whitespace, Unicode, and complete addresses are rejected with 400. The complete address must fit 254 characters. ASCII uppercase is normalized to lowercase; dots and plus suffixes remain distinct names, not aliases.
 
-Allocation requires admin access or an OAuth `agent` grant; OAuth creations record the issuer-bound owner. A single atomic D1 insert claims the address: duplicates, concurrent claims, and names belonging to disabled inboxes return 409 without changing the original inbox or revealing its token. Names cannot be reassigned through provisioning. Inspect or administer the existing inbox instead; never treat a conflict as permission to rotate its credentials. No migration is required for existing random inboxes.
+Allocation requires admin access or an OAuth `agent` grant; OAuth creations record the issuer-bound owner. A single atomic D1 insert claims the address: explicit duplicates, concurrent explicit claims, and explicit names belonging to disabled inboxes return 409 without changing the original inbox or revealing its token. Names cannot be reassigned through provisioning. Inspect or administer the existing inbox instead; never treat a conflict as permission to rotate its credentials. No migration is required for existing random inboxes.
 
 CLI: `inbox create --local-part research.team+1`. MCP: `create_inbox` with `local_part`. Both support omission for random allocation.
 

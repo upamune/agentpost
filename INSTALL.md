@@ -88,7 +88,7 @@ Verify access without sending a message. With a supplied inbox UUID, use:
 /absolute/path/to/agentpost inbox get INBOX_UUID
 ```
 
-When the user authorizes provisioning, `inbox create --local-part research` chooses `research` on the configured domain; omit the option for a random name. Existing names conflict even when disabled, and provisioning never reassigns them.
+When the user authorizes provisioning, `inbox create --local-part research` chooses `research` on the configured domain; omit the option for three random English words joined by hyphens, e.g. `cedar-moon-river`. Use a separate inbox for each site and record its purpose in a private label. Existing names conflict even when disabled, and provisioning never reassigns them.
 
 An admin token can instead use `inbox list --limit 1`. `health` also requires admin access, so its rejection does not mean an inbox token is invalid. If the URL, credentials, or inbox identity are missing, finish CLI installation and report the missing connection configuration. Do not create an inbox or send mail just to prove installation.
 

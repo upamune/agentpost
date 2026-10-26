@@ -143,7 +143,7 @@ describe("API and inbox isolation", () => {
   test("issues random unique addresses and stores only token hashes", async () => {
     const first = await inbox();
     const second = await inbox();
-    expect(first.address).toMatch(/^[a-f0-9]{32}@example\.com$/);
+    expect(first.address).toMatch(/^[a-z]+-[a-z]+-[a-z]+@example\.com$/);
     expect(first.address).not.toBe(second.address);
     const row = await bindings.DB.prepare("SELECT token_hash FROM inboxes WHERE id = ?")
       .bind(first.id)

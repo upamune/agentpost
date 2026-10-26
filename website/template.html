@@ -99,16 +99,16 @@
               ><span class="step-arrow" aria-hidden="true">↗</span>
             </button>
             <button
-              id="step-reply"
+              id="step-disable"
               class="step"
               type="button"
               role="tab"
               aria-selected="false"
-              aria-controls="panel-reply"
+              aria-controls="panel-disable"
               tabindex="-1"
             >
               <span class="step-number">03</span
-              ><span><strong>{{reply.title}}</strong><span>{{reply.description}}</span></span
+              ><span><strong>{{disable.title}}</strong><span>{{disable.description}}</span></span
               ><span class="step-arrow" aria-hidden="true">↗</span>
             </button>
           </div>
@@ -133,8 +133,8 @@
               <div class="demo-content create-content">
                 <p class="small-label">{{demo.agent}}</p>
                 <div class="agent-identity">
-                  <span class="agent-avatar" aria-hidden="true">R</span>
-                  <div><strong>research-agent</strong><span>{{demo.task}}</span></div>
+                  <span class="agent-avatar" aria-hidden="true">S</span>
+                  <div><strong>signup-agent</strong><span>{{demo.task}}</span></div>
                   <span class="subtle-tag">MCP / CLI / API</span>
                 </div>
                 <div class="flow-stem" aria-hidden="true"></div>
@@ -142,7 +142,7 @@
                   <span class="mail-icon" aria-hidden="true">↳</span>
                   <div>
                     <span class="small-label">{{demo.address}}</span
-                    ><strong>research@example.com</strong>
+                    ><strong>cedar-moon-river@example.com</strong>
                   </div>
                   <span class="check" aria-hidden="true">✓</span>
                 </div>
@@ -165,8 +165,7 @@
                   </button>
                 </div>
                 <pre><code id="code-create">agentpost inbox create \
-  --local-part research \
-  --label research-agent</code></pre>
+  --label shop.example</code></pre>
               </div>
             </div>
             <div
@@ -179,19 +178,16 @@
             >
               <div class="demo-content receive-content">
                 <div class="message-heading">
-                  <span class="small-label">research@example.com</span
+                  <span class="small-label">cedar-moon-river@example.com</span
                   ><span class="state-badge"><span class="tiny-dot"></span>{{demo.received}}</span>
                 </div>
                 <div class="mail-subject">{{demo.subject}}</div>
                 <p class="mail-from">
-                  analyst@example.net <span aria-hidden="true">→</span> research@example.com
+                  accounts@shop.example
+                  <span aria-hidden="true">→</span> cedar-moon-river@example.com
                 </p>
                 <div class="message-body">
                   <p>{{demo.body}}</p>
-                  <span class="file"
-                    ><span class="file-icon" aria-hidden="true">↧</span> findings.csv
-                    <span>2.4 KB</span></span
-                  >
                 </div>
               </div>
               <div class="command">
@@ -213,28 +209,33 @@ agentpost message get INBOX_ID MESSAGE_ID</code></pre>
             </div>
             <div
               class="demo-panel"
-              id="panel-reply"
+              id="panel-disable"
               role="tabpanel"
-              aria-labelledby="step-reply"
+              aria-labelledby="step-disable"
               tabindex="0"
               hidden
             >
-              <div class="demo-content reply-content">
+              <div class="demo-content disable-content">
                 <div class="message-heading">
-                  <span class="small-label"
-                    >research@example.com
-                    <span aria-hidden="true">→</span> analyst@example.net</span
-                  ><span class="state-badge queued">{{demo.queued}}</span>
+                  <span class="small-label">cedar-moon-river@example.com</span>
+                  <span class="state-badge disabled">{{demo.disabled}}</span>
                 </div>
-                <div class="mail-subject">Re: {{demo.subject}}</div>
-                <div class="message-body">
-                  <p>{{demo.reply}}</p>
-                  <span class="file"
-                    ><span class="file-icon" aria-hidden="true">↥</span> summary.pdf
-                    <span>184 KB</span></span
+                <div class="mail-subject">{{demo.disabledTitle}}</div>
+                <div class="message-body"><p>{{demo.disabledBody}}</p></div>
+                <div class="alias-statuses">
+                  <span><s>cedar-moon-river@example.com</s><span>{{demo.disabled}}</span></span>
+                  <span
+                    >amber-fern-lake@example.com<span class="active-state"
+                      ><span class="tiny-dot"></span>{{demo.active}}</span
+                    ></span
+                  >
+                  <span
+                    >birch-owl-meadow@example.com<span class="active-state"
+                      ><span class="tiny-dot"></span>{{demo.active}}</span
+                    ></span
                   >
                 </div>
-                <p class="queue-note">{{demo.queueNote}}</p>
+                <p class="queue-note">{{demo.disableNote}}</p>
               </div>
               <div class="command">
                 <div class="command-heading">
@@ -242,17 +243,14 @@ agentpost message get INBOX_ID MESSAGE_ID</code></pre>
                   ><button
                     class="copy-button js-only"
                     type="button"
-                    data-copy="code-reply"
+                    data-copy="code-disable"
                     data-copied="{{copied}}"
                     data-failure="{{copyFailure}}"
                   >
                     {{copy}}
                   </button>
                 </div>
-                <pre><code id="code-reply">agentpost reply INBOX_ID MESSAGE_ID \
-  --text "Here is the summary." \
-  --attach ./summary.pdf \
-  --idempotency-key research-reply-1</code></pre>
+                <pre><code id="code-disable">agentpost inbox disable INBOX_ID</code></pre>
               </div>
             </div>
           </div>
@@ -274,8 +272,8 @@ agentpost message get INBOX_ID MESSAGE_ID</code></pre>
               <p>{{feature1.description}}</p>
             </div>
             <div class="feature-visual address-stack" aria-hidden="true">
-              <span>research@example.com</span><span>build-7f2a@example.com</span
-              ><span>receipts@example.com</span>
+              <span>cedar-moon-river@example.com</span><span>amber-fern-lake@example.com</span
+              ><span>birch-owl-meadow@example.com</span>
             </div>
           </article>
           <article class="feature-row">
@@ -303,6 +301,11 @@ agentpost message get INBOX_ID MESSAGE_ID</code></pre>
           </article>
         </div>
       </section>
+
+      <aside class="privacy-note container" aria-labelledby="privacy-title">
+        <h2 id="privacy-title">{{privacy.title}}</h2>
+        <p>{{privacy.description}}</p>
+      </aside>
 
       <section class="hosting" id="architecture" aria-labelledby="hosting-title">
         <div class="container">

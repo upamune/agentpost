@@ -4,6 +4,8 @@
 
 公開ページは[upamune.github.io/agentpost](https://upamune.github.io/agentpost/)でホストし、[日本語版](https://upamune.github.io/agentpost/ja/)も用意しています。製品の説明と操作例を示す静的サイトで、認証付きのWorker API/MCPサービスとは別です。認証情報を入力したり、メールを送信したりする機能はありません。
 
+主な操作例は登録先ごとのエイリアスです。英単語3つのアドレスを発行し、登録メールを取得して、管理者権限でアドレスを無効化します。自動転送とトラッカー除去は対象外であること、ドメイン・本文からの関連付けとメール保存の範囲を明記します。
+
 `website/template.html`、`website/content/en.json`、`website/content/ja.json`、`website/site.css`、`website/site.js`を編集します。ビルドでは明示的に選んだ公開ブランド素材とWebページだけを出力し、リポジトリ全体、Worker設定、ローカルの認証情報はアップロードしません。第三者のスクリプト、Webフォント、解析、実行時依存、API呼び出しは使用しません。両言語とも静的HTMLを生成し、小さなローカルスクリプトでタブとコピー機能を加えます。動きの抑制設定とキーボードでのタブ操作に対応します。
 
 `mise run site:build`でビルドします。`dist/site`をローカルの静的HTTPサーバーで配信し、英語・日本語、モバイル表示、操作例、コピー、キーボードフォーカスを確認します。翻訳の差し込み漏れ、ローカル素材の欠落、セクションへのリンク切れはビルドエラーになります。CSS/JSのファイル名にはハッシュを付け、canonical/alternateメタデータ、robots.txt、サイトマップも生成します。公開URLは`scripts/build-site.ts`で定義します。フォークして公開する場合は、プロジェクトへのリンクと合わせて更新してください。

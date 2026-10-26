@@ -10,6 +10,7 @@ import { authenticate, canAccessInbox } from "./auth";
 import type { Principal } from "./auth";
 import { authConfiguration } from "./auth-config";
 import { inboxInputSchema } from "./inbox-schema";
+import { randomMailboxName } from "./mailbox-name";
 import { MAX_REQUEST_BYTES, randomToken, readBounded, sha256 } from "./common";
 import { enqueue, parseMime } from "./inbound";
 import { eventDescriptors, eventQuerySchema } from "./event-schema";
@@ -104,7 +105,7 @@ function mailDomain(env: Env): string {
 }
 
 function mailboxAddress(domain: string, input: z.output<typeof inboxInputSchema>): string {
-  const localPart = input.local_part?.toLowerCase() ?? crypto.randomUUID().replaceAll("-", "");
+  const localPart = input.local_part?.toLowerCase() ?? randomMailboxName();
   const email = `${localPart}@${domain}`;
   if (email.length > 254)
     throw new ApiError(
@@ -112,6 +113,33 @@ function mailboxAddress(domain: string, input: z.output<typeof inboxInputSchema>
       "Email address exceeds 254 characters",
     );
   return email;
+}
+
+async function reserveInboxAddress(
+  context: Context<Bindings>,
+  input: z.output<typeof inboxInputSchema>,
+  record: { id: string; tokenHash: string; now: number },
+): Promise<string> {
+  const domain = mailDomain(context.env);
+  const attempts = input.local_part === undefined ? 8 : 1;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const email = mailboxAddress(domain, input);
+    const created = await context.env.DB.prepare(
+      "INSERT INTO inboxes (id, address, label, token_hash, created_at, owner_id) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(address) DO NOTHING RETURNING id",
+    )
+      .bind(
+        record.id,
+        email,
+        input.label,
+        record.tokenHash,
+        record.now,
+        context.get("principal").ownerId ?? null,
+      )
+      .first<{ id: string }>();
+    if (created) return email;
+  }
+  if (input.local_part !== undefined) throw new ApiError(409, "Email address already exists");
+  throw new ApiError(503, "Could not allocate a unique email address. Try again later.");
 }
 
 function pageLimit(value: string | undefined): number {
@@ -140,17 +168,14 @@ app.post("/v1/inboxes", async (context) => {
   if (!principal.admin && !principal.ownerId)
     throw new ApiError(403, "Inbox provisioning forbidden");
   const input = await readJson(context, inboxInputSchema);
-  const domain = mailDomain(context.env);
   const id = crypto.randomUUID();
-  const email = mailboxAddress(domain, input);
   const token = randomToken();
   const now = Date.now();
-  const created = await context.env.DB.prepare(
-    "INSERT INTO inboxes (id, address, label, token_hash, created_at, owner_id) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(address) DO NOTHING RETURNING id",
-  )
-    .bind(id, email, input.label, await sha256(token), now, principal.ownerId ?? null)
-    .first<{ id: string }>();
-  if (!created) throw new ApiError(409, "Email address already exists");
+  const email = await reserveInboxAddress(context, input, {
+    id,
+    tokenHash: await sha256(token),
+    now,
+  });
   return context.json(
     {
       id,

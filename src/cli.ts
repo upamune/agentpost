@@ -32,6 +32,7 @@ Use --url to override the URL. Credentials are read from the environment.
   health
   mcp
 
+Inbox create: omit --local-part for three random English words joined by hyphens.
 Send/reply: repeat --attach FILE or --attachment-id ID (max 10).
 Files: PDF, PNG/JPEG/GIF/WebP, UTF-8 text/CSV/JSON/Markdown; max 3 MiB combined content.
 Uploads are private, inbox-scoped, retained in R2, and not virus-scanned.

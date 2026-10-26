@@ -1307,3 +1307,50 @@ code {
     scroll-behavior: auto !important;
   }
 }
+
+.privacy-note {
+  padding-block: 0 88px;
+}
+
+.privacy-note h2 {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+  margin: 0 0 12px;
+}
+
+.privacy-note p {
+  color: var(--text-secondary, #a1a4ad);
+  font-size: 14px;
+  line-height: 1.75;
+  max-width: 800px;
+}
+
+.alias-statuses {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+}
+
+.alias-statuses > span {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.alias-statuses s {
+  color: #8b8e99;
+}
+
+.state-badge.disabled {
+  color: #b2b5c1;
+  background: #252730;
+}
+
+.alias-statuses .active-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}

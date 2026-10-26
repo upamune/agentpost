@@ -1096,3 +1096,37 @@ tasks:
       push_comments: false
     created_at: 2026-10-26T05:56:48.191Z
     updated_at: 2026-10-26T06:12:01.476Z
+  - id: task_037
+    title: Lead with per-site aliases and generate three-word mailbox names
+    description: Reposition EN/JA website and README around per-site email aliases;
+      generate secure random word-word-word names server-side with bounded
+      atomic collision retries and preserved custom names.
+    source_links: []
+    status: done
+    priority: P2
+    labels: []
+    repo_targets: []
+    acceptance_criteria:
+      - EN/JA page and README explain per-site aliases and current privacy limits
+      - Default creation uses three English words with atomic collision retries
+      - Custom names, disabled reservations and credentials remain safe
+      - CI passes and GitHub Pages deployment is verified
+    dependencies: []
+    planning:
+      split_status: pending
+      risk: medium
+    execution_defaults:
+      manual_approval_required: false
+      auto_commit: true
+      push_when_done: true
+      create_pr: false
+      merge_pr: false
+      worktree_mode: direct
+      preferred_agents: []
+      max_subagents: 5
+    sync:
+      source_of_truth: backlog
+      push_status: false
+      push_comments: false
+    created_at: 2026-10-26T06:53:11.890Z
+    updated_at: 2026-10-26T07:01:13.873Z
