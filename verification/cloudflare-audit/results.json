@@ -1,15 +1,23 @@
 {
   "schemaVersion": 1,
-  "productRevision": "a69799e125a0edf39bcbee243994ff8303b81c33",
+  "productRevision": "f59ee20f3a6f8eb5d910fa7a404a823314c74d1d",
   "previousSync": "0f2689da7e4fc9ccdad75bd64e761c84ff645d37",
   "checkedOn": "2026-10-27",
   "modelOutcome": "in-sync",
   "verificationOutcome": "updated",
-  "command": "mise run ci",
+  "command": "mise run ci; rerun all four baselines after mutation checks in separate output directories",
   "localCI": "passed",
   "workerTests": 185,
   "clientAndDistributionTests": 162,
   "fuzzTests": 5,
+  "runtimeBudgets": {
+    "scopedEventPoll": {
+      "inboxes": 200,
+      "events": 2000,
+      "matchingEvents": 10,
+      "maximumRowsRead": 50
+    }
+  },
   "areas": {
     "outbound": {
       "bounds": {
@@ -99,7 +107,11 @@
         },
         {
           "path": "src/api.ts",
-          "sha256": "1caf277261c01309a798097227b2e16375434da951f9e1ec382f7fd9595a176b"
+          "sha256": "9933a20461125e8761975577ec65b86e5ab7c64cb77f0cbeb3e62f59eb64ecb1"
+        },
+        {
+          "path": "src/inbox-metadata.ts",
+          "sha256": "98e7834eaf98d9373081f043a9448a817a77f97dbdef09ef8f811b404cfd2213"
         },
         {
           "path": "src/index.ts",
@@ -119,7 +131,7 @@
         },
         {
           "path": "migrations/0009_recovery_indexes.sql",
-          "sha256": "283fc8d9c832b0b861bc66e72233bf165ab3fb237e037460ddeb858d98d07818"
+          "sha256": "5753592db41664b3cccdf0692a03e96aab66608ef52e568a546e3506aee9323d"
         }
       ],
       "replays": [
@@ -332,7 +344,11 @@
         },
         {
           "path": "src/api.ts",
-          "sha256": "1caf277261c01309a798097227b2e16375434da951f9e1ec382f7fd9595a176b"
+          "sha256": "9933a20461125e8761975577ec65b86e5ab7c64cb77f0cbeb3e62f59eb64ecb1"
+        },
+        {
+          "path": "src/inbox-metadata.ts",
+          "sha256": "98e7834eaf98d9373081f043a9448a817a77f97dbdef09ef8f811b404cfd2213"
         },
         {
           "path": "migrations/0001_mail.sql",
@@ -348,7 +364,7 @@
         },
         {
           "path": "migrations/0009_recovery_indexes.sql",
-          "sha256": "283fc8d9c832b0b861bc66e72233bf165ab3fb237e037460ddeb858d98d07818"
+          "sha256": "5753592db41664b3cccdf0692a03e96aab66608ef52e568a546e3506aee9323d"
         },
         {
           "path": "wrangler.jsonc",
@@ -556,7 +572,7 @@
         },
         {
           "path": "src/api.ts",
-          "sha256": "1caf277261c01309a798097227b2e16375434da951f9e1ec382f7fd9595a176b"
+          "sha256": "9933a20461125e8761975577ec65b86e5ab7c64cb77f0cbeb3e62f59eb64ecb1"
         },
         {
           "path": "src/outbound.ts",
@@ -567,7 +583,32 @@
           "sha256": "0d5fa58e68a91660a16c74e29610c39e984053ff125e9e013459ede5b54b21a9"
         }
       ],
-      "mutations": [],
+      "mutations": [
+        {
+          "name": "conditional-put",
+          "outcome": "mutation-detected"
+        },
+        {
+          "name": "inbox-binding",
+          "outcome": "mutation-detected"
+        },
+        {
+          "name": "payload-hash",
+          "outcome": "mutation-detected"
+        },
+        {
+          "name": "integrity",
+          "outcome": "mutation-detected"
+        },
+        {
+          "name": "missing-object-validation",
+          "outcome": "mutation-detected"
+        },
+        {
+          "name": "snapshot",
+          "outcome": "mutation-detected"
+        }
+      ],
       "implementationMutations": [
         {
           "name": "inbox-binding",
@@ -781,7 +822,15 @@
         },
         {
           "path": "src/api.ts",
-          "sha256": "1caf277261c01309a798097227b2e16375434da951f9e1ec382f7fd9595a176b"
+          "sha256": "9933a20461125e8761975577ec65b86e5ab7c64cb77f0cbeb3e62f59eb64ecb1"
+        },
+        {
+          "path": "src/events.ts",
+          "sha256": "05502c3a83b7df09152e8eddc2bca9026df7d907ab42814f5a62dd766029c235"
+        },
+        {
+          "path": "src/inbox-metadata.ts",
+          "sha256": "98e7834eaf98d9373081f043a9448a817a77f97dbdef09ef8f811b404cfd2213"
         },
         {
           "path": "src/maintenance.ts",
@@ -817,7 +866,7 @@
         },
         {
           "path": "migrations/0009_recovery_indexes.sql",
-          "sha256": "283fc8d9c832b0b861bc66e72233bf165ab3fb237e037460ddeb858d98d07818"
+          "sha256": "5753592db41664b3cccdf0692a03e96aab66608ef52e568a546e3506aee9323d"
         },
         {
           "path": "wrangler.jsonc",
