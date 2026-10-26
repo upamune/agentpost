@@ -51,6 +51,31 @@
           <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span>{{hero.eyebrow}}</p>
           <h1 id="hero-title">{{hero.title}}<span>{{hero.title2}}</span></h1>
           <p class="hero-description">{{hero.description}}</p>
+          <div
+            class="alias-demo"
+            data-alias-demo
+            role="group"
+            aria-label="{{alias.animation}}"
+            tabindex="0"
+            aria-describedby="alias-description alias-motion-hint"
+            data-personal-label="{{alias.before}}"
+            data-alias-label="{{alias.after}}"
+          >
+            <p class="sr-only" id="alias-description">{{alias.description}}</p>
+            <p class="sr-only" id="alias-motion-hint">{{alias.motionHint}}</p>
+            <div class="alias-scene" aria-hidden="true">
+              <p class="alias-label">{{alias.after}}</p>
+              <div class="alias-address">
+                <span class="alias-local">
+                  <span class="alias-current">cedar-moon-river</span>
+                  <span class="alias-next"></span>
+                  <span class="alias-sweep"></span> </span
+                ><span class="alias-domain">@example.com</span>
+              </div>
+            </div>
+            <p class="alias-note">{{alias.note}}</p>
+          </div>
+          <p class="hero-capabilities">{{hero.capabilities}}</p>
           <div class="hero-actions">
             <a class="button primary" href="#start"
               >{{hero.cta}} <span aria-hidden="true">→</span></a
@@ -99,6 +124,19 @@
               ><span class="step-arrow" aria-hidden="true">↗</span>
             </button>
             <button
+              id="step-reply"
+              class="step"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="panel-reply"
+              tabindex="-1"
+            >
+              <span class="step-number">03</span
+              ><span><strong>{{reply.title}}</strong><span>{{reply.description}}</span></span
+              ><span class="step-arrow" aria-hidden="true">↗</span>
+            </button>
+            <button
               id="step-disable"
               class="step"
               type="button"
@@ -107,7 +145,7 @@
               aria-controls="panel-disable"
               tabindex="-1"
             >
-              <span class="step-number">03</span
+              <span class="step-number">04</span
               ><span><strong>{{disable.title}}</strong><span>{{disable.description}}</span></span
               ><span class="step-arrow" aria-hidden="true">↗</span>
             </button>
@@ -209,6 +247,48 @@ agentpost message get INBOX_ID MESSAGE_ID</code></pre>
             </div>
             <div
               class="demo-panel"
+              id="panel-reply"
+              role="tabpanel"
+              aria-labelledby="step-reply"
+              tabindex="0"
+              hidden
+            >
+              <div class="demo-content reply-content">
+                <div class="message-heading">
+                  <span class="small-label">cedar-moon-river@example.com</span>
+                  <span class="state-badge queued">{{demo.outbound}}</span>
+                </div>
+                <div class="mail-subject">{{demo.replySubject}}</div>
+                <p class="mail-from">
+                  cedar-moon-river@example.com
+                  <span aria-hidden="true">→</span> accounts@shop.example
+                </p>
+                <div class="message-body"><p>{{demo.replyBody}}</p></div>
+                <div class="file">
+                  <span class="file-icon" aria-hidden="true">↗</span>document.pdf
+                </div>
+                <p class="queue-note">{{demo.outboundNote}}</p>
+              </div>
+              <div class="command">
+                <div class="command-heading">
+                  <span>CLI</span>
+                  <button
+                    class="copy-button js-only"
+                    type="button"
+                    data-copy="code-reply"
+                    data-copied="{{copied}}"
+                    data-failure="{{copyFailure}}"
+                  >
+                    {{copy}}
+                  </button>
+                </div>
+                <pre><code id="code-reply">agentpost reply INBOX_ID MESSAGE_ID \
+  --text 'Thanks! Here is the requested document.' \
+  --attach document.pdf</code></pre>
+              </div>
+            </div>
+            <div
+              class="demo-panel"
               id="panel-disable"
               role="tabpanel"
               aria-labelledby="step-disable"
@@ -294,9 +374,10 @@ agentpost message get INBOX_ID MESSAGE_ID</code></pre>
               <h3>{{feature3.title}}</h3>
               <p>{{feature3.description}}</p>
             </div>
-            <div class="feature-visual event-visual" aria-hidden="true">
-              <span class="event-line"><span class="tiny-dot"></span>message.received</span
-              ><span class="event-detail">inbox_id <span>9bf73f56…</span></span>
+            <div class="feature-visual mail-directions" aria-hidden="true">
+              <span><span>↓</span>{{mail.receive}}</span>
+              <strong>cedar-moon-river@example.com</strong>
+              <span><span>↑</span>{{mail.send}}</span>
             </div>
           </article>
         </div>

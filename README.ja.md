@@ -14,9 +14,9 @@
 
 [English](README.md) | [日本語](README.ja.md) | [Webサイト](https://upamune.github.io/agentpost/ja/)
 
-**サイトごとに、別のメールアドレスを。管理はAIエージェントに。**
+**サイトごとに、別のメールアドレスを。エージェントで受信・送信・返信まで。**
 
-登録、領収書、ニュースレター。いつものメールアドレスをすべてのサイトに渡す代わりに、専用のアドレスを使えます。自分のドメインに独立した受信箱を作り、エージェントがCLI・MCP・APIで受信や返信を担当。不要になったアドレスだけ無効化できます。自分のCloudflareアカウントで動かすオープンソースです。
+登録、領収書、ニュースレター。いつものメールアドレスをすべてのサイトに渡す代わりに、専用のアドレスを使えます。自分のドメインに独立した受信箱を作り、エージェントがCLI・MCP・APIで受信・転送・送信・返信を担当。不要になったアドレスだけ無効化できます。自分のCloudflareアカウントで動かすオープンソースです。
 
 ```sh
 # 1. 登録先の専用アドレスを作る（管理者の資格情報で実行）。
@@ -27,11 +27,19 @@ agentpost inbox create --label shop.example
 agentpost message list INBOX_ID
 agentpost message get INBOX_ID MESSAGE_ID
 
-# 3. 不要になったら、このアドレスだけ停止する（管理者）。
+# 3. 同じ専用アドレスから、添付付きで返信する。
+agentpost reply INBOX_ID MESSAGE_ID \
+  --text 'Thanks! Here is the requested document.' --attach document.pdf
+
+# 4. 専用アドレスから、新しいメールも送れる。
+agentpost send INBOX_ID --to support@shop.example \
+  --subject 'Invoice request' --text 'Could you send a copy of my invoice?'
+
+# 5. 不要になったら、このアドレスだけ停止する（管理者）。
 agentpost inbox disable INBOX_ID
 ```
 
-[インスタンスと認証情報の設定](INSTALL.ja.md)が必要です。名前を指定しない場合は、ランダムな英単語3つをハイフンで結びます。`--local-part`で好きな名前も指定できます。返された受信箱IDと資格情報は非公開に保存してください。受信箱トークンは受信・送信に使えます。発行と無効化には管理者権限が必要です（OAuthのagent権限では自分の受信箱を発行できます）。
+[インスタンスと認証情報の設定](INSTALL.ja.md)が必要です。IDはプレースホルダーで、添付の例にはローカルの `document.pdf` を用意してください。名前を指定しない場合はランダムな英単語3つをハイフンで結び、`--local-part`で好きな名前も指定できます。受信箱トークンは受信・送信に使えます。発行と無効化には管理者権限が必要です（OAuthのagent権限では自分の受信箱を発行できます）。送信状態と冪等キーの扱いは[送信と安全な再試行](#メールを送る)を参照してください。
 
 DuckDuckGo Email Protectionのような**登録先ごとのエイリアス**が主な用途で、それぞれの受信箱をエージェントで操作できます。任意の[標準転送](docs/forwarding.ja.md)を設定すると、Cloudflareで検証済み・運用者が許可した宛先へコピーを送れます。全体の既定値と、受信箱ごとの継承・別宛先・転送なしに対応します。**メール内トラッカーの除去は行いません**。メールは自分のCloudflareアカウントに保存します。ドメインや本文から関連付けられる可能性は残り、匿名性を保証するものではありません。無効化すると新しい受信と送信を止めます。保存済みのメールは保持し、アドレス名も予約されたままです。
 
