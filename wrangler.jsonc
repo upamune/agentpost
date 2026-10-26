@@ -33,8 +33,18 @@
     },
   ],
   "queues": {
-    "producers": [{ "binding": "JOBS", "queue": "agentpost" }],
+    "producers": [
+      { "binding": "JOBS", "queue": "agentpost" },
+      { "binding": "AGENTPOST_WEBHOOK_JOBS", "queue": "agentpost-webhooks" },
+    ],
     "consumers": [
+      {
+        "queue": "agentpost-webhooks",
+        "max_batch_size": 5,
+        "max_concurrency": 4,
+        "max_retries": 5,
+        "dead_letter_queue": "agentpost-webhooks-dlq",
+      },
       {
         "queue": "agentpost",
         "max_batch_size": 5,

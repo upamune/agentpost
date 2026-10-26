@@ -1,4 +1,8 @@
+import { outboundDispatchBarrier, webhookDispatchBarrier } from "./dispatch-barrier";
 import { DurableObject } from "cloudflare:workers";
+import { createWebhookConfig } from "./webhook-crypto";
+import { processWebhook } from "./webhook-delivery";
+import { publicWebhook, saveWebhook } from "./webhook-store";
 import { processOutbound } from "./outbound";
 import type { Env } from "./types";
 
@@ -37,7 +41,47 @@ export class InboxCoordinator extends DurableObject<Env> {
 
   async deliver(id: string, inboxId: string): Promise<void> {
     this.checkIdentity(inboxId);
-    return this.serialize(() => processOutbound(this.env, id, inboxId, () => this.fence()));
+    return this.serialize(() =>
+      processOutbound(
+        this.env,
+        id,
+        inboxId,
+        () => this.fence(),
+        () => outboundDispatchBarrier(this.env, inboxId, this.fence()),
+      ),
+    );
+  }
+
+  async deliverWebhook(id: string, inboxId: string): Promise<void> {
+    this.checkIdentity(inboxId);
+    return this.serialize(() =>
+      processWebhook(
+        this.env,
+        id,
+        inboxId,
+        () => this.fence(),
+        (webhook) => webhookDispatchBarrier(this.env, inboxId, webhook, this.fence()),
+      ),
+    );
+  }
+
+  async setWebhook(inboxId: string, url: string | null) {
+    this.checkIdentity(inboxId);
+    return this.serialize(async () => {
+      const config =
+        url === null
+          ? { id: crypto.randomUUID(), encrypted: null, secret: undefined }
+          : await createWebhookConfig(this.env, inboxId, url);
+      const saved = await saveWebhook(this.env, inboxId, config.id, config.encrypted, this.fence());
+      if (!saved)
+        return {
+          error: "Webhook update superseded or inbox disabled; inspect current configuration",
+        };
+      const current = await publicWebhook(this.env, inboxId);
+      if (!("id" in current) || current.id !== config.id)
+        return { error: "Webhook update superseded; inspect current configuration" };
+      return { ...current, ...(config.secret ? { secret: config.secret } : {}) };
+    });
   }
 
   async setActive(inboxId: string, active: boolean): Promise<void> {

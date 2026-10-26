@@ -12,3 +12,8 @@ AGENTPOST_CF_EMAIL_API_TOKEN=
 # Set AGENTPOST_CF_ZONE_ID and AGENTPOST_CF_SENDING_SUBDOMAIN_ID in Worker vars,
 # and AGENTPOST_CF_DIAGNOSTICS_API_TOKEN as a dedicated Worker Secret.
 # See docs/domain-diagnostics.md; public DNS checks need none of these.
+
+# Optional receive webhooks: independent 32-byte hexadecimal encryption secret.
+# Set AGENTPOST_WEBHOOK_ALLOWED_ORIGINS as a JSON array of trusted HTTPS origins
+# in Worker vars, and create the dedicated queues. See docs/webhooks.md.
+# AGENTPOST_WEBHOOK_ENCRYPTION_KEY=

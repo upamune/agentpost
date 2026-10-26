@@ -50,7 +50,7 @@ await client.connect(
 
 ### Discoveryとpoll
 
-`events/list`は名前、入力・ペイロードのJSON Schema、`delivery: ["poll", "push"]`を返す。イベント型の一覧は静的なので`listChanged`はfalse。Webhookは広告も実装もしていない。
+`events/list`は名前、入力・ペイロードのJSON Schema、`delivery: ["poll", "push"]`を返す。イベント型の一覧は静的なので`listChanged`はfalse。受信箱Webhookは別のツールと[HTTP API](webhooks.ja.md)で設定し、この固定したEventsドラフトの配送方式としては広告しない。
 
 `events/poll`のparams:
 
@@ -116,3 +116,9 @@ watchは通知をNDJSONで標準出力に書き、書き出し完了後にカー
 ## 送信添付ツール
 
 `upload_attachment` は受信箱ID・ファイル名・正規Base64を受け取り、非公開の添付IDと `scan_status: not_scanned` を返します。`send_email`・`reply_email` の `attachments` にIDを指定します。リモート要求上限は5 MiB、1ファイルと本文込みの内容合計は3 MiB、添付は最大10個です。通常の送信JSONは512 KiB以内です。[送信添付ガイド](outbound-attachments.ja.md)に許可形式・保持方針・再試行の手順があります。Eventsの内容にはバイナリを含めず、core・Events draftの版は変えません。
+
+## 送信キーと受信箱Webhookツール
+
+`send_email`・`reply_email`の`idempotency_key`は任意です。省略すると要求前にUUIDv4を生成し、成功時・送信失敗時に返します。保存し、同じ内容を再要求するときは明示してください。省略したままの再呼び出しは別送信のため、ツールは冪等な繰り返しを宣言しません。メールの結果不明は引き続き照合が必要です。
+
+`get_webhook`・`set_webhook`・`delete_webhook`・`list_webhook_deliveries`で、操作権限のある受信箱ごとに受信Webhookを1つ管理します。`set_webhook`は`inbox_id`と運用者が許可したHTTPSの`url`を受け取り、署名秘密鍵を交換して一度だけ返します。応答は非公開に保存してください。タイムアウト後は無条件に再設定せず、既存設定を確認します。[Webhookの設定・検証](webhooks.ja.md)はEventsドラフトとは独立しています。

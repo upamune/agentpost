@@ -93,13 +93,14 @@ function sendingCredentials(env: Env) {
   return { accountId: env.AGENTPOST_CF_ACCOUNT_ID, token: env.AGENTPOST_CF_EMAIL_API_TOKEN };
 }
 
-// Called only inside InboxCoordinator's serialized operation. The synchronous fence
-// immediately before sender checks DO ownership after the final external await.
+// Called only inside InboxCoordinator's serialized operation. Dispatch authorization
+// fences delayed D1 active-state projections before the final ownership fence.
 export async function processOutbound(
   env: Env,
   id: string,
   inboxId: string,
   beforeDispatch: () => void,
+  authorizeDispatch: () => Promise<boolean>,
   sender = cloudflareSend,
 ): Promise<void> {
   const now = Date.now();
@@ -115,7 +116,7 @@ export async function processOutbound(
     .first<{ active: number }>();
   let result: SendResult;
   if (inbox?.active) {
-    result = await dispatchPrepared(env, row, beforeDispatch, sender);
+    result = await dispatchPrepared(env, row, beforeDispatch, authorizeDispatch, sender);
   } else {
     result = { status: "failed", error: "Inbox is disabled" };
   }
@@ -158,6 +159,7 @@ async function dispatchPrepared(
   env: Env,
   row: Outbox,
   beforeDispatch: () => void,
+  authorizeDispatch: () => Promise<boolean>,
   sender: typeof cloudflareSend,
 ): Promise<SendResult> {
   let payload: SendPayload;
@@ -171,6 +173,11 @@ async function dispatchPrepared(
       delay: 30,
     };
   }
+  if (!(await authorizeDispatch()))
+    return {
+      status: "failed",
+      error: "Inbox is disabled or dispatch authorization was superseded",
+    };
   beforeDispatch();
   // No await between the ownership fence and starting the provider request.
   return sender(env, payload);

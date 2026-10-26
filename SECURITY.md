@@ -52,3 +52,7 @@ See [continuous security checks](docs/security-checks.md) for CodeQL, OSV, Bun a
 ## Outbound attachments
 
 The [attachment policy](docs/outbound-attachments.md) uses private, inbox-scoped, immutable R2 objects. Dispatch verifies size, digest, and format before its final ownership check and provider initiation. Extension/signature allowlisting is not antivirus scanning; allowed PDFs and images can still be malicious. Uploads, including unused files, are retained without automatic expiry. Operators provide any required scanning, retention, and backups. Files are not automatically sent to external scanners.
+
+## Received-email webhook boundaries
+
+Inbox authorization and an operator-controlled exact HTTPS-origin allowlist both constrain configuration. URLs and signing secrets are AES-GCM encrypted in D1 using an independent Workers Secret, and signed notifications contain only message identifiers. Redirects and IP-literal targets are rejected. Allowed-domain DNS must remain under trusted control; this does not provide general DNS-rebinding protection or secure an external receiver. Receivers must verify the original request signature and timestamp, then deduplicate `webhook-id`. See [configuration, key and recovery limits](docs/webhooks.md).

@@ -5,6 +5,8 @@ import { version } from "../package.json";
 import { MailClient } from "./client";
 import { inboxInputSchema } from "./inbox-schema";
 import { registerEventMethods } from "./mcp-events";
+import { mailToolOutput } from "./mcp-output";
+import { registerWebhookTools } from "./mcp-webhooks";
 
 export function createMailServer(client: MailClient): McpServer {
   const server = new McpServer(
@@ -20,28 +22,13 @@ export function createMailServer(client: MailClient): McpServer {
     text: z.string().min(1),
     html: z.string().optional(),
     attachments: attachmentIdsSchema,
-    idempotency_key: z.string().regex(/^[a-zA-Z0-9_.:-]{1,128}$/),
+    idempotency_key: z
+      .string()
+      .regex(/^[a-zA-Z0-9_.:-]{1,128}$/)
+      .optional(),
   };
   const inboxPath = (id: string) => `/v1/inboxes/${encodeURIComponent(id)}`;
-  const output = async (operation: () => Promise<unknown>) => {
-    try {
-      const result = z.record(z.string(), z.unknown()).parse(await operation());
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify(result) }],
-        structuredContent: result,
-      };
-    } catch (error) {
-      return {
-        isError: true,
-        content: [
-          {
-            type: "text" as const,
-            text: error instanceof Error ? error.message : "Mail operation failed",
-          },
-        ],
-      };
-    }
-  };
+  const output = mailToolOutput;
   server.registerTool(
     "create_inbox",
     {
@@ -129,30 +116,29 @@ export function createMailServer(client: MailClient): McpServer {
     "send_email",
     {
       description:
-        "Queue email from an inbox. Optional attachments are IDs returned by upload_attachment for this inbox. Reuse the SAME idempotency_key for retries of the same message. Returns an outbox ID; check get_send_status. Pending or accepted does not confirm delivery. Never auto-resend unknown outcomes.",
+        "Queue email from an inbox. Optional attachments are IDs returned by upload_attachment for this inbox. Omit idempotency_key to generate a UUID before submission; save the key returned on success or failure and reuse it with the SAME message for retries. A repeated tool call without a key is a NEW send. Returns an outbox ID; check get_send_status. Pending or accepted does not confirm delivery. Never auto-resend unknown outcomes.",
       inputSchema: z.object({
         ...inbox,
         ...content,
         to: z.array(z.email()).min(1).max(50),
         subject: z.string().max(998),
       }),
-      annotations: { idempotentHint: true },
+      annotations: { idempotentHint: false },
     },
     ({ inbox_id, idempotency_key, ...body }) =>
-      output(() => client.call("POST", `${inboxPath(inbox_id)}/send`, body, idempotency_key)),
+      output(() => client.callSend(`${inboxPath(inbox_id)}/send`, body, idempotency_key)),
   );
   server.registerTool(
     "reply_email",
     {
       description:
-        "Queue a reply with optional uploaded attachment IDs to the original sender/Reply-To, retaining threading headers. Reuse the same idempotency_key for retries. Check get_send_status afterward.",
+        "Queue a reply with optional uploaded attachment IDs to the original sender/Reply-To, retaining threading headers. Omit idempotency_key to generate a UUID before submission; save the key returned on success or failure and reuse it with the unchanged reply for retries. A repeated tool call without a key is a NEW reply. Check get_send_status afterward.",
       inputSchema: z.object({ ...message, ...content }),
-      annotations: { idempotentHint: true },
+      annotations: { idempotentHint: false },
     },
     ({ inbox_id, message_id, idempotency_key, ...body }) =>
       output(() =>
-        client.call(
-          "POST",
+        client.callSend(
           `${inboxPath(inbox_id)}/messages/${message_id}/reply`,
           body,
           idempotency_key,
@@ -196,6 +182,7 @@ export function createMailServer(client: MailClient): McpServer {
     },
     () => output(() => client.call("GET", "/v1/domain/check")),
   );
+  registerWebhookTools(server, client);
   registerEventMethods(server, client);
   return server;
 }

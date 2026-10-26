@@ -70,9 +70,9 @@ CLIでは`inbox create --local-part research.team+1`、MCPでは`create_inbox`�
 
 ## 送信と返信
 
-送信と返信には`Idempotency-Key`ヘッダーが必須です。
-同じ受信箱で同じメールの要求を再試行する場合は、同じキーを使います。
-別の内容に同じキーを使うと409を返します。
+`Idempotency-Key`は任意です。省略するとAPIがUUIDv4を生成し、応答の`Idempotency-Key`ヘッダーと成功時のoutbox JSONの`idempotency_key`で返します。明示するキーはASCII英数字・`_.:-`の1〜128文字で、空・不正値は400です。同じ受信箱で同じメールを再要求する場合は保存したキーと内容を維持し、別の内容に同じキーを使うと409になります。
+
+CLI・MCPは準備・ネットワーク要求の**前**に採番し、成功結果と送信エラーでキーを通知します（MCPは`structuredContent.idempotency_key`も返します）。タスク状態に保存してください。キー省略の再呼び出しは別送信になり、クライアントの自動再試行はありません。HTTPを直接使い、応答紛失後にも復旧したい場合は、呼び出し側で送信前にキーを生成・保存してください。サーバーで生成したキーは応答自体を紛失すると呼び出し側へ届きません。キーが不明なら、次の操作を決める前にoutbox履歴を調べてください。
 
 ```sh
 curl "$AGENTPOST_API_URL/v1/inboxes/INBOX_ID/send" \
@@ -104,3 +104,7 @@ CLI・stdio MCPの成功JSON応答は64 MiBまでです。大きなoutbox一覧�
 ## 添付アップロード
 
 `POST /v1/inboxes/{inbox}/attachments` は `application/octet-stream` とパーセントエンコードした `Agentpost-Filename` を受け取り、非公開の添付IDを返します。送信・返信は任意の `attachments` ID配列を受け付けます。バイナリはJSON本体に含めません。[上限・冪等性・危険ファイルの扱い](outbound-attachments.ja.md)を参照してください。
+
+## 受信Webhook
+
+受信箱ごとの`GET`・`PUT`・`DELETE /v1/inboxes/{inbox}/webhook`で設定し、`GET /v1/inboxes/{inbox}/webhook/deliveries`で最新50件を確認します。`PUT`の入力は`{"url":"https://hooks.example.com/mail"}`です。署名秘密鍵は設定時に一度だけ返します。[ホスト側の許可リスト・署名検証・配送契約](webhooks.ja.md)を確認してください。

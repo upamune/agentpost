@@ -467,7 +467,9 @@ describe("bounded local client inputs", () => {
       });
       await writeFile(textFile, "雪".repeat(100_000));
       await writeFile(htmlFile, "🦊".repeat(60_000));
-      await expect(executeCli(client, args)).rejects.toThrow("size limit");
+      await expect(executeCli(client, args)).rejects.toThrow(
+        "Idempotency key: synthetic-local-mail",
+      );
       expect(requests).toHaveLength(1);
     } finally {
       await rm(directory, { recursive: true, force: true });

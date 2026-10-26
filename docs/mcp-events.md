@@ -49,7 +49,7 @@ D1 triggers commit state changes and event inserts in the same transaction. Repr
 
 ### Discovery and poll
 
-`events/list` returns names, argument/payload JSON Schemas, and `delivery: ["poll", "push"]`. The type catalog is static (`listChanged: false`). Webhooks are neither advertised nor implemented.
+`events/list` returns names, argument/payload JSON Schemas, and `delivery: ["poll", "push"]`. The type catalog is static (`listChanged: false`). Inbox webhooks are configured through separate tools and [HTTP endpoints](webhooks.md); they are not advertised as a transport of this pinned Events draft.
 
 Example `events/poll` params:
 
@@ -115,3 +115,9 @@ Errors go to stderr. Authorization failures and invalid cursors are not skipped 
 ## Outbound attachment tools
 
 `upload_attachment` takes an inbox ID, filename, and canonical Base64 and returns a private attachment ID with `scan_status: not_scanned`. Pass IDs in `attachments` to `send_email` or `reply_email`. Remote requests are capped at 5 MiB, individual files and combined decoded mail content at 3 MiB, and attachments at ten. Standard send JSON remains bounded at 512 KiB. See [file policy, retention, and retry instructions](outbound-attachments.md). Events contain no binary content; this feature changes neither the core nor the pinned Events draft version.
+
+## Send keys and inbox webhook tools
+
+`send_email` and `reply_email` accept an optional `idempotency_key`. Omission creates UUIDv4 before submission; success and send failures return the key. Save it and pass it explicitly with the unchanged request for a retry. Repeating an omitted-key call creates a new send; these tools therefore do not advertise idempotent repeat behavior. An unknown mail outcome still requires reconciliation.
+
+`get_webhook`, `set_webhook`, `delete_webhook`, and `list_webhook_deliveries` manage one received-email webhook per authorized inbox. `set_webhook` takes `inbox_id` and an operator-allowed HTTPS `url`; it rotates the secret and returns it only once. Store that result privately. Inspect configuration after a timeout rather than blindly repeating replacement. [Webhook setup and verification](webhooks.md) are independent of the Events draft.

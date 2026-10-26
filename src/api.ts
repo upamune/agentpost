@@ -1,3 +1,7 @@
+import { resolveIdempotencyKey } from "./idempotency";
+import { WebhookError, webhookInput, webhookTarget, webhookEncryptionKey } from "./webhook-policy";
+import { publicWebhook } from "./webhook-store";
+import type { WebhookDelivery } from "./webhook-store";
 import { coordinator } from "./coordinator";
 import { Hono } from "hono";
 import type { Context } from "hono";
@@ -184,6 +188,8 @@ interface HealthTotals {
   unknown_sends: number;
   failed_sends: number;
   failed_messages: number;
+  failed_webhooks: number;
+  oldest_webhook: number | null;
   raw_recovery_failures: number;
   oldest_outbound: number | null;
   oldest_sending: number | null;
@@ -195,21 +201,25 @@ function noHealthFailures(totals: HealthTotals | null): boolean {
     totals.unknown_sends,
     totals.failed_sends,
     totals.failed_messages,
+    totals.failed_webhooks,
     totals.raw_recovery_failures,
   ].every((count) => count === 0);
 }
 
 function staleHealthTotals(totals: HealthTotals | null): boolean {
-  return [totals?.oldest_outbound, totals?.oldest_sending, totals?.oldest_inbound].some(
-    (time) => time != null && time < Date.now() - 15 * 60_000,
-  );
+  return [
+    totals?.oldest_outbound,
+    totals?.oldest_sending,
+    totals?.oldest_inbound,
+    totals?.oldest_webhook,
+  ].some((time) => time != null && time < Date.now() - 15 * 60_000);
 }
 
 app.get("/v1/health", async (context) => {
   requireAdmin(context);
   await context.env.MAIL.list({ limit: 1 });
   const totals = await context.env.DB.prepare(
-    "SELECT (SELECT count(*) FROM outbox WHERE status = 'unknown' AND resolved_at IS NULL) AS unknown_sends, (SELECT count(*) FROM outbox WHERE status = 'failed' AND resolved_at IS NULL) AS failed_sends, (SELECT count(*) FROM messages WHERE status = 'failed') AS failed_messages, (SELECT count(*) FROM raw_recovery_failures) AS raw_recovery_failures, (SELECT min(created_at) FROM outbox WHERE status = 'pending') AS oldest_outbound, (SELECT min(updated_at) FROM outbox WHERE status = 'sending') AS oldest_sending, (SELECT min(created_at) FROM messages WHERE status = 'pending') AS oldest_inbound",
+    "SELECT (SELECT count(*) FROM outbox WHERE status = 'unknown' AND resolved_at IS NULL) AS unknown_sends, (SELECT count(*) FROM outbox WHERE status = 'failed' AND resolved_at IS NULL) AS failed_sends, (SELECT count(*) FROM messages WHERE status = 'failed') AS failed_messages, (SELECT count(*) FROM raw_recovery_failures) AS raw_recovery_failures, (SELECT min(created_at) FROM outbox WHERE status = 'pending') AS oldest_outbound, (SELECT min(updated_at) FROM outbox WHERE status = 'sending') AS oldest_sending, (SELECT min(created_at) FROM messages WHERE status = 'pending') AS oldest_inbound, (SELECT count(*) FROM webhook_deliveries d JOIN inbox_webhooks w ON w.id = d.webhook_id WHERE d.status = 'failed' AND w.enabled = 1) AS failed_webhooks, (SELECT min(created_at) FROM webhook_deliveries WHERE status IN ('pending','sending')) AS oldest_webhook",
   ).first<HealthTotals>();
   const sendConfigured = Boolean(
     context.env.AGENTPOST_CF_ACCOUNT_ID && context.env.AGENTPOST_CF_EMAIL_API_TOKEN,
@@ -253,6 +263,39 @@ app.patch("/v1/inboxes/:inbox", async (context) => {
     active,
   );
   return context.json({ id: context.get("inbox").id, active });
+});
+
+app.get("/v1/inboxes/:inbox/webhook", async (context) =>
+  context.json(await publicWebhook(context.env, context.get("inbox").id)),
+);
+
+app.put("/v1/inboxes/:inbox/webhook", async (context) => {
+  const { url } = await readJson(context, webhookInput);
+  webhookTarget(context.env, url);
+  webhookEncryptionKey(context.env);
+  if (!context.get("inbox").active) throw new ApiError(409, "Inbox is disabled");
+  const result = await coordinator(context.env, context.get("inbox").id).setWebhook(
+    context.get("inbox").id,
+    url,
+  );
+  if (result.error) throw new ApiError(409, result.error);
+  return context.json(result);
+});
+app.delete("/v1/inboxes/:inbox/webhook", async (context) => {
+  const result = await coordinator(context.env, context.get("inbox").id).setWebhook(
+    context.get("inbox").id,
+    null,
+  );
+  if (result.error) throw new ApiError(409, result.error);
+  return context.json(result);
+});
+app.get("/v1/inboxes/:inbox/webhook/deliveries", async (context) => {
+  const rows = await context.env.DB.prepare(
+    "SELECT id, inbox_id, webhook_id, message_id, status, attempts, available_at, http_status, error, created_at, updated_at FROM webhook_deliveries WHERE inbox_id = ? ORDER BY created_at DESC, id DESC LIMIT 50",
+  )
+    .bind(context.get("inbox").id)
+    .all<Omit<WebhookDelivery, "claim_token">>();
+  return context.json({ deliveries: rows.results });
 });
 
 app.post("/v1/inboxes/:inbox/token", async (context) => {
@@ -369,10 +412,13 @@ async function findOrCreateOutbox(context: Context<Bindings>, request: OutboxReq
 }
 
 function idempotencyKey(context: Context<Bindings>): string {
-  const key = context.req.header("Idempotency-Key");
-  if (!key || !/^[a-zA-Z0-9_.:-]{1,128}$/.test(key))
-    throw new ApiError(400, "Idempotency-Key header required (1-128 letters, digits, _, ., :, -)");
-  return key;
+  try {
+    const key = resolveIdempotencyKey(context.req.header("Idempotency-Key"));
+    context.header("Idempotency-Key", key);
+    return key;
+  } catch {
+    throw new ApiError(400, "Invalid Idempotency-Key (1-128 ASCII letters, digits, or _.:-)");
+  }
 }
 
 async function queueSend(context: Context<Bindings>, payload: StoredSendPayload) {
@@ -552,13 +598,16 @@ app.post("/v1/inboxes/:inbox/outbox/:send/resolve", async (context) => {
   return context.json(publicOutbox(row));
 });
 
+function apiErrorResponse(error: ApiError, context: Context<Bindings>) {
+  if (error.status === 429) context.header("Retry-After", "60");
+  return context.json({ error: error.message, details: error.details }, error.status);
+}
+
 app.onError((error, context) => {
+  if (error instanceof WebhookError) return context.json({ error: error.message }, error.status);
   if (error instanceof EventQueryError) return context.json({ error: error.message }, error.status);
   if (error instanceof AttachmentError) return context.json({ error: error.message }, error.status);
-  if (error instanceof ApiError) {
-    if (error.status === 429) context.header("Retry-After", "60");
-    return context.json({ error: error.message, details: error.details }, error.status);
-  }
+  if (error instanceof ApiError) return apiErrorResponse(error, context);
   if (error.message === "Message exceeds size limit")
     return context.json({ error: "Request body too large" }, 413);
   console.error(JSON.stringify({ event: "request_failed" }));

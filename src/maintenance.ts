@@ -1,3 +1,4 @@
+import { republishWebhooks } from "./webhooks";
 import { coordinator } from "./coordinator";
 import { enqueue, repairRawIndex } from "./inbound";
 import type { Env } from "./types";
@@ -8,6 +9,7 @@ export async function maintain(env: Env): Promise<void> {
     repairRawIndex(env),
     republishInbound(env),
     republishOutbound(env),
+    republishWebhooks(env),
   ]);
   const errors = results.flatMap((result) => (result.status === "rejected" ? [result.reason] : []));
   if (errors.length) {

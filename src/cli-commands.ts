@@ -8,6 +8,8 @@ import { MailClient } from "./client";
 import { inboxInputSchema } from "./inbox-schema";
 import { watchEvents } from "./watch";
 import { readLocalBytes, readLocalText } from "./local-file";
+import { resolveIdempotencyKey, withIdempotencyKey } from "./idempotency";
+import { webhookCommand } from "./cli-webhooks";
 
 export function parseCliArgs(args: string[]) {
   return parseArgs({
@@ -34,6 +36,7 @@ export function parseCliArgs(args: string[]) {
       "text-file": { type: "string" },
       "html-file": { type: "string" },
       "idempotency-key": { type: "string" },
+      "webhook-url": { type: "string" },
       output: { type: "string" },
       outcome: { type: "string" },
       note: { type: "string" },
@@ -202,17 +205,25 @@ async function attachmentCommand(client: MailClient, args: Arguments) {
 }
 
 async function sendCommand(client: MailClient, { values, positionals: [, id] }: Arguments) {
+  const key = resolveIdempotencyKey(values["idempotency-key"]);
+  return withIdempotencyKey(key, () => prepareSend(client, values, id, key));
+}
+
+async function prepareSend(
+  client: MailClient,
+  values: Values,
+  id: string | undefined,
+  key: string,
+) {
   const inbox = inboxId(id);
   const subject = required(values.subject, "--subject");
-  const key = required(values["idempotency-key"], "--idempotency-key");
   const to = z
     .array(z.email())
     .min(1)
     .max(50)
     .parse(values.to ?? []);
   const body = await mailBody(values);
-  return client.call(
-    "POST",
+  return client.callSend(
     `${path(inbox)}/send`,
     {
       to,
@@ -227,12 +238,21 @@ async function replyCommand(
   client: MailClient,
   { values, positionals: [, id, message] }: Arguments,
 ) {
+  const key = resolveIdempotencyKey(values["idempotency-key"]);
+  return withIdempotencyKey(key, () => prepareReply(client, values, id, message, key));
+}
+
+async function prepareReply(
+  client: MailClient,
+  values: Values,
+  id: string | undefined,
+  message: string | undefined,
+  key: string,
+) {
   const inbox = inboxId(id);
   const messageId = encoded(message, "MESSAGE_ID");
-  const key = required(values["idempotency-key"], "--idempotency-key");
   const body = await mailBody(values);
-  return client.call(
-    "POST",
+  return client.callSend(
     `${path(inbox)}/messages/${messageId}/reply`,
     {
       ...body,
@@ -294,6 +314,7 @@ const commands = new Map<string, CliCommand>([
   ["message", withOutput(messageCommand)],
   ["attachment", withOutput(attachmentCommand)],
   ["outbox", withOutput(outboxCommand)],
+  ["webhook", withOutput(webhookCommand)],
   ["send", withOutput(sendCommand)],
   ["reply", withOutput(replyCommand)],
   ["events", eventsCommand],

@@ -2,6 +2,7 @@ import { validateAttachment } from "./attachment-policy";
 import { MAX_REQUEST_BYTES, readBounded } from "./common";
 import { stringifyBoundedJson } from "./bounded-json";
 import { hasUrlExtras, hasUrlUserInfo, isHttpsOrLoopbackHttp } from "./transport-url";
+import { MailSendError, resolveIdempotencyKey, withIdempotencyKey } from "./idempotency";
 
 // A paged outbox can contain 100 request bodies of up to 512 KiB each.
 const MAX_JSON_RESPONSE_BYTES = 64 * 1024 * 1024;
@@ -47,6 +48,15 @@ function requestBody(body: unknown): string | undefined {
       `Mail API request must be valid JSON within the ${MAX_REQUEST_BYTES}-byte size limit`,
     );
   }
+}
+
+function sendResult(result: unknown, key: string): Record<string, unknown> {
+  if (!result || typeof result !== "object" || Array.isArray(result))
+    throw new Error("Invalid send response");
+  const record = result as Record<string, unknown>;
+  if (record.idempotency_key !== undefined && record.idempotency_key !== key)
+    throw new Error("Unexpected idempotency key in send response");
+  return { ...record, idempotency_key: key };
 }
 export interface MailClientOptions {
   url: string;
@@ -109,7 +119,13 @@ export class MailClient {
   }
 
   private async perform(path: string, init: RequestInit): Promise<Response> {
-    const response = await this.request(this.target(path), init);
+    const target = this.target(path);
+    let response: Response;
+    try {
+      response = await this.request(target, init);
+    } catch {
+      throw new Error("Mail API request failed or timed out");
+    }
     if (!response.ok) rejectApiResponse(response);
     return response;
   }
@@ -134,7 +150,7 @@ export class MailClient {
     return {
       Authorization: `Bearer ${this.token}`,
       ...(body === undefined ? {} : { "Content-Type": "application/json" }),
-      ...(key ? { "Idempotency-Key": key } : {}),
+      ...(key === undefined ? {} : { "Idempotency-Key": key }),
     };
   }
 
@@ -147,6 +163,20 @@ export class MailClient {
   ): Promise<unknown> {
     const response = await this.response(method, path, body, key, signal);
     return this.json(response);
+  }
+
+  async callSend(path: string, body: unknown, key?: string): Promise<unknown> {
+    const resolvedKey = resolveIdempotencyKey(key);
+    return withIdempotencyKey(resolvedKey, async () => {
+      let result: unknown;
+      try {
+        result = await this.call("POST", path, body, resolvedKey);
+      } catch (error) {
+        if (!(error instanceof MailApiError)) throw error;
+        throw new MailSendError(resolvedKey, error.message, error.status, error.retryAfterMs);
+      }
+      return sendResult(result, resolvedKey);
+    });
   }
 
   private async json(response: Response): Promise<unknown> {

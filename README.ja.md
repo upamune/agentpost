@@ -156,8 +156,7 @@ agentpostが発行した有効なアドレスだけでメールを受け入れ�
 
 ### メールを送る
 
-送信には同じ要求を識別する**冪等キー**を必ず指定します。
-同じメールの要求を再試行するときは、同じキーを使ってください。
+**冪等キー**を省略するとUUIDv4を自動生成し、成功結果と送信エラーで通知します。内容とともに保存し、同じメールを再要求するときはそのキーを明示してください。省略したままの再呼び出しは別送信です。永続的なエージェント処理では、初回の前にキーを決めて保存する方法も使えます。
 
 ```sh
 mise exec -- bun run cli send YOUR_INBOX_UUID \
@@ -172,6 +171,10 @@ mise exec -- bun run cli outbox get YOUR_INBOX_UUID YOUR_SEND_UUID
 送信を要求すると、状態を確認するためのoutbox IDが返されます。
 `accepted`はCloudflareが要求を受理した状態で、宛先への配達完了を意味しません。
 タイムアウトなどで結果が`unknown`になった場合は、自動再送せず、管理者が送信結果を確認します。
+
+## 受信箱ごとのWebhook
+
+`agentpost webhook set INBOX_UUID --webhook-url https://hooks.example.com/mail`で、解析済みの受信メールをIDだけの署名付き通知として送れます。ホスト側の明示的なorigin許可と暗号鍵が必要です。秘密鍵の保存、重複排除、再試行は[Webhookの手順](docs/webhooks.ja.md)を参照してください。
 
 ## MCPから使う
 

@@ -325,7 +325,7 @@ describe("agent client and MCP", () => {
     }
   });
 
-  test("the CLI requires stable send keys and emits machine-readable API results", async () => {
+  test("the CLI generates recoverable send keys and preserves explicit keys", async () => {
     const requests: { method: string; key: string | null; body: unknown }[] = [];
     const source = Bun.serve({
       port: 0,
@@ -361,9 +361,13 @@ describe("agent client and MCP", () => {
       stdout: "pipe",
       stderr: "pipe",
     });
-    expect(await missing.exited).toBe(1);
-    expect(await new Response(missing.stderr).text()).toContain("--idempotency-key");
-    expect(requests).toHaveLength(0);
+    expect(await missing.exited).toBe(0);
+    const generated = JSON.parse(await new Response(missing.stdout).text());
+    expect(generated.idempotency_key).toMatch(
+      /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/,
+    );
+    expect(requests[0]?.key).toBe(generated.idempotency_key);
+    requests.length = 0;
     const valid = Bun.spawn([process.execPath, ...args, "--idempotency-key", "cli-task-1"], {
       env: environment,
       stdout: "pipe",
@@ -373,6 +377,7 @@ describe("agent client and MCP", () => {
     expect(JSON.parse(await new Response(valid.stdout).text())).toEqual({
       id: "send-id",
       status: "pending",
+      idempotency_key: "cli-task-1",
     });
     expect(requests).toEqual([
       {
@@ -740,7 +745,10 @@ describe("agent client and MCP", () => {
       });
       expect(result.isError).not.toBe(true);
       expect(result.content).toEqual([
-        { type: "text", text: '{"id":"send-id","status":"pending"}' },
+        {
+          type: "text",
+          text: '{"id":"send-id","status":"pending","idempotency_key":"task-123-message-1"}',
+        },
       ]);
       expect(received).toEqual([
         {

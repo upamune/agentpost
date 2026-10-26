@@ -5,6 +5,9 @@ export interface Env {
   AGENTPOST_INBOX_COORDINATOR: DurableObjectNamespace<InboxCoordinator>;
   MAIL: R2Bucket;
   JOBS: Queue<Job>;
+  AGENTPOST_WEBHOOK_JOBS: Queue<Job>;
+  AGENTPOST_WEBHOOK_ALLOWED_ORIGINS?: string;
+  AGENTPOST_WEBHOOK_ENCRYPTION_KEY?: string;
   AGENTPOST_REQUEST_LIMITER: RateLimit;
   AGENTPOST_SEND_LIMITER: RateLimit;
   AGENTPOST_EMAIL_DOMAIN: string;
@@ -23,7 +26,7 @@ export interface Env {
   AGENTPOST_CF_EMAIL_API_TOKEN?: string;
 }
 
-export type Job = { kind: "inbound" | "outbound"; id: string };
+export type Job = { kind: "inbound" | "outbound" | "webhook"; id: string };
 
 export interface Inbox {
   id: string;
