@@ -1,0 +1,74 @@
+{
+  "view": "customer",
+  "second": {
+    "role": "fix",
+    "label": "the fix",
+    "lacks": []
+  },
+  "modelStates": 3162,
+  "modelTransitions": 14922,
+  "chartStates": 12,
+  "chartTransitions": 13,
+  "chartStatus": {
+    "works": 13,
+    "wrong": 0,
+    "fixed": 1,
+    "mixed": 0,
+    "after": 0,
+    "worse": 0
+  },
+  "mixedStatus": [],
+  "cover": {
+    "drawn": true,
+    "states": 14,
+    "transitions": 21,
+    "leftOutStates": [
+      "Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 0 native calls",
+      "Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 1 native calls"
+    ],
+    "leftOutTransitions": [
+      "Claimed; outcome pending; original destination = trusted mailbox; 1 claims; 0 native calls --> Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 0 native calls: Record interrupted work for operator attention",
+      "Claimed; outcome pending; original destination = trusted mailbox; 1 claims; 1 native calls --> Another native forwarding claim was authorized: Atomically claim native forwarding",
+      "Claimed; outcome pending; original destination = trusted mailbox; 1 claims; 1 native calls --> Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 1 native calls: Record interrupted work for operator attention or Persist the native outcome if still sending",
+      "Forwarding blocked; original destination = trusted mailbox; 0 claims; 0 native calls --> Claimed; outcome pending; original destination = trusted mailbox; 1 claims; 0 native calls: Atomically claim native forwarding",
+      "Native forwarding accepted; original destination = trusted mailbox; 1 claims; 1 native calls --> Another native forwarding claim was authorized: Atomically claim native forwarding",
+      "Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 0 native calls --> Another native forwarding claim was authorized: Atomically claim native forwarding",
+      "Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 0 native calls --> Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 1 native calls: Start the native forwarding call",
+      "Outcome unknown; no automatic retry; original destination = trusted mailbox; 1 claims; 1 native calls --> Another native forwarding claim was authorized: Atomically claim native forwarding"
+    ]
+  },
+  "chartGroups": [
+    {
+      "name": "Native call initiated",
+      "color": "#d6eaf8",
+      "states": 2
+    },
+    {
+      "name": "No native call",
+      "color": "#fdebd0",
+      "states": 9
+    }
+  ],
+  "mixedGroups": ["Another native forwarding claim was authorized"],
+  "classes": [
+    {
+      "n": 1,
+      "end": "Another native forwarding claim was authorized",
+      "invariant": "NoBlindRetry",
+      "rule": "Even a crash before the native call cannot reset an ambiguous claim.",
+      "cause": null,
+      "readerSteps": 5,
+      "modelSteps": 12,
+      "counterexamples": 105,
+      "lastSteps": ["Atomically claim native forwarding"],
+      "startsHere": false,
+      "fix": "Claimed; outcome pending; original destination = trusted mailbox; 1 claims; 0 native calls"
+    }
+  ],
+  "codeLike": [],
+  "uncited": {
+    "/tmp/agentpost-forwarding-charts/claim/Forwarding.tla": [],
+    "/tmp/agentpost-forwarding-charts/fixed/Forwarding.tla": []
+  },
+  "brokenProperties": []
+}

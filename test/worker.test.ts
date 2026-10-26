@@ -435,6 +435,7 @@ describe("durable inbound processing", () => {
     await receive(email(box.address, mime).input, { ...bindings, JOBS: offlineQueue });
     const row = await bindings.DB.prepare("SELECT * FROM messages").first<Message>();
     expect(row?.status).toBe("pending");
+    await bindings.DB.prepare("DELETE FROM forwarding_deliveries").run();
     await bindings.DB.prepare("DELETE FROM messages").run();
     await repairRawIndex(bindings);
     const restored = await bindings.DB.prepare("SELECT * FROM messages").first<Message>();

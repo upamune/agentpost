@@ -9,27 +9,28 @@ Cloudflare DNSで管理する独自ドメインを使う。ローカル検証と
 利用者が設定する環境変数には`AGENTPOST_`プレフィックスを付ける。
 CLIとstdioのMCPはプロセスの環境変数を読み、Workerは`wrangler.jsonc`の`vars`とWorkers Secretsを読む。ローカルのWorker Secretsは`.dev.vars`に設定する。
 
-| 名前                                   | 設定先                   | 用途                                                                    |
-| -------------------------------------- | ------------------------ | ----------------------------------------------------------------------- |
-| `AGENTPOST_API_URL`                    | CLI / stdio MCP          | APIの接続先。ローカルは`http://localhost:8787`、本番はWorkerのHTTPS URL |
-| `AGENTPOST_API_TOKEN`                  | CLI / stdio MCP          | 操作に使う管理者トークンまたは受信箱トークン                            |
-| `AGENTPOST_ADMIN_TOKEN`                | Worker Secret            | 全受信箱を管理するトークン                                              |
-| `AGENTPOST_EMAIL_DOMAIN`               | `wrangler.jsonc`の`vars` | メールアドレスを発行するドメイン                                        |
-| `AGENTPOST_CF_ZONE_ID`                 | Worker vars              | 診断対象のゾーンID（任意）                                              |
-| `AGENTPOST_CF_SENDING_SUBDOMAIN_ID`    | Worker vars              | 診断対象の送信ドメインID（任意）                                        |
-| `AGENTPOST_CF_DIAGNOSTICS_API_TOKEN`   | Worker Secret            | 上記2件と併せて使う専用の診断資格情報                                   |
-| `AGENTPOST_CF_ACCOUNT_ID`              | Worker Secret            | Email Sendingを利用するCloudflareアカウントID                           |
-| `AGENTPOST_CF_EMAIL_API_TOKEN`         | Worker Secret            | Email Sending権限を持つCloudflare APIトークン                           |
-| `AGENTPOST_AUTH_MODE`                  | Worker vars              | `token`（既定）・`oauth`・`both`                                        |
-| `AGENTPOST_CURSOR_KEY`                 | Worker Secret            | 独立したイベントカーソル暗号化鍵。OAuth/bothでは必須                    |
-| `AGENTPOST_ACCESS_TEAM_DOMAIN`         | Worker vars              | 信頼するAccess teamのHTTPS origin                                       |
-| `AGENTPOST_ACCESS_AUD`                 | Worker vars              | Accessアプリの対象AUD                                                   |
-| `AGENTPOST_ACCESS_PRINCIPALS`          | Worker vars              | 本人IDとロールのJSON対応表                                              |
-| `AGENTPOST_OAUTH_RESOURCE_URL`         | Worker vars              | `/mcp`で終わる正規のHTTPS URL                                           |
-| `AGENTPOST_OAUTH_AUTHORIZATION_SERVER` | Worker vars              | Accessメタデータにある正確なAS issuer                                   |
-| `AGENTPOST_WEBHOOK_ENCRYPTION_KEY`     | Worker Secret            | 任意。Webhook設定の暗号化に使う32バイト・64文字16進数の独立鍵           |
-| `AGENTPOST_WEBHOOK_ALLOWED_ORIGINS`    | Worker vars              | 任意。信頼する公開HTTPS originの完全一致JSON配列                        |
-| `AGENTPOST_LOCAL_URL`                  | ローカル受信テスト       | `smoke:local`の接続先。既定値は`http://127.0.0.1:8787`                  |
+| 名前                                     | 設定先                   | 用途                                                                    |
+| ---------------------------------------- | ------------------------ | ----------------------------------------------------------------------- |
+| `AGENTPOST_API_URL`                      | CLI / stdio MCP          | APIの接続先。ローカルは`http://localhost:8787`、本番はWorkerのHTTPS URL |
+| `AGENTPOST_API_TOKEN`                    | CLI / stdio MCP          | 操作に使う管理者トークンまたは受信箱トークン                            |
+| `AGENTPOST_ADMIN_TOKEN`                  | Worker Secret            | 全受信箱を管理するトークン                                              |
+| `AGENTPOST_EMAIL_DOMAIN`                 | `wrangler.jsonc`の`vars` | メールアドレスを発行するドメイン                                        |
+| `AGENTPOST_CF_ZONE_ID`                   | Worker vars              | 診断対象のゾーンID（任意）                                              |
+| `AGENTPOST_CF_SENDING_SUBDOMAIN_ID`      | Worker vars              | 診断対象の送信ドメインID（任意）                                        |
+| `AGENTPOST_CF_DIAGNOSTICS_API_TOKEN`     | Worker Secret            | 上記2件と併せて使う専用の診断資格情報                                   |
+| `AGENTPOST_CF_ACCOUNT_ID`                | Worker Secret            | Email Sendingを利用するCloudflareアカウントID                           |
+| `AGENTPOST_CF_EMAIL_API_TOKEN`           | Worker Secret            | Email Sending権限を持つCloudflare APIトークン                           |
+| `AGENTPOST_AUTH_MODE`                    | Worker vars              | `token`（既定）・`oauth`・`both`                                        |
+| `AGENTPOST_CURSOR_KEY`                   | Worker Secret            | 独立したイベントカーソル暗号化鍵。OAuth/bothでは必須                    |
+| `AGENTPOST_ACCESS_TEAM_DOMAIN`           | Worker vars              | 信頼するAccess teamのHTTPS origin                                       |
+| `AGENTPOST_ACCESS_AUD`                   | Worker vars              | Accessアプリの対象AUD                                                   |
+| `AGENTPOST_ACCESS_PRINCIPALS`            | Worker vars              | 本人IDとロールのJSON対応表                                              |
+| `AGENTPOST_OAUTH_RESOURCE_URL`           | Worker vars              | `/mcp`で終わる正規のHTTPS URL                                           |
+| `AGENTPOST_OAUTH_AUTHORIZATION_SERVER`   | Worker vars              | Accessメタデータにある正確なAS issuer                                   |
+| `AGENTPOST_FORWARD_ALLOWED_DESTINATIONS` | Worker Secret            | 任意。信頼する検証済み転送先のJSON配列。未設定なら許可なし              |
+| `AGENTPOST_WEBHOOK_ENCRYPTION_KEY`       | Worker Secret            | 任意。Webhook設定の暗号化に使う32バイト・64文字16進数の独立鍵           |
+| `AGENTPOST_WEBHOOK_ALLOWED_ORIGINS`      | Worker vars              | 任意。信頼する公開HTTPS originの完全一致JSON配列                        |
+| `AGENTPOST_LOCAL_URL`                    | ローカル受信テスト       | `smoke:local`の接続先。既定値は`http://127.0.0.1:8787`                  |
 
 OAuthまたはbothでは、デプロイ前に[認証設定](authentication.ja.md)を行います。既定のtoken専用ではAccessアプリは不要です。
 
@@ -150,3 +151,7 @@ Email Routingの対象ドメインで、catch-allの宛先を**Worker `agentpost
 ## 受信Webhookを有効にする
 
 現在のWrangler設定はメール処理とは別の`AGENTPOST_WEBHOOK_JOBS`キューとDLQを宣言します。既存環境の更新時も専用キューを作成し、`0006_inbox_webhooks.sql`を適用してください。通知の有効化には独立した暗号鍵と信頼するorigin許可リストが必要です。各受信箱の通知先は既定では未設定です。[Webhook設定・署名検証・復旧](webhooks.ja.md)に従い、許可された通知先で受信確認してから稼働を報告します。メール本文や資格情報を通知に含めません。
+
+## 受信メールの転送
+
+転送を無効のままにする場合も、今回のWorker更新前に`0007_forwarding.sql`を適用します。Cloudflare Email Routingで宛先を検証し、許可リストを非公開に保存してから、管理者のAPI・CLI・MCPで全体と個別の設定を行います。新たなキューや送信用bindingは不要です。稼働確認には許可された宛先で[転送の確認](forwarding.ja.md)を完了してください。

@@ -1,3 +1,4 @@
+import { recoverForwarding } from "./forwarding";
 import { republishWebhooks } from "./webhooks";
 import { coordinator } from "./coordinator";
 import { enqueue, repairRawIndex } from "./inbound";
@@ -6,6 +7,7 @@ import type { Env } from "./types";
 export async function maintain(env: Env): Promise<void> {
   const results = await Promise.allSettled([
     recoverStaleSends(env),
+    recoverForwarding(env),
     repairRawIndex(env),
     republishInbound(env),
     republishOutbound(env),

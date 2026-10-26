@@ -1,7 +1,10 @@
 import PostalMime from "postal-mime";
+import { forwardingAdmission, indexForwarding } from "./forwarding-store";
+import { forwardingMetadata } from "./forwarding-policy";
+import { forwardReceived } from "./forwarding";
 import { stringifyBoundedJson } from "./bounded-json";
 import { MAX_MAIL_BYTES, readBounded, sha256 } from "./common";
-import type { Env, Inbox, Message } from "./types";
+import type { Env, Message } from "./types";
 
 export function parseMime(raw: ArrayBuffer) {
   return PostalMime.parse(raw, {
@@ -23,9 +26,7 @@ export async function enqueue(env: Env, kind: "inbound" | "outbound", id: string
 }
 
 export async function receive(message: ForwardableEmailMessage, env: Env): Promise<void> {
-  const inbox = await env.DB.prepare("SELECT * FROM inboxes WHERE address = ? AND active = 1")
-    .bind(message.to.toLowerCase())
-    .first<Inbox>();
+  const inbox = await forwardingAdmission(env, message.to);
   if (!inbox) {
     message.setReject("Unknown or disabled recipient");
     return;
@@ -42,6 +43,7 @@ export async function receive(message: ForwardableEmailMessage, env: Env): Promi
   const existing = await env.MAIL.head(key);
   if (!existing) {
     await env.MAIL.put(key, raw, {
+      onlyIf: { etagDoesNotMatch: "*" },
       httpMetadata: { contentType: "message/rfc822" },
       customMetadata: {
         id,
@@ -49,11 +51,18 @@ export async function receive(message: ForwardableEmailMessage, env: Env): Promi
         envelope_from: message.from,
         envelope_to: message.to,
         created_at: String(Date.now()),
+        ...forwardingMetadata(env, inbox.forward_destination, message),
       },
     });
   }
   await indexRaw(env, key, await rawMetadata(env, key, existing));
   await enqueue(env, "inbound", id);
+  try {
+    await forwardReceived(env, id, message);
+  } catch {
+    // Forwarding failures cannot discard retained mail or request a blind SMTP retry.
+    console.error(JSON.stringify({ event: "forwarding_attention_required", id }));
+  }
 }
 
 async function rawMetadata(env: Env, key: string, existing: R2Object | null) {
@@ -105,6 +114,7 @@ async function indexRaw(
       Number(meta.created_at),
     )
     .run();
+  await indexForwarding(env, meta);
 }
 
 export async function parseMessage(env: Env, id: string): Promise<void> {

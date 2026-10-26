@@ -122,3 +122,7 @@ watchは通知をNDJSONで標準出力に書き、書き出し完了後にカー
 `send_email`・`reply_email`の`idempotency_key`は任意です。省略すると要求前にUUIDv4を生成し、成功時・送信失敗時に返します。保存し、同じ内容を再要求するときは明示してください。省略したままの再呼び出しは別送信のため、ツールは冪等な繰り返しを宣言しません。メールの結果不明は引き続き照合が必要です。
 
 `get_webhook`・`set_webhook`・`delete_webhook`・`list_webhook_deliveries`で、操作権限のある受信箱ごとに受信Webhookを1つ管理します。`set_webhook`は`inbox_id`と運用者が許可したHTTPSの`url`を受け取り、署名秘密鍵を交換して一度だけ返します。応答は非公開に保存してください。タイムアウト後は無条件に再設定せず、既存設定を確認します。[Webhookの設定・検証](webhooks.ja.md)はEventsドラフトとは独立しています。
+
+## 転送ツール
+
+管理者専用の転送ツールは[転送](forwarding.ja.md#http-apiとmcp)に記載しています。以後の受信メールを標準Email Routingで転送する設定と、永続化した結果を扱います。通常のツール追加であり、MCPコアの交渉や固定したEventsドラフトは変更しません。転送結果は履歴から取得し、Eventsドラフトの型として公開しません。

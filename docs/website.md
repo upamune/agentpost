@@ -4,7 +4,7 @@
 
 The public product website is hosted at [upamune.github.io/agentpost](https://upamune.github.io/agentpost/), with a [Japanese version](https://upamune.github.io/agentpost/ja/). It is a static explanation and interactive example, separate from the authenticated Worker API/MCP service. It does not accept credentials or send mail.
 
-The main example follows per-site aliases: create a three-word address, read a signup message, and disable the address with administrator access. Keep automatic forwarding and tracker removal explicitly out of scope; preserve the privacy note about domain/content correlation and retained mail.
+The main example follows per-site aliases: create a three-word address, read a signup message, and disable the address with administrator access. Describe optional forwarding with global/per-inbox settings, while keeping tracker removal out of scope. Preserve the privacy note about personal-mailbox replies, domain/content correlation and retained mail.
 
 Edit `website/template.html`, `website/content/en.json`, `website/content/ja.json`, `website/site.css`, and `website/site.js`. The build copies only explicitly selected public brand assets and the website output. It never uploads the repository, Worker configuration, or local credentials. There are no third-party runtime scripts, web fonts, analytics, dependencies, or API calls. Both languages have static HTML; tab and clipboard enhancements use a small local script. Reduced-motion preferences and keyboard tab navigation are supported.
 

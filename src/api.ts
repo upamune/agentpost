@@ -1,3 +1,12 @@
+import { ForwardingError, globalForwardingInput, inboxForwardingInput } from "./forwarding-policy";
+import {
+  getGlobalForwarding,
+  setGlobalForwarding,
+  getInboxForwarding,
+  setInboxForwarding,
+  forwardingDeliveries,
+  resolveForwarding,
+} from "./forwarding-store";
 import { resolveIdempotencyKey } from "./idempotency";
 import { WebhookError, webhookInput, webhookTarget, webhookEncryptionKey } from "./webhook-policy";
 import { publicWebhook } from "./webhook-store";
@@ -188,6 +197,16 @@ app.post("/v1/inboxes", async (context) => {
   );
 });
 
+app.get("/v1/forwarding", async (context) => {
+  requireAdmin(context);
+  return context.json(await getGlobalForwarding(context.env));
+});
+app.put("/v1/forwarding", async (context) => {
+  requireAdmin(context);
+  const input = await readJson(context, globalForwardingInput);
+  return context.json(await setGlobalForwarding(context.env, input.destination));
+});
+
 app.get("/v1/inboxes", async (context) => {
   const principal = context.get("principal");
   if (!principal.admin && !principal.ownerId) throw new ApiError(403, "Inbox listing forbidden");
@@ -214,6 +233,9 @@ interface HealthTotals {
   failed_sends: number;
   failed_messages: number;
   failed_webhooks: number;
+  blocked_forwarding: number;
+  unknown_forwarding: number;
+  oldest_forwarding: number | null;
   oldest_webhook: number | null;
   raw_recovery_failures: number;
   oldest_outbound: number | null;
@@ -227,6 +249,8 @@ function noHealthFailures(totals: HealthTotals | null): boolean {
     totals.failed_sends,
     totals.failed_messages,
     totals.failed_webhooks,
+    totals.blocked_forwarding,
+    totals.unknown_forwarding,
     totals.raw_recovery_failures,
   ].every((count) => count === 0);
 }
@@ -237,6 +261,7 @@ function staleHealthTotals(totals: HealthTotals | null): boolean {
     totals?.oldest_sending,
     totals?.oldest_inbound,
     totals?.oldest_webhook,
+    totals?.oldest_forwarding,
   ].some((time) => time != null && time < Date.now() - 15 * 60_000);
 }
 
@@ -244,7 +269,7 @@ app.get("/v1/health", async (context) => {
   requireAdmin(context);
   await context.env.MAIL.list({ limit: 1 });
   const totals = await context.env.DB.prepare(
-    "SELECT (SELECT count(*) FROM outbox WHERE status = 'unknown' AND resolved_at IS NULL) AS unknown_sends, (SELECT count(*) FROM outbox WHERE status = 'failed' AND resolved_at IS NULL) AS failed_sends, (SELECT count(*) FROM messages WHERE status = 'failed') AS failed_messages, (SELECT count(*) FROM raw_recovery_failures) AS raw_recovery_failures, (SELECT min(created_at) FROM outbox WHERE status = 'pending') AS oldest_outbound, (SELECT min(updated_at) FROM outbox WHERE status = 'sending') AS oldest_sending, (SELECT min(created_at) FROM messages WHERE status = 'pending') AS oldest_inbound, (SELECT count(*) FROM webhook_deliveries d JOIN inbox_webhooks w ON w.id = d.webhook_id WHERE d.status = 'failed' AND w.enabled = 1) AS failed_webhooks, (SELECT min(created_at) FROM webhook_deliveries WHERE status IN ('pending','sending')) AS oldest_webhook",
+    "SELECT (SELECT count(*) FROM outbox WHERE status = 'unknown' AND resolved_at IS NULL) AS unknown_sends, (SELECT count(*) FROM outbox WHERE status = 'failed' AND resolved_at IS NULL) AS failed_sends, (SELECT count(*) FROM messages WHERE status = 'failed') AS failed_messages, (SELECT count(*) FROM raw_recovery_failures) AS raw_recovery_failures, (SELECT min(created_at) FROM outbox WHERE status = 'pending') AS oldest_outbound, (SELECT min(updated_at) FROM outbox WHERE status = 'sending') AS oldest_sending, (SELECT min(created_at) FROM messages WHERE status = 'pending') AS oldest_inbound, (SELECT count(*) FROM webhook_deliveries d JOIN inbox_webhooks w ON w.id = d.webhook_id WHERE d.status = 'failed' AND w.enabled = 1) AS failed_webhooks, (SELECT min(created_at) FROM webhook_deliveries WHERE status IN ('pending','sending')) AS oldest_webhook, (SELECT count(*) FROM forwarding_deliveries WHERE status = 'blocked' AND resolved_at IS NULL) AS blocked_forwarding, (SELECT count(*) FROM forwarding_deliveries WHERE status = 'unknown' AND resolved_at IS NULL) AS unknown_forwarding, (SELECT min(updated_at) FROM forwarding_deliveries WHERE status IN ('pending','sending')) AS oldest_forwarding",
   ).first<HealthTotals>();
   const sendConfigured = Boolean(
     context.env.AGENTPOST_CF_ACCOUNT_ID && context.env.AGENTPOST_CF_EMAIL_API_TOKEN,
@@ -269,6 +294,40 @@ async function inboxAuth(context: Context<Bindings>, next: () => Promise<void>) 
   context.set("inbox", inbox);
   await next();
 }
+
+app.get("/v1/inboxes/:inbox/forwarding", async (context) => {
+  requireAdmin(context);
+  return context.json(await getInboxForwarding(context.env, context.get("inbox").id));
+});
+app.put("/v1/inboxes/:inbox/forwarding", async (context) => {
+  requireAdmin(context);
+  const input = await readJson(context, inboxForwardingInput);
+  return context.json(await setInboxForwarding(context.env, context.get("inbox").id, input));
+});
+app.get("/v1/inboxes/:inbox/forwarding/deliveries", async (context) => {
+  requireAdmin(context);
+  return context.json(await forwardingDeliveries(context.env, context.get("inbox").id));
+});
+app.post("/v1/inboxes/:inbox/forwarding/deliveries/:message/resolve", async (context) => {
+  requireAdmin(context);
+  const message = z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .safeParse(context.req.param("message"));
+  if (!message.success) throw new ApiError(400, "Invalid message ID");
+  const input = await readJson(
+    context,
+    z.object({ note: headerText.pipe(z.string().min(1).max(1000)) }).strict(),
+  );
+  const row = await resolveForwarding(
+    context.env,
+    context.get("inbox").id,
+    message.data,
+    input.note,
+  );
+  if (!row) throw new ApiError(409, "Forward not found or not awaiting reconciliation");
+  return context.json({ message_id: row.message_id, resolved: true });
+});
 
 app.get("/v1/inboxes/:inbox", (context) => {
   const {
@@ -628,10 +687,16 @@ function apiErrorResponse(error: ApiError, context: Context<Bindings>) {
   return context.json({ error: error.message, details: error.details }, error.status);
 }
 
+function isPublicPolicyError(
+  error: Error,
+): error is ForwardingError | WebhookError | EventQueryError | AttachmentError {
+  return [ForwardingError, WebhookError, EventQueryError, AttachmentError].some(
+    (Type) => error instanceof Type,
+  );
+}
+
 app.onError((error, context) => {
-  if (error instanceof WebhookError) return context.json({ error: error.message }, error.status);
-  if (error instanceof EventQueryError) return context.json({ error: error.message }, error.status);
-  if (error instanceof AttachmentError) return context.json({ error: error.message }, error.status);
+  if (isPublicPolicyError(error)) return context.json({ error: error.message }, error.status);
   if (error instanceof ApiError) return apiErrorResponse(error, context);
   if (error.message === "Message exceeds size limit")
     return context.json({ error: "Request body too large" }, 413);

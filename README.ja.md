@@ -33,7 +33,7 @@ agentpost inbox disable INBOX_ID
 
 [インスタンスと認証情報の設定](INSTALL.ja.md)が必要です。名前を指定しない場合は、ランダムな英単語3つをハイフンで結びます。`--local-part`で好きな名前も指定できます。返された受信箱IDと資格情報は非公開に保存してください。受信箱トークンは受信・送信に使えます。発行と無効化には管理者権限が必要です（OAuthのagent権限では自分の受信箱を発行できます）。
 
-DuckDuckGo Email Protectionのような**登録先ごとのエイリアス**が主な用途で、それぞれの受信箱をエージェントで操作できます。現時点では、**個人の受信箱への自動転送やメール内トラッカーの除去は行いません**。メールは自分のCloudflareアカウントに保存します。ドメインや本文から関連付けられる可能性は残り、匿名性を保証するものではありません。無効化すると新しい受信と送信を止めます。保存済みのメールは保持し、アドレス名も予約されたままです。
+DuckDuckGo Email Protectionのような**登録先ごとのエイリアス**が主な用途で、それぞれの受信箱をエージェントで操作できます。任意の[標準転送](docs/forwarding.ja.md)を設定すると、Cloudflareで検証済み・運用者が許可した宛先へコピーを送れます。全体の既定値と、受信箱ごとの継承・別宛先・転送なしに対応します。**メール内トラッカーの除去は行いません**。メールは自分のCloudflareアカウントに保存します。ドメインや本文から関連付けられる可能性は残り、匿名性を保証するものではありません。無効化すると新しい受信と送信を止めます。保存済みのメールは保持し、アドレス名も予約されたままです。
 
 [操作できるデモを見る](https://upamune.github.io/agentpost/ja/#workflow) · [セキュリティチェック](docs/security-checks.ja.md)
 
@@ -186,6 +186,19 @@ mise exec -- bun run cli outbox get YOUR_INBOX_UUID YOUR_SEND_UUID
 送信を要求すると、状態を確認するためのoutbox IDが返されます。
 `accepted`はCloudflareが要求を受理した状態で、宛先への配達完了を意味しません。
 タイムアウトなどで結果が`unknown`になった場合は、自動再送せず、管理者が送信結果を確認します。
+
+## 受信メールを転送する
+
+受信箱に保存しながら、Cloudflareで検証済み・運用者が許可した宛先へ転送できます。管理者が全体の既定値と受信箱ごとの設定を操作します。
+
+```sh
+agentpost forwarding set --destination operator@example.net
+agentpost forwarding set INBOX_ID --destination team@example.org
+agentpost forwarding off INBOX_ID
+agentpost forwarding inherit INBOX_ID
+```
+
+初期状態は無効です。先に`0007_forwarding.sql`を適用し、Cloudflareで宛先を検証して、`AGENTPOST_FORWARD_ALLOWED_DESTINATIONS`を非公開に設定します。変更は以後の受信に適用し、結果不明の転送を自動で再試行しません。[設定と復旧](docs/forwarding.ja.md)では、個人アドレスを公開せずエイリアスから返信する方法も説明しています。
 
 ## 受信箱ごとのWebhook
 

@@ -9,6 +9,7 @@ import { inboxInputSchema } from "./inbox-schema";
 import { watchEvents } from "./watch";
 import { readLocalBytes, readLocalText } from "./local-file";
 import { resolveIdempotencyKey, withIdempotencyKey } from "./idempotency";
+import { forwardingCommand } from "./cli-forwarding";
 import { webhookCommand } from "./cli-webhooks";
 
 export function parseCliArgs(args: string[]) {
@@ -40,6 +41,7 @@ export function parseCliArgs(args: string[]) {
       output: { type: "string" },
       outcome: { type: "string" },
       note: { type: "string" },
+      destination: { type: "string" },
       strict: { type: "boolean" },
     },
   });
@@ -315,6 +317,7 @@ const commands = new Map<string, CliCommand>([
   ["attachment", withOutput(attachmentCommand)],
   ["outbox", withOutput(outboxCommand)],
   ["webhook", withOutput(webhookCommand)],
+  ["forwarding", withOutput(forwardingCommand)],
   ["send", withOutput(sendCommand)],
   ["reply", withOutput(replyCommand)],
   ["events", eventsCommand],

@@ -170,3 +170,7 @@ GitHub ActionsはmainへのpushとPRで検査とWorkerのdry-runビルドを行�
 CLIの`--idempotency-key`とMCPの`idempotency_key`は省略時に要求前にUUIDv4を生成し、成功結果・送信エラーで返します。そのキーと正確な要求を保存し、再要求時に明示してください。省略したまま繰り返すと別送信になります。障害に備えるエージェント処理では、初回前にキーを保存する方法も推奨します。
 
 受信箱ごとの通知には`webhook set INBOX_UUID --webhook-url HTTPS_URL`またはMCP `set_webhook`を使えます。利用者が通知先を許可し、運用者がorigin許可・暗号鍵・専用キューを設定済みの場合に限ります。一度だけ返る署名秘密鍵は非公開に保存し、受信側で検証・重複排除を行います。スキル導入は外部通知先の新設を許可しません。[Webhookの導入・確認手順](docs/webhooks.ja.md)を参照し、実際の受信確認前に接続済みと報告しないでください。
+
+## 任意の受信転送
+
+転送は管理者専用で、初期状態は無効です。有効化前に`0007_forwarding.sql`を適用し、許可された宛先をCloudflareで検証して、Worker Secretの`AGENTPOST_FORWARD_ALLOWED_DESTINATIONS`を非公開に保存します。全体は`agentpost forwarding set --destination EMAIL`、個別は`set INBOX_ID --destination EMAIL`・`off INBOX_ID`・`inherit INBOX_ID`です。ユーザーが承認した宛先だけを設定します。この導入手順自体は既存メールの転送や実メールのテストを承認しません。標準転送のセッション制限・結果確認・調査記録はhttps://github.com/upamune/agentpost/blob/main/docs/forwarding.ja.mdを参照してください。

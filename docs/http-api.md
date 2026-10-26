@@ -93,3 +93,7 @@ Disabling waits for earlier send processing and persists the disabled state befo
 ## Received-email webhooks
 
 Use `GET`, `PUT`, and `DELETE /v1/inboxes/{inbox}/webhook` for configuration, and `GET /v1/inboxes/{inbox}/webhook/deliveries` for the latest 50 states (a fixed limit, separate from ordinary list pagination). `PUT` accepts `{"url":"https://hooks.example.com/mail"}` and returns a signing secret once. Read [hosting controls, receiver verification, and delivery semantics](webhooks.md).
+
+## Incoming forwarding
+
+See [forwarding API](forwarding.md#http-api-and-mcp) for administrator-only global defaults, inbox inherit/custom/off overrides, recent outcomes and acknowledgment. All endpoints retain the usual authentication, JSON content-type, size, origin and rate-limit checks.
