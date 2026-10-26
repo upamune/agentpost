@@ -539,6 +539,31 @@ describe("outbox and failure recovery", () => {
   });
 
   test.each([
+    [0, 200],
+    [14, 200],
+    [16, 503],
+  ])(
+    "health detects sending stalled for %i minutes without changing its outcome",
+    async (minutes, status) => {
+      const { row } = await send(await inbox());
+      const updated = Date.now() - minutes * 60_000;
+      await bindings.DB.prepare(
+        "UPDATE outbox SET status = 'sending', created_at = ?, updated_at = ? WHERE id = ?",
+      )
+        .bind(Date.now() - 60 * 60_000, updated, row.id)
+        .run();
+      const response = await request("/v1/health");
+      expect(response.status).toBe(status);
+      expect(await response.json()).toMatchObject({ oldest_sending: updated });
+      expect(
+        await bindings.DB.prepare("SELECT status, updated_at FROM outbox WHERE id = ?")
+          .bind(row.id)
+          .first(),
+      ).toEqual({ status: "sending", updated_at: updated });
+    },
+  );
+
+  test.each([
     [429, "retry"],
     [400, "failed"],
     [403, "failed"],

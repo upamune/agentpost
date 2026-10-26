@@ -1,4 +1,5 @@
-import { readBounded } from "./common";
+import { MAX_REQUEST_BYTES, readBounded } from "./common";
+import { stringifyBoundedJson } from "./bounded-json";
 import { hasUrlExtras, hasUrlUserInfo, isHttpsOrLoopbackHttp } from "./transport-url";
 
 // A paged outbox can contain 100 request bodies of up to 512 KiB each.
@@ -34,6 +35,17 @@ function rejectApiResponse(response: Response): never {
 function oversizedJson(response: Response): boolean {
   const declared = response.headers.get("Content-Length");
   return Boolean(declared && /^\d+$/.test(declared) && Number(declared) > MAX_JSON_RESPONSE_BYTES);
+}
+
+function requestBody(body: unknown): string | undefined {
+  if (body === undefined) return undefined;
+  try {
+    return stringifyBoundedJson(body, MAX_REQUEST_BYTES);
+  } catch {
+    throw new Error(
+      `Mail API request must be valid JSON within the ${MAX_REQUEST_BYTES}-byte size limit`,
+    );
+  }
 }
 export interface MailClientOptions {
   url: string;
@@ -91,7 +103,7 @@ export class MailClient {
         ? AbortSignal.any([signal, AbortSignal.timeout(30_000)])
         : AbortSignal.timeout(30_000),
       headers: this.headers(body, key),
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: requestBody(body),
     });
     if (!response.ok) rejectApiResponse(response);
     return response;

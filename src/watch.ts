@@ -1,12 +1,14 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { z } from "zod";
 import { MailApiError, MailClient } from "./client";
 import { eventPollResultSchema, eventQuerySchema } from "./event-schema";
 import type { EventQuery } from "./event-schema";
 import { wait } from "./wait";
+import { readLocalText } from "./local-file";
 
-type PollResult = z.output<typeof eventPollResultSchema>;
+const watchPollResultSchema = eventPollResultSchema.extend({ cursor: z.string().max(2048) });
+type PollResult = z.output<typeof watchPollResultSchema>;
 
 function assertRetryablePoll(error: unknown): void {
   if (error instanceof MailApiError && error.status < 500 && error.status !== 429) throw error;
@@ -17,12 +19,20 @@ async function checkpointCursor(cursor: EventQuery["cursor"], file: string | und
   if (!file) return cursor;
   let content: string;
   try {
-    content = await readFile(file, "utf8");
+    content = await readLocalText(file, 16 * 1024);
   } catch (error) {
     if (error instanceof Error && "code" in error && error.code === "ENOENT") return cursor;
     throw error;
   }
-  return z.object({ cursor: z.string() }).parse(JSON.parse(content)).cursor;
+  return parseCheckpoint(content);
+}
+
+function parseCheckpoint(content: string): string {
+  try {
+    return z.object({ cursor: z.string().max(2048) }).parse(JSON.parse(content)).cursor;
+  } catch {
+    throw new Error("Invalid event checkpoint; preserve the file and reconcile inbox state");
+  }
 }
 
 async function saveCheckpoint(file: string, cursor: string): Promise<void> {
@@ -51,7 +61,7 @@ class WatchSubscription {
 
   private async poll(): Promise<PollResult | null> {
     try {
-      return eventPollResultSchema.parse(
+      return watchPollResultSchema.parse(
         await this.client.call(
           "POST",
           "/v1/events/poll",
