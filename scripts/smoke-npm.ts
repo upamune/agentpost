@@ -18,6 +18,7 @@ async function command(args: string[]) {
   return stdout.trim();
 }
 try {
+  console.log(`npm package runtime: ${await command(["node", "--version"])}`);
   await command([
     "npm",
     "install",

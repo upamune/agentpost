@@ -1,5 +1,7 @@
 # agentpost
 
+[![npm](https://img.shields.io/npm/v/%40upamune%2Fagentpost)](https://www.npmjs.com/package/@upamune/agentpost)
+
 [![CI](https://github.com/upamune/agentpost/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/upamune/agentpost/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/codeql.yml)
 [![OSV-Scanner](https://github.com/upamune/agentpost/actions/workflows/osv.yml/badge.svg?branch=main)](https://github.com/upamune/agentpost/actions/workflows/osv.yml)
@@ -21,6 +23,16 @@ Create an address for every agent, task, or workflow, then send and receive emai
 Use a fresh inbox for a research task, give a long-running agent its own identity, or keep separate workflows from sharing mail. Provision addresses on demand and disable them when the work is done. There is no fixed inbox-count limit in Agentpost; infrastructure capacity, rate limits, and Cloudflare sending limits still apply.
 
 See [continuous security checks](docs/security-checks.md) for scanner coverage, alert triage, and the pre-publication audit. Badges report check results; they do not certify that a deployment is secure.
+
+## Install the CLI and MCP client
+
+```sh
+npm install --global @upamune/agentpost
+agentpost --version
+agentpost --help
+```
+
+Requires Node.js 22.14 or newer; Bun is unnecessary for the npm client. The package bundles its runtime dependencies and has no installation scripts. Use `agentpost mcp` for stdio MCP. The unscoped npm package `agentpost` belongs to another project. [Installation and verification](INSTALL.md) covers pinned versions, standalone binaries, credentials, and agent setup.
 
 ## What you can do
 
@@ -240,7 +252,7 @@ mise run ci
 
 Pushes to `main` and pull requests run formatting, linting, type checks, tests, a Worker dry-run build, secret scanning, and formal/real-code/mutation verification. Dependency audits also run daily. [Formal verification](docs/formal-verification.md) records the checked properties and their bounds.
 
-The release workflow attaches standalone CLI/MCP executables for seven platforms to version-tag releases, with signed provenance and checksums. Older source-only releases remain unchanged, and npm publishing is not configured. CI smoke-tests all platforms without real mail or production deployment. [Release setup](docs/releases.md) documents verification and the optional tagpr GitHub App.
+The release workflow attaches standalone CLI/MCP executables for seven platforms to version-tag releases, with signed provenance and checksums. Older source-only releases remain unchanged, and the npm client is published as `@upamune/agentpost` using GitHub OIDC and provenance. CI smoke-tests all platforms without real mail or production deployment. [Release setup](docs/releases.md) documents verification and the optional tagpr GitHub App.
 
 Report bugs and proposals in [Issues](https://github.com/upamune/agentpost/issues). See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution and language conventions.
 

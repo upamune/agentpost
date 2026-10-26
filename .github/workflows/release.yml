@@ -5,18 +5,7 @@ on:
     tags: ["v*"]
   workflow_dispatch:
     inputs:
-          - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: verified-npm
-          path: |
-            release/upamune-agentpost-*.tgz
-            release/SHA256SUMS
-            release/release-manifest.json
-            release/provenance.sigstore.json
-          if-no-files-found: error
-          retention-days: 14
-
-  publish:
+      publish:
         description: Publish the existing version tag after verifying all assets
         required: true
         type: boolean
@@ -162,6 +151,17 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verified-npm
+          path: |
+            release/upamune-agentpost-*.tgz
+            release/SHA256SUMS
+            release/release-manifest.json
+            release/provenance.sigstore.json
+          if-no-files-found: error
+          retention-days: 14
+
   publish:
     needs: [build, attest]
     if: github.event_name == 'push' || inputs.publish
@@ -271,3 +271,109 @@ jobs:
           fi
           gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq '{tag_name,draft,immutable}' > state.json
           jq -e --arg tag "$TAG" '.draft == false and .immutable == true and .tag_name == $tag' state.json
+
+  npm:
+    needs: [build, publish]
+    if: vars.AGENTPOST_NPM_PUBLISH_ENABLED == 'true' && (github.event_name == 'push' || inputs.publish)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: npm-publish
+    permissions:
+      contents: read
+      id-token: write # Exchange this exact workflow/environment identity for npm OIDC credentials.
+    env:
+      TAG: ${{ needs.build.outputs.tag }}
+      SOURCE_COMMIT: ${{ needs.build.outputs.commit }}
+    steps:
+      - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        with:
+          version: 2026.10.17
+          install_args: node@24.22.1
+          tool_versions: "node 24.22.1"
+          cache: false
+      - name: Verify immutable npm release input
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          asset="upamune-agentpost-${TAG#v}.tgz"
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq '{draft,immutable}' > "$RUNNER_TEMP/release-state.json"
+          jq -e '.draft == false and .immutable == true' "$RUNNER_TEMP/release-state.json"
+          [[ "$(gh api "repos/$GITHUB_REPOSITORY/commits/refs%2Ftags%2F$TAG" --jq .sha)" == "$SOURCE_COMMIT" ]]
+          mkdir npm-release
+          cd npm-release
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "$asset" \
+            --pattern SHA256SUMS --pattern release-manifest.json --pattern provenance.sigstore.json
+          for subject in "$asset" SHA256SUMS release-manifest.json; do
+            gh attestation verify "$subject" --repo "$GITHUB_REPOSITORY" \
+              --bundle provenance.sigstore.json --source-digest "$SOURCE_COMMIT" \
+              --source-ref "refs/tags/$TAG" \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" --deny-self-hosted-runners
+          done
+          awk -v name="$asset" '$2 == name {print}' SHA256SUMS > selected.sha256
+          [[ "$(wc -l < selected.sha256)" -eq 1 ]]
+          sha256sum --check selected.sha256
+          jq -e --arg version "${TAG#v}" --arg commit "$SOURCE_COMMIT" \
+            '.version == $version and .commit == $commit' release-manifest.json
+      - name: Check npm publication identity
+        id: registry
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/verify-npm.mjs" <<'NODE'
+          import { createHash } from 'node:crypto';
+          import { readFileSync, appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
+          const version = process.env.TAG.slice(1);
+          const response = await fetch(`https://registry.npmjs.org/@upamune%2fagentpost/${version}`, {
+            redirect: 'error', signal: AbortSignal.timeout(30000),
+          });
+          let exists = false;
+          if (response.status !== 404) {
+            if (!response.ok) throw new Error(`npm registry lookup failed: ${response.status}`);
+            const metadata = await response.json();
+            const bytes = readFileSync(`npm-release/upamune-agentpost-${version}.tgz`);
+            const integrity = 'sha512-' + createHash('sha512').update(bytes).digest('base64');
+            if (metadata.name !== '@upamune/agentpost' || metadata.version !== version || metadata.dist?.integrity !== integrity)
+              throw new Error('Existing npm version differs from the verified release; never overwrite it');
+            if (!metadata.dist.attestations?.url || metadata.dist.attestations.provenance?.predicateType !== 'https://slsa.dev/provenance/v1')
+              throw new Error('npm version has no SLSA provenance');
+            const target = new URL(metadata.dist.tarball);
+            if (target.origin !== 'https://registry.npmjs.org' || target.username || target.password)
+              throw new Error('Unexpected npm tarball origin');
+            if (process.argv[2] === 'verify') {
+              const root = {name: 'agentpost-release-verification', version: '0.0.0', private: true, dependencies: {'@upamune/agentpost': version}};
+              const lock = {name: root.name, version: root.version, lockfileVersion: 3, requires: true, packages: {
+                '': root,
+                'node_modules/@upamune/agentpost': {version, resolved: target.href, integrity, bin: {agentpost: 'cli.mjs'}},
+              }};
+              const directory = process.env.RUNNER_TEMP + '/npm-consumer';
+              mkdirSync(directory, {recursive: true});
+              writeFileSync(directory + '/package.json', JSON.stringify(root));
+              writeFileSync(directory + '/package-lock.json', JSON.stringify(lock));
+            }
+            exists = true;
+          }
+          if (process.argv[2] === 'verify' && !exists) throw new Error('Published npm version is missing');
+          if (process.argv[2] === 'inspect') appendFileSync(process.env.GITHUB_OUTPUT, `exists=${exists}\n`);
+          NODE
+          node "$RUNNER_TEMP/verify-npm.mjs" inspect
+      - name: Publish using npm Trusted Publishing
+        if: steps.registry.outputs.exists != 'true'
+        run: |
+          set -euo pipefail
+          unset NODE_AUTH_TOKEN NPM_TOKEN
+          npm_config_file="$RUNNER_TEMP/npm-publish.npmrc"
+          install -m 600 /dev/null "$npm_config_file"
+          npm publish "npm-release/upamune-agentpost-${TAG#v}.tgz" --access public \
+            --provenance --ignore-scripts --registry=https://registry.npmjs.org/ --userconfig="$npm_config_file"
+      - name: Verify npm provenance and installed package
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5; do
+            if node "$RUNNER_TEMP/verify-npm.mjs" verify; then break; fi
+            [[ "$attempt" -lt 5 ]] || exit 1
+            sleep 2
+          done
+          npm ci --prefix "$RUNNER_TEMP/npm-consumer" --ignore-scripts --no-audit --no-fund \
+            --registry=https://registry.npmjs.org/
+          npm audit signatures --prefix "$RUNNER_TEMP/npm-consumer" --registry=https://registry.npmjs.org/
+          "$RUNNER_TEMP/npm-consumer/node_modules/.bin/agentpost" --version

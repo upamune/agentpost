@@ -8,11 +8,25 @@
 
 - **OAuthでリモートMCPへ接続:** 対応クライアントにAccessで保護した`/mcp` URLを登録し、クライアントのログイン・更新機能を使います。ほかの用途で必要でなければソースcheckout・CLI・`AGENTPOST_API_TOKEN`は不要です。[認証設定](docs/authentication.ja.md)を参照してください。
 
-- **既存Workerへの接続:** 検証した単体実行ファイル（またはソース）を導入し、`AGENTPOST_API_URL`と`AGENTPOST_API_TOKEN`を設定します。必要ならMCPとスキルも設定します。Cloudflare管理用の資格情報は不要です。
+- **既存Workerへの接続:** npmパッケージ、検証した単体実行ファイル、またはソースを導入し、`AGENTPOST_API_URL`と`AGENTPOST_API_TOKEN`を設定します。必要ならMCPとスキルも設定します。Cloudflare管理用の資格情報は不要です。
 - **ローカルWorkerを試す:** ソースの導入後、ローカル検証へ進みます。ドメインやCloudflareの資格情報は不要です。
 - **自分のWorkerをホスト:** 利用者自身のCloudflareアカウントとドメインで[導入手順](docs/deploy.ja.md)を実施します。D1、R2、Queues、受信箱ごとのSQLite-backed Durable Objectを使います。Wranglerがデプロイ時にObjectのバインディングとmigrationを作成します。ローカルのインストールだけではデプロイしません。
 
 既存のcheckout、ツール、資格情報、MCP設定を再利用してください。非公開リポジトリの取得には既存のGit認証を使い、取得失敗時はアクセス不足を報告します。可視性は変更しません。
+
+## npmで導入する
+
+Node.js 22.14以降で、スコープ付きの `@upamune/agentpost` を使います。スコープのない `agentpost` は別のパッケージです。npm版には実行時の依存パッケージ、ネイティブaddon、インストールスクリプトを含めず、Bunも不要です。
+
+```sh
+npm install --global --ignore-scripts @upamune/agentpost@X.Y.Z
+agentpost --version
+agentpost --help
+```
+
+`X.Y.Z` は公開済みのバージョンへ置き換えてください。エージェントが導入する場合、先に `upamune-agentpost-VERSION.tgz` を取得し、[リリース検証](docs/releases.ja.md)に従ってGitHubの署名付き来歴証明とチェックサムを検証します。その後、同じローカルアーカイブを `npm install --global --ignore-scripts /absolute/path/to/upamune-agentpost-VERSION.tgz` で導入してください。導入だけではクライアントを起動したりWorkerへ接続したりしません。来歴を検証できない場合は停止します。既存環境を保持し、許可されたユーザー所有のnpm prefixを使ってください。権限不足をsudoで回避しません。
+
+版、実行コマンドとNodeの絶対パス、`npm root --global` を記録します。npm版は作業ディレクトリの `.env` などを自動で読みません。資格情報は後述の非公開設定で渡します。stdio MCPは、クライアントのPATHにNodeを含めて導入済みコマンドを使うか、Nodeの絶対パスを `command` に、`["/ABSOLUTE_NPM_ROOT/@upamune/agentpost/cli.mjs", "mcp"]` を `args` に指定します。後者はWindowsの `.cmd` ランチャーの違いも避けられます。既存のMCPサーバーと資格情報は保持してください。
 
 ## 単体実行ファイルを導入する
 

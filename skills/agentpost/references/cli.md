@@ -16,6 +16,8 @@ The CLI reads `AGENTPOST_API_URL` and `AGENTPOST_API_TOKEN`. It returns JSON on 
 
 ## Read mail
 
+The npm package is `@upamune/agentpost` and requires Node.js 22.14+; the unscoped npm name is unrelated. Its installed command supports the same examples below without Bun or a source checkout. Record the Node path as well as the command path; MCP clients must be able to launch Node. Follow the npm verification branch of INSTALL.md at the repository URL before installing or running a release.
+
 ```sh
 agentpost message list INBOX_UUID --limit 25
 agentpost message get INBOX_UUID MESSAGE_ID
