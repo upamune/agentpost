@@ -14,13 +14,28 @@
 
 [English](README.md) | [日本語](README.ja.md) | [Website](https://upamune.github.io/agentpost/)
 
-**Give your AI agents as many email addresses as they need.**
+**A different email address for every site. Managed by your AI agent.**
 
-Create a random or named address on your own domain. Receive mail and reply with reports, images, and other attachments through the CLI, API, or MCP. Self-host on your Cloudflare account.
+Use a fresh alias for each signup, receipt, or newsletter instead of sharing your personal email address everywhere. Agentpost creates independent inboxes on your own domain, lets your agent read and reply through CLI, MCP, or API, and lets you disable an unwanted address without affecting the others. Open source and self-hosted on your Cloudflare account.
 
-![Local terminal demo: create an inbox, receive mail, and queue a reply with a CSV attachment](docs/assets/agentpost-demo.gif)
+```sh
+# 1. Create an alias for one site (with administrator credentials).
+agentpost inbox create --label shop.example
+# Example address in the JSON result: cedar-moon-river@example.com
 
-A 30-second local demo using real CLI output and a fixture email. The reply is queued; no real email is sent. [Transcript](docs/assets/agentpost-demo.txt) · [Attachment guide](docs/outbound-attachments.md) · [Security checks](docs/security-checks.md)
+# 2. Use that address at signup, then read its mail.
+agentpost message list INBOX_ID
+agentpost message get INBOX_ID MESSAGE_ID
+
+# 3. Stop mail to this address when you no longer need it (administrator).
+agentpost inbox disable INBOX_ID
+```
+
+The commands require a [configured instance and credentials](INSTALL.md). New names default to three random English words joined by hyphens; `--local-part` still lets you choose one. Save the returned inbox ID and credentials privately. Inbox tokens can read and send mail; creating and disabling addresses requires administrator access (OAuth agents can create owned inboxes).
+
+This is the **per-site alias** use case familiar from DuckDuckGo Email Protection, with inboxes your agents can operate. Agentpost currently **does not automatically forward mail to a personal inbox or remove email trackers**. Mail is stored in your own Cloudflare account. Your domain and message content may still link accounts; aliases do not guarantee anonymity. Disabling rejects new inbound mail and blocks new sends; it retains stored messages and reserves the address.
+
+[Explore the interactive example](https://upamune.github.io/agentpost/#workflow) · [Security checks](docs/security-checks.md)
 
 ## Install the CLI and MCP client
 
@@ -34,7 +49,7 @@ Requires Node.js 22.14 or newer; Bun is unnecessary for the npm client. The pack
 
 ## What you can do
 
-- **Create inboxes on demand.** Issue random or custom-named addresses on your domain, give each agent an inbox token, and rotate or revoke access independently.
+- **Use a separate alias for each site.** Generate a three-word address or choose a name, label the inbox with its purpose, and disable unwanted aliases independently. Existing and disabled addresses are never reassigned by provisioning.
 - **Send, receive, and reply.** Read message bodies, attachments, and original `.eml` files. Reply with attachments using the sender's Reply-To and threading headers.
 - **Use your agent's existing tools.** Choose JSON CLI commands, an HTTP API, or MCP tools over stdio or Streamable HTTP. Standalone CLI/MCP release assets embed Bun for macOS and Linux (glibc/musl) on x64 and arm64, and Windows x64; see [verification and installation](docs/releases.md).
 - **Watch for new mail.** Subscribe to received messages and send-status changes, then resume from a saved cursor after a disconnect.
@@ -102,7 +117,7 @@ To choose the address instead, supply the part before `@`:
 mise exec -- bun run cli inbox create --local-part research --label research-agent
 ```
 
-This creates `research@YOUR_DOMAIN`. Omit `--local-part` for a random address. Names are stored lowercase; existing names return 409, including disabled inboxes. See [naming rules](docs/http-api.md#mailbox-names).
+This creates `research@YOUR_DOMAIN`. Omit `--local-part` for a random three-word address such as `cedar-moon-river@YOUR_DOMAIN`. The server tries up to eight generated names to resolve collisions; existing inboxes keep their credentials. Names are stored lowercase; explicit existing names return 409, including disabled inboxes. See [naming rules](docs/http-api.md#mailbox-names).
 
 Save the returned `id`, `address`, and secret `token`. Inbox tokens are returned only on creation or rotation. Give the agent that inbox's token for subsequent work:
 

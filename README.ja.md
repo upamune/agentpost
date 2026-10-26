@@ -14,13 +14,28 @@
 
 [English](README.md) | [日本語](README.ja.md) | [Webサイト](https://upamune.github.io/agentpost/ja/)
 
-**AIエージェントに、必要なだけメールアドレスを。**
+**サイトごとに、別のメールアドレスを。管理はAIエージェントに。**
 
-自分のドメインにランダムまたは好きな名前のアドレスを作り、受信したメールにレポート・画像などを添付して返信できます。CLI・API・MCPから操作し、自分のCloudflareアカウントでセルフホストします。
+登録、領収書、ニュースレター。いつものメールアドレスをすべてのサイトに渡す代わりに、専用のアドレスを使えます。自分のドメインに独立した受信箱を作り、エージェントがCLI・MCP・APIで受信や返信を担当。不要になったアドレスだけ無効化できます。自分のCloudflareアカウントで動かすオープンソースです。
 
-![ローカルCLIで受信箱を作成し、メールを受信してCSVを添付した返信をキューに入れるデモ](docs/assets/agentpost-demo.gif)
+```sh
+# 1. 登録先の専用アドレスを作る（管理者の資格情報で実行）。
+agentpost inbox create --label shop.example
+# JSON結果に含まれるアドレスの例: cedar-moon-river@example.com
 
-実際のCLI出力と受信フィクスチャを使った30秒のローカルデモです。返信はキューへの登録までで、実際のメールは送りません。[操作記録](docs/assets/agentpost-demo.txt) · [送信添付ガイド](docs/outbound-attachments.ja.md) · [セキュリティチェック](docs/security-checks.ja.md)
+# 2. 登録に使い、届いたメールを読む。
+agentpost message list INBOX_ID
+agentpost message get INBOX_ID MESSAGE_ID
+
+# 3. 不要になったら、このアドレスだけ停止する（管理者）。
+agentpost inbox disable INBOX_ID
+```
+
+[インスタンスと認証情報の設定](INSTALL.ja.md)が必要です。名前を指定しない場合は、ランダムな英単語3つをハイフンで結びます。`--local-part`で好きな名前も指定できます。返された受信箱IDと資格情報は非公開に保存してください。受信箱トークンは受信・送信に使えます。発行と無効化には管理者権限が必要です（OAuthのagent権限では自分の受信箱を発行できます）。
+
+DuckDuckGo Email Protectionのような**登録先ごとのエイリアス**が主な用途で、それぞれの受信箱をエージェントで操作できます。現時点では、**個人の受信箱への自動転送やメール内トラッカーの除去は行いません**。メールは自分のCloudflareアカウントに保存します。ドメインや本文から関連付けられる可能性は残り、匿名性を保証するものではありません。無効化すると新しい受信と送信を止めます。保存済みのメールは保持し、アドレス名も予約されたままです。
+
+[操作できるデモを見る](https://upamune.github.io/agentpost/ja/#workflow) · [セキュリティチェック](docs/security-checks.ja.md)
 
 ## CLIとMCPクライアントを導入する
 
@@ -34,7 +49,7 @@ Node.js 22.14以降が必要です。npm版にBunは不要で、実行時の依�
 
 ## できること
 
-- 独自ドメインにランダムまたは指定した名前のメールアドレスを発行し、受信箱を作成します。有効化、無効化、トークンの再発行にも対応します。
+- 登録先ごとに、英単語3つのランダムなアドレスや指定した名前を発行できます。ラベルに用途を記録し、不要なアドレスだけ無効化できます。既存・無効化済みアドレスを発行操作で再割り当てすることはありません。
 - メールの本文、HTML、添付ファイル、原文の`.eml`を取得できます。
 - 発行したアドレスからメールを送信し、Reply-Toとスレッド情報を引き継いで返信できます。
 - エージェントとの接続に、JSONを返すCLI、HTTP API、stdioとStreamable HTTPのMCPサーバーを提供します。Bunを内包する単体CLI/MCPは、macOS・Linux（glibc/musl）のx64/arm64およびWindows x64向けリリース成果物です。[検証と導入](docs/releases.ja.md)を参照してください。
@@ -117,7 +132,7 @@ mise exec -- bun run cli inbox create --label research-agent
 mise exec -- bun run cli inbox create --local-part research --label research-agent
 ```
 
-これで`research@自分のドメイン`を発行します。`--local-part`の省略時はランダムです。名前は小文字で保存し、同名は無効化済みでも409で拒否します。[命名規則](docs/http-api.ja.md#受信箱の名前)も参照してください。
+これで`research@自分のドメイン`を発行します。`--local-part`の省略時は`cedar-moon-river@自分のドメイン`のように英単語3つをハイフンで結びます。自動生成の重複は最大8回試し、既存の受信箱や資格情報は変更しません。名前は小文字で保存し、同名は無効化済みでも409で拒否します。[命名規則](docs/http-api.ja.md#受信箱の名前)も参照してください。
 
 応答に含まれる`id`、`address`、`token`を保存します。
 受信箱トークンは作成時と再発行時にだけ返されます。

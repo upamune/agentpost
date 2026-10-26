@@ -33,7 +33,7 @@ export function createMailServer(client: MailClient): McpServer {
     "create_inbox",
     {
       description:
-        "Create an email address on the configured domain. Omit local_part for a random address or provide a mailbox name. Existing names conflict, including disabled inboxes. Requires administrator or OAuth agent access. OAuth agents own the inboxes they create. Save the returned inbox ID and any token privately; OAuth creation returns no inbox token, including in both mode. Do not automatically retry creation after a timeout.",
+        "Create an email address on the configured domain. Omit local_part for three random English words joined by hyphens (e.g. cedar-moon-river), or provide a mailbox name. Explicit existing names conflict, including disabled inboxes. Requires administrator or OAuth agent access. OAuth agents own the inboxes they create. Save the returned inbox ID and any token privately; OAuth creation returns no inbox token, including in both mode. Do not automatically retry creation after a timeout.",
       inputSchema: inboxInputSchema,
     },
     (input) => output(() => client.call("POST", "/v1/inboxes", input)),

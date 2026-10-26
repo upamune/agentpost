@@ -87,7 +87,7 @@ mise exec --cd /absolute/path/to/agentpost -- bun run src/cli.ts --help
 /absolute/path/to/agentpost inbox get INBOX_UUID
 ```
 
-受信箱の発行を依頼された場合は、`inbox create --local-part research`で設定済みドメインに名前を指定できます。省略時はランダムです。同名は無効化済みでも競合し、再割り当てを行いません。
+受信箱の発行を依頼された場合は、`inbox create --local-part research`で設定済みドメインに名前を指定できます。省略時は`cedar-moon-river`のようにランダムな英単語3つをハイフンで結びます。登録先ごとに受信箱を分け、非公開のラベルに用途を記録します。同名は無効化済みでも競合し、再割り当てを行いません。
 
 管理者なら`inbox list --limit 1`も使えます。`health`は管理者専用なので、拒否だけで受信箱トークンが不正とは判断できません。URL・資格情報・受信箱IDが不足している場合はソースの導入を完了し、不足設定を報告します。インストールの確認のためだけに受信箱を作ったり送信したりしません。
 
