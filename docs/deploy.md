@@ -8,27 +8,28 @@ Each operator deploys agentpost to their own Cloudflare account and domain manag
 
 All application environment variables use the `AGENTPOST_` prefix. The CLI and stdio MCP read process environment variables. The Worker reads `vars` in `wrangler.jsonc` and Workers Secrets; local Worker secrets belong in `.dev.vars`.
 
-| Name                                   | Configure in          | Purpose                                                                  |
-| -------------------------------------- | --------------------- | ------------------------------------------------------------------------ |
-| `AGENTPOST_API_URL`                    | CLI / stdio MCP       | Worker HTTPS base URL; locally `http://localhost:8787`                   |
-| `AGENTPOST_API_TOKEN`                  | CLI / stdio MCP       | Admin or inbox token for the operation                                   |
-| `AGENTPOST_ADMIN_TOKEN`                | Worker Secret         | Administration in token/both mode                                        |
-| `AGENTPOST_EMAIL_DOMAIN`               | `wrangler.jsonc` vars | Domain for generated addresses                                           |
-| `AGENTPOST_CF_ZONE_ID`                 | Worker vars           | Optional diagnostic zone ID                                              |
-| `AGENTPOST_CF_SENDING_SUBDOMAIN_ID`    | Worker vars           | Optional diagnostic sending-domain ID                                    |
-| `AGENTPOST_CF_DIAGNOSTICS_API_TOKEN`   | Worker Secret         | Dedicated diagnostic credential, used with both IDs above                |
-| `AGENTPOST_CF_ACCOUNT_ID`              | Worker Secret         | Cloudflare account with Email Sending enabled                            |
-| `AGENTPOST_CF_EMAIL_API_TOKEN`         | Worker Secret         | API token authorized for Email Sending                                   |
-| `AGENTPOST_AUTH_MODE`                  | Worker vars           | `token` (default), `oauth`, or `both`                                    |
-| `AGENTPOST_CURSOR_KEY`                 | Worker Secret         | Independent event-cursor encryption key; required for OAuth/both         |
-| `AGENTPOST_ACCESS_TEAM_DOMAIN`         | Worker vars           | Trusted Access team HTTPS origin                                         |
-| `AGENTPOST_ACCESS_AUD`                 | Worker vars           | Access application audience                                              |
-| `AGENTPOST_ACCESS_PRINCIPALS`          | Worker vars           | JSON identity-to-role allowlist                                          |
-| `AGENTPOST_OAUTH_RESOURCE_URL`         | Worker vars           | Canonical HTTPS URL ending in `/mcp`                                     |
-| `AGENTPOST_OAUTH_AUTHORIZATION_SERVER` | Worker vars           | Exact AS issuer from Access metadata                                     |
-| `AGENTPOST_WEBHOOK_ENCRYPTION_KEY`     | Worker Secret         | Optional independent 32-byte/64-hex key encrypting webhook configuration |
-| `AGENTPOST_WEBHOOK_ALLOWED_ORIGINS`    | Worker vars           | Optional JSON array of exact trusted public HTTPS origins                |
-| `AGENTPOST_LOCAL_URL`                  | Local smoke test      | `smoke:local` target; defaults to `http://127.0.0.1:8787`                |
+| Name                                     | Configure in          | Purpose                                                                             |
+| ---------------------------------------- | --------------------- | ----------------------------------------------------------------------------------- |
+| `AGENTPOST_API_URL`                      | CLI / stdio MCP       | Worker HTTPS base URL; locally `http://localhost:8787`                              |
+| `AGENTPOST_API_TOKEN`                    | CLI / stdio MCP       | Admin or inbox token for the operation                                              |
+| `AGENTPOST_ADMIN_TOKEN`                  | Worker Secret         | Administration in token/both mode                                                   |
+| `AGENTPOST_EMAIL_DOMAIN`                 | `wrangler.jsonc` vars | Domain for generated addresses                                                      |
+| `AGENTPOST_CF_ZONE_ID`                   | Worker vars           | Optional diagnostic zone ID                                                         |
+| `AGENTPOST_CF_SENDING_SUBDOMAIN_ID`      | Worker vars           | Optional diagnostic sending-domain ID                                               |
+| `AGENTPOST_CF_DIAGNOSTICS_API_TOKEN`     | Worker Secret         | Dedicated diagnostic credential, used with both IDs above                           |
+| `AGENTPOST_CF_ACCOUNT_ID`                | Worker Secret         | Cloudflare account with Email Sending enabled                                       |
+| `AGENTPOST_CF_EMAIL_API_TOKEN`           | Worker Secret         | API token authorized for Email Sending                                              |
+| `AGENTPOST_AUTH_MODE`                    | Worker vars           | `token` (default), `oauth`, or `both`                                               |
+| `AGENTPOST_CURSOR_KEY`                   | Worker Secret         | Independent event-cursor encryption key; required for OAuth/both                    |
+| `AGENTPOST_ACCESS_TEAM_DOMAIN`           | Worker vars           | Trusted Access team HTTPS origin                                                    |
+| `AGENTPOST_ACCESS_AUD`                   | Worker vars           | Access application audience                                                         |
+| `AGENTPOST_ACCESS_PRINCIPALS`            | Worker vars           | JSON identity-to-role allowlist                                                     |
+| `AGENTPOST_OAUTH_RESOURCE_URL`           | Worker vars           | Canonical HTTPS URL ending in `/mcp`                                                |
+| `AGENTPOST_OAUTH_AUTHORIZATION_SERVER`   | Worker vars           | Exact AS issuer from Access metadata                                                |
+| `AGENTPOST_FORWARD_ALLOWED_DESTINATIONS` | Worker Secret         | Optional JSON array of trusted, verified forwarding destinations; unset allows none |
+| `AGENTPOST_WEBHOOK_ENCRYPTION_KEY`       | Worker Secret         | Optional independent 32-byte/64-hex key encrypting webhook configuration            |
+| `AGENTPOST_WEBHOOK_ALLOWED_ORIGINS`      | Worker vars           | Optional JSON array of exact trusted public HTTPS origins                           |
+| `AGENTPOST_LOCAL_URL`                    | Local smoke test      | `smoke:local` target; defaults to `http://127.0.0.1:8787`                           |
 
 When migrating old configuration, rename these variables while preserving their values. Old names are no longer read.
 
@@ -146,3 +147,7 @@ Practice [recovery procedures](operations.md) in staging, including D1 Time Trav
 ## Enable received-email webhooks
 
 The current Wrangler configuration declares a separate `AGENTPOST_WEBHOOK_JOBS` queue and DLQ. Upgrades must create those queues and apply `0006_inbox_webhooks.sql` even when other resources already exist. Enabling notifications additionally requires an independent encryption key and trusted-origin allowlist; individual inbox destinations remain unset by default. Follow [webhook configuration, signature verification and recovery](webhooks.md), and verify an authorized receiver before reporting it operational. Notifications contain neither mail content nor API credentials.
+
+## Incoming email forwarding
+
+Apply `0007_forwarding.sql` before this Worker upgrade, even when forwarding stays off. Verify destinations with Cloudflare Email Routing, privately set the destination allowlist, then use administrator API/CLI/MCP settings for the global default and inbox overrides. Native forwarding needs no new queue or sending binding. Complete the [forwarding checks](forwarding.md) with an authorized recipient before claiming it operational.

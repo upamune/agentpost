@@ -24,7 +24,7 @@
     "knip": "knip",
     "typecheck": "tsc --noEmit",
     "test": "bun run test:worker && bun run test:bun",
-    "test:bun": "bun test ./test/client.bun.ts ./test/adversarial-client.bun.ts ./test/security-workflows.bun.ts ./test/release.bun.ts ./test/release-workflow.bun.ts ./test/formal-runner.bun.ts ./test/complexity.bun.ts ./test/refactor-contracts.bun.ts ./test/executables.bun.ts ./test/npm.bun.ts ./test/idempotency.bun.ts ./test/client-webhooks.bun.ts",
+    "test:bun": "bun test ./test/client.bun.ts ./test/adversarial-client.bun.ts ./test/security-workflows.bun.ts ./test/release.bun.ts ./test/release-workflow.bun.ts ./test/formal-runner.bun.ts ./test/complexity.bun.ts ./test/refactor-contracts.bun.ts ./test/executables.bun.ts ./test/npm.bun.ts ./test/idempotency.bun.ts ./test/client-webhooks.bun.ts ./test/client-forwarding.bun.ts",
     "test:worker": "vitest run",
     "fuzz": "bun test ./test/security.fuzz.ts",
     "mcp": "bun run src/mcp.ts",

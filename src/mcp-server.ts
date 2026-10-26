@@ -6,6 +6,7 @@ import { MailClient } from "./client";
 import { inboxInputSchema } from "./inbox-schema";
 import { registerEventMethods } from "./mcp-events";
 import { mailToolOutput } from "./mcp-output";
+import { registerForwardingTools } from "./mcp-forwarding";
 import { registerWebhookTools } from "./mcp-webhooks";
 
 export function createMailServer(client: MailClient): McpServer {
@@ -183,6 +184,7 @@ export function createMailServer(client: MailClient): McpServer {
     () => output(() => client.call("GET", "/v1/domain/check")),
   );
   registerWebhookTools(server, client);
+  registerForwardingTools(server, client);
   registerEventMethods(server, client);
   return server;
 }

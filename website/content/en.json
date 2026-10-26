@@ -36,8 +36,8 @@
   "capabilities.description": "Separate signups, receipts, and newsletters without handing every site the same email address.",
   "feature1.title": "A fresh address for each signup.",
   "feature1.description": "Let the server generate a three-word address, or choose a name. Add a private label so your agent knows which site it belongs to.",
-  "feature2.title": "Read, send, and reply.",
-  "feature2.description": "Read confirmations and receipts through CLI, MCP, or API. Send and reply from the same address, with attachments when needed.",
+  "feature2.title": "Read it here. Forward a copy, too.",
+  "feature2.description": "Read confirmations and receipts with your agent, or forward them to a verified mailbox. Use a global default, a different destination per inbox, or turn forwarding off for one address.",
   "feature3.title": "Know when new mail arrives.",
   "feature3.description": "Use resumable events or a signed webhook for each inbox. Fetch message content through the authenticated API when you need it.",
   "hosting.eyebrow": "Your infrastructure",
@@ -81,6 +81,9 @@
   "demo.disabledBody": "New mail to this address is rejected. Your other addresses remain active.",
   "demo.disableNote": "Administrator action. Existing stored mail is retained; disabling does not delete it. The address stays reserved.",
   "privacy.title": "What this protects — and what it doesn’t.",
-  "privacy.description": "Each alias is an independent inbox on your own domain. Agentpost does not automatically forward mail to your personal inbox or remove email trackers. Your domain and message content may still link accounts; random addresses are not passwords or a guarantee of anonymity.",
-  "demo.active": "Active"
+  "privacy.description": "Each alias keeps an independent inbox on your own domain. Optional forwarding uses verified, operator-allowed destinations. Email trackers are not removed. Reply through Agentpost to use the alias; replying from your personal mailbox may expose its address. Your domain and message content may still link accounts.",
+  "demo.active": "Active",
+  "forward.global": "Global default",
+  "forward.custom": "Inbox override",
+  "forward.off": "Forwarding off"
 }

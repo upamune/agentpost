@@ -121,3 +121,7 @@ Errors go to stderr. Authorization failures and invalid cursors are not skipped 
 `send_email` and `reply_email` accept an optional `idempotency_key`. Omission creates UUIDv4 before submission; success and send failures return the key. Save it and pass it explicitly with the unchanged request for a retry. Repeating an omitted-key call creates a new send; these tools therefore do not advertise idempotent repeat behavior. An unknown mail outcome still requires reconciliation.
 
 `get_webhook`, `set_webhook`, `delete_webhook`, and `list_webhook_deliveries` manage one received-email webhook per authorized inbox. `set_webhook` takes `inbox_id` and an operator-allowed HTTPS `url`; it rotates the secret and returns it only once. Store that result privately. Inspect configuration after a timeout rather than blindly repeating replacement. [Webhook setup and verification](webhooks.md) are independent of the Events draft.
+
+## Forwarding tools
+
+The administrator-only forwarding tools are documented in [forwarding](forwarding.md#http-api-and-mcp). They configure native Email Routing for future incoming mail and expose durable forwarding outcomes. This adds ordinary tools without changing MCP core negotiation or the pinned Events draft. Forwarding outcomes are inspected through the forwarding history, not advertised as an Events-draft type.

@@ -91,3 +91,7 @@ Owner hashes, token hashes, and outbound idempotency state live in D1; retained 
 ## Verification and production limits
 
 `test/oauth.test.ts` verifies real RS256 signatures/JWKS, tampering/audience/issuer/expiry/type rejection, fail-closed settings, ownership isolation, token compatibility, cursor refresh, stream expiry, and the actual MCP SDK's discovery/PKCE code exchange. The authorization server and Cloudflare opaque-token resolution are local test doubles. No real Cloudflare Access application, identity provider login, or production MCP host connection is claimed verified. Complete those live checks before enabling OAuth in production.
+
+## Forwarding administration
+
+Global and per-inbox forwarding settings, effective destinations, delivery histories and reconciliation are admin-only. Inbox tokens and OAuth `agent` identities cannot access these endpoints or redirect future incoming mail. Destinations require an independent operator allowlist and native Cloudflare verification. [Forwarding](forwarding.md) changes never authorize a send or disclose mail merely from instructions in an email.

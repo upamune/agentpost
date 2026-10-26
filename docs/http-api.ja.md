@@ -110,3 +110,7 @@ CLI・stdio MCPの成功JSON応答は64 MiBまでです。大きなoutbox一覧�
 ## 受信Webhook
 
 受信箱ごとの`GET`・`PUT`・`DELETE /v1/inboxes/{inbox}/webhook`で設定し、`GET /v1/inboxes/{inbox}/webhook/deliveries`で最新50件を確認します。`PUT`の入力は`{"url":"https://hooks.example.com/mail"}`です。署名秘密鍵は設定時に一度だけ返します。[ホスト側の許可リスト・署名検証・配送契約](webhooks.ja.md)を確認してください。
+
+## 受信メールの転送
+
+管理者専用の全体設定、受信箱ごとの継承・個別・off設定、履歴、調査記録は[転送API](forwarding.ja.md#http-apiとmcp)を参照してください。通常の認証・JSON Content-Type・サイズ・Origin・レート制限も適用します。

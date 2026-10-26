@@ -84,3 +84,7 @@ Repeat `--attach /absolute/path/report.pdf` on send/reply, or upload first with 
 ## Inbox webhook commands
 
 For an authorized receiver, follow [webhook workflow](webhooks.md). `webhook set INBOX_UUID --webhook-url HTTPS_URL` returns a signing secret once; save the response privately. Use `webhook get`, `webhook deliveries`, and `webhook delete` with the same inbox UUID. `--url` continues to select the Agentpost API, so use `--webhook-url` for the receiver.
+
+## Incoming forwarding (administrator)
+
+Use `agentpost forwarding get|off` for the global default and `forwarding set --destination EMAIL` to set it. Add `INBOX_ID` after get/set/off for an inbox override; use `forwarding inherit INBOX_ID` to restore inheritance. `forwarding deliveries INBOX_ID` reads outcomes. `forwarding resolve INBOX_ID MESSAGE_ID --note EVIDENCE` acknowledges an investigation without sending anything. Read the forwarding guide linked from the skill before changing a destination; require user authorization and private operator/Cloudflare setup.

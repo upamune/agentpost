@@ -33,7 +33,7 @@ agentpost inbox disable INBOX_ID
 
 The commands require a [configured instance and credentials](INSTALL.md). New names default to three random English words joined by hyphens; `--local-part` still lets you choose one. Save the returned inbox ID and credentials privately. Inbox tokens can read and send mail; creating and disabling addresses requires administrator access (OAuth agents can create owned inboxes).
 
-This is the **per-site alias** use case familiar from DuckDuckGo Email Protection, with inboxes your agents can operate. Agentpost currently **does not automatically forward mail to a personal inbox or remove email trackers**. Mail is stored in your own Cloudflare account. Your domain and message content may still link accounts; aliases do not guarantee anonymity. Disabling rejects new inbound mail and blocks new sends; it retains stored messages and reserves the address.
+This is the **per-site alias** use case familiar from DuckDuckGo Email Protection, with inboxes your agents can operate. Optional [native forwarding](docs/forwarding.md) sends copies to verified, operator-allowed destinations, using a global default or per-inbox inherit/custom/off settings. Agentpost **does not remove email trackers**. Mail is stored in your own Cloudflare account. Your domain and message content may still link accounts; aliases do not guarantee anonymity. Disabling rejects new inbound mail and blocks new sends; it retains stored messages and reserves the address.
 
 [Explore the interactive example](https://upamune.github.io/agentpost/#workflow) · [Security checks](docs/security-checks.md)
 
@@ -160,6 +160,19 @@ mise exec -- bun run cli outbox get YOUR_INBOX_UUID YOUR_SEND_UUID
 ```
 
 The send response contains an outbox ID for checking progress. `accepted` means Cloudflare accepted the request; it does not prove recipient delivery. An `unknown` outcome needs operator reconciliation and is never automatically resent.
+
+## Forward incoming mail
+
+Keep the inbox copy and forward mail to a Cloudflare-verified, operator-allowed destination. Administrators can configure a global default and per-inbox overrides:
+
+```sh
+agentpost forwarding set --destination operator@example.net
+agentpost forwarding set INBOX_ID --destination team@example.org
+agentpost forwarding off INBOX_ID
+agentpost forwarding inherit INBOX_ID
+```
+
+Forwarding is off until configured. Apply migration `0007_forwarding.sql`, verify destinations at Cloudflare, and privately configure `AGENTPOST_FORWARD_ALLOWED_DESTINATIONS` first. Changes affect future admissions; unknown outcomes are never automatically retried. See [forwarding setup and recovery](docs/forwarding.md), including how to reply from the alias without exposing your personal mailbox address.
 
 ## Webhooks per inbox
 

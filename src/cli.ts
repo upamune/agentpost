@@ -28,10 +28,17 @@ Use --url to override the URL. Credentials are read from the environment.
   events poll|watch [--name message.received] [--inbox INBOX_ID]
        [--cursor CURSOR] [--max-age-ms N] [--limit N]
        watch also accepts --cursor-file FILE for persistent checkpoints
+  forwarding get|off [INBOX_ID]
+  forwarding set [INBOX_ID] --destination EMAIL
+  forwarding inherit|deliveries INBOX_ID
+  forwarding resolve INBOX_ID MESSAGE_ID --note EVIDENCE
   domain check [--strict]
   health
   mcp
 
+Forwarding: administrator only. Omit INBOX_ID for global defaults; per-inbox
+settings inherit, override, or disable forwarding. Targets must be operator-allowed
+and Cloudflare-verified. Changes apply to future admissions; no stored-mail replay.
 Inbox create: omit --local-part for three random English words joined by hyphens.
 Send/reply: repeat --attach FILE or --attachment-id ID (max 10).
 Files: PDF, PNG/JPEG/GIF/WebP, UTF-8 text/CSV/JSON/Markdown; max 3 MiB combined content.
