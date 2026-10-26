@@ -218,6 +218,8 @@ async function sourceHashes() {
     "src/coordinator.ts",
     "src/inbound.ts",
     "src/api.ts",
+    "src/events.ts",
+    "src/inbox-metadata.ts",
     "src/maintenance.ts",
     "src/queue-jobs.ts",
     "src/index.ts",

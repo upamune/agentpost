@@ -1,5 +1,5 @@
 {
-  "productRevision": "a69799e125a0edf39bcbee243994ff8303b81c33",
+  "productRevision": "f59ee20f3a6f8eb5d910fa7a404a823314c74d1d",
   "checkedOn": "2026-10-27",
   "chartCommand": "statechart.mjs from-spec MODEL.tla --config CONFIG.cfg --map MAP.map.mjs --cover --png",
   "chartBoundsAreSeparateFromFullChecks": true,
