@@ -26,3 +26,11 @@ The finalized MCP core remains 2026-07-28, checked separately from the pinned Ev
 GitHub's open-alert state at the baseline contained no CodeQL finding and four Scorecard practice findings: independent code review, branch-review requirements, repository maintenance history, and OpenSSF Best Practices enrollment. Their [remaining prerequisites](scorecard-remediation.md) remain visible; agent reviews do not count as independent human approvals.
 
 This review does not prove whole-system absence of vulnerabilities, deployed Cloudflare policy correctness, actual mail reachability, complete parser resource bounds, or backup recovery. Follow the [deployment](deploy.md) and [operations](operations.md) checks for each self-hosted installation.
+
+## Release verification follow-up
+
+The real 0.1.4 release exposed a second metadata propagation boundary: the version endpoint and integrity-pinned archive were ready, but `npm audit signatures` still reported `ETARGET` from the full package metadata. npm's installed verification code confirms that signatures use that full metadata view. A later verification-only job succeeded and skipped publishing the already matching version; no package or immutable asset was replaced.
+
+The publisher now waits for matching identity, integrity and SLSA provenance in both metadata views. Signature auditing uses online revalidation and a separate cache. Missing versions/provenance remain bounded read-only retries; known mismatches and signature failures still fail. Regressions execute the maintained verification script with the version endpoint ready and the package metadata lagging or tampered.
+
+Follow-up validation: full CI passed 106 Worker + 135 Bun tests with formal, fuzz and security checks. The maintained verification step also passed against the actual published 0.1.4 archive/registry, including a verified registry signature, a verified attestation and the installed CLI version, without running publication.

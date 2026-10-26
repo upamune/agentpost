@@ -15,7 +15,7 @@ npmパッケージは `@upamune/agentpost`、コマンドは `agentpost` です�
 
 `mise run npm:build --verify-reproducible` は、コミット済みの入力から `dist/npm/upamune-agentpost-VERSION.tgz` を作ります。公開内容はCLI、package.json、README、プロジェクトとバンドルした依存のライセンスだけです。ルートのpackage.jsonは `private: true` を維持します。`mise run npm:smoke` は隔離したprefixへ、オフライン・スクリプト無効でグローバル導入し、CLI、MCP、Eventsをローカルfixtureで確認します。Node 22の専用CIと各OSのNode 24でも検査します。
 
-npmアーカイブもGitHub Releaseのチェックサムと署名の対象です。後述のダウンロード検証では、対象に `upamune-agentpost-VERSION.tgz` を選べます。公開ジョブはimmutableなGitHub Releaseからアーカイブと検証資料を取り直し、タグ・コミット・署名・チェックサムを照合します。その後、GitHub OIDCで `npm publish --provenance --ignore-scripts` を実行します。長期のnpm公開トークンは使いません。公開後はnpmのintegrityを元アーカイブと照合し、固定したlockfileによる導入と `npm audit signatures` で来歴を検証します。同一版が存在する場合も一致と来歴を確認し、上書きしません。npmは公開を受理した後も処理を続けることがあります。検証はジョブのタイムアウト内で5秒間隔・最大60回の読み取りを行います。版や来歴がまだ利用できない場合だけ待機し、名前・版・integrity・来歴の種類の不一致は即座に失敗させます。npm側で失敗してもGitHub Releaseは維持され、処理完了後に同じタグで再実行できます。
+npmアーカイブもGitHub Releaseのチェックサムと署名の対象です。後述のダウンロード検証では、対象に `upamune-agentpost-VERSION.tgz` を選べます。公開ジョブはimmutableなGitHub Releaseからアーカイブと検証資料を取り直し、タグ・コミット・署名・チェックサムを照合します。その後、GitHub OIDCで `npm publish --provenance --ignore-scripts` を実行します。長期のnpm公開トークンは使いません。公開後はnpmのintegrityを元アーカイブと照合し、固定したlockfileによる導入と `npm audit signatures` で来歴を検証します。同一版が存在する場合も一致と来歴を確認し、上書きしません。npmは公開を受理した後も処理を続けることがあります。検証はジョブのタイムアウト内で5秒間隔・最大60回の読み取りを行います。`npm audit signatures`が読むパッケージ全体のメタデータとバージョン別APIの両方で、名前・版・integrity・SLSA来歴の一致を確認してから利用者側の検証を行います。署名検査には専用キャッシュとオンライン再検証を使い、公開前の古いメタデータを再利用しません。どちらかの版や来歴がまだ利用できない場合だけ待機し、名前・版・integrity・来歴の種類の不一致は即座に失敗させます。npm側で失敗してもGitHub Releaseは維持され、処理完了後に同じタグで再実行できます。
 
 初期設定はメンテナーが行います。
 
