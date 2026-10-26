@@ -1,0 +1,12 @@
+{
+  "name": "agentpost",
+  "colors": {
+    "blue": "#315BFF",
+    "ink": "#151A24",
+    "white": "#FFFFFF",
+    "dark_background": "#0F1420"
+  },
+  "type": "outlined vector paths",
+  "logo_viewbox": [1931.863, 384],
+  "symbol_viewbox": [512, 512]
+}

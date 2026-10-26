@@ -1,4 +1,9 @@
-# Agentpost
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/upamune/agentpost/main/assets/brand/svg/logo-dark.svg">
+    <img src="https://raw.githubusercontent.com/upamune/agentpost/main/assets/brand/svg/logo.svg" alt="agentpost" width="420">
+  </picture>
+</h1>
 
 AIエージェントに必要な数のメールアドレスを、自分のドメインで発行できます。CloudflareへセルフホストしたAPIを通じて、CLIとMCPから送受信します。
 
