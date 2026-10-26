@@ -46,7 +46,7 @@ Windowsでは `New-Item -ItemType Directory -ErrorAction Stop` で新しいデ�
 
 ## ソースから導入する
 
-Gitと[mise](https://mise.jdx.dev/getting-started.html)が必要です。CLIはBun、WranglerはNode.jsで動きます。npmパッケージは公開しておらず、単体クライアントは別のリリース成果物です。
+Gitと[mise](https://mise.jdx.dev/getting-started.html)が必要です。CLIはBun、WranglerはNode.jsで動きます。npmクライアントは `@upamune/agentpost` として公開し、単体クライアントは別のリリース成果物です。
 
 永続的なcheckout先を選びます。既存ディレクトリを使う場合は内容を確認し、未コミットの変更を保持してください。
 

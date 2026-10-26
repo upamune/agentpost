@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { npmArchiveName } from "./npm-package";
 import { version } from "../package.json";
+import { checkNodeFiles } from "./smoke-node-files";
 
 const archive = resolve(process.argv[2] ?? join("dist", "npm", npmArchiveName(version)));
 const directory = await mkdtemp(join(tmpdir(), "agentpost-npm-"));
@@ -46,6 +47,7 @@ try {
     join(root, "@upamune", "agentpost", "cli.mjs"),
   ]);
   console.log(output);
+  await checkNodeFiles(join(root, "@upamune", "agentpost", "cli.mjs"), directory);
   console.log("Offline npm global installation works with installation scripts disabled");
 } finally {
   await rm(directory, { recursive: true, force: true });
