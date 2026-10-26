@@ -363,7 +363,7 @@ jobs:
           unset NODE_AUTH_TOKEN NPM_TOKEN
           npm_config_file="$RUNNER_TEMP/npm-publish.npmrc"
           install -m 600 /dev/null "$npm_config_file"
-          npm publish "npm-release/upamune-agentpost-${TAG#v}.tgz" --access public \
+          npm publish "./npm-release/upamune-agentpost-${TAG#v}.tgz" --access public \
             --provenance --ignore-scripts --registry=https://registry.npmjs.org/ --userconfig="$npm_config_file"
       - name: Verify npm provenance and installed package
         run: |

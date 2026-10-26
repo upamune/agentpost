@@ -2,6 +2,11 @@
 
 [English](CHANGELOG.md) | [日本語](CHANGELOG.ja.md)
 
+## 0.1.3
+
+- npm公開時のローカルアーカイブに `./` を付け、GitHubの省略表記として解釈される問題を修正。ワークフローの実際の引数を使い、オフラインの `npm publish --dry-run` で回帰検証します。
+- npm版CLI/MCPの初回公開を、GitHub OIDCと来歴証明を使って行います。0.1.2の署名付きGitHub成果物は変更しません。
+
 ## 0.1.2
 
 - Node.js向けCLI/MCPクライアントを `@upamune/agentpost` として公開。実行時の依存をバンドルし、GitHub OIDCのTrusted Publishingとnpmの来歴証明を使います。導入にインストールスクリプトやBunは不要です。

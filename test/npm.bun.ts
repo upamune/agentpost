@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdtemp, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { npmArchiveName, npmPackageName } from "../scripts/npm-package";
@@ -45,7 +45,44 @@ test("npm release contains only a Node bundle, metadata, documentation and revie
   const license = await readFile("dist/npm/package/LICENSE", "utf8");
   for (const name of ["@modelcontextprotocol/core", "@modelcontextprotocol/server", "zod"])
     expect(license).toContain(`Bundled dependency: ${name}`);
+  await verifyPublishSpecifier(archive);
 }, 30_000);
+
+async function verifyPublishSpecifier(archive: string) {
+  const directory = await realpath(await mkdtemp(join(tmpdir(), "agentpost-npm-publish-")));
+  try {
+    const workflow = await Bun.file(".github/workflows/release.yml").text();
+    const match = workflow.match(/npm publish "([^"]+)" --access public/);
+    if (!match) throw new Error("Missing maintained npm publish archive argument");
+    const specifier = match[1]!.replace("${TAG#v}", version);
+    await mkdir(join(directory, "npm-release"));
+    await copyFile(archive, join(directory, "npm-release", npmArchiveName(version)));
+    const child = Bun.spawn(
+      [
+        "npm",
+        "publish",
+        specifier,
+        "--dry-run",
+        "--offline",
+        "--ignore-scripts",
+        "--provenance=false",
+        "--json",
+        "--cache",
+        join(directory, "cache"),
+      ],
+      { cwd: directory, stdout: "pipe", stderr: "pipe", timeout: 15_000 },
+    );
+    const [code, stdout, stderr] = await Promise.all([
+      child.exited,
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+    ]);
+    expect(code, stderr).toBe(0);
+    expect(JSON.parse(stdout)[npmPackageName]).toMatchObject({ name: npmPackageName, version });
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
 
 async function registryFixture(mode: string, status = 200, mutation?: string) {
   const workflow = await Bun.file(".github/workflows/release.yml").text();
