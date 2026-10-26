@@ -10,12 +10,12 @@ The [verified release workflow](../.github/workflows/release.yml) produces commi
 
 Each executable embeds Bun and serves both CLI commands and `agentpost mcp`. Bun, Node.js and a source checkout are unnecessary on the client. Names are `agentpost-VERSION-SUFFIX`:
 
-| Platform                | Asset suffix                            |
-| ----------------------- | --------------------------------------- |
-| macOS arm64 / x64       | `darwin-arm64` / `darwin-x64`           |
-| Linux glibc arm64 / x64 | `linux-arm64` / `linux-x64`             |
-| Linux musl arm64 / x64  | `linux-arm64-musl` / `linux-x64-musl`   |
-| Windows arm64 / x64     | `windows-arm64.exe` / `windows-x64.exe` |
+| Platform                | Asset suffix                          |
+| ----------------------- | ------------------------------------- |
+| macOS arm64 / x64       | `darwin-arm64` / `darwin-x64`         |
+| Linux glibc arm64 / x64 | `linux-arm64` / `linux-x64`           |
+| Linux musl arm64 / x64  | `linux-arm64-musl` / `linux-x64-musl` |
+| Windows x64             | `windows-x64.exe`                     |
 
 Choose musl for Alpine Linux. These are CLI/MCP clients; hosting the Worker still requires the source and Cloudflare tooling. Previous source-only releases, including v0.1.1, do not gain binary assets retroactively. Select a release that actually lists the executable you need.
 
@@ -46,7 +46,7 @@ For PowerShell:
 
 ```powershell
 $Version = "X.Y.Z"
-$Asset = "agentpost-$Version-windows-arm64.exe"
+$Asset = "agentpost-$Version-windows-x64.exe"
 gh release download "v$Version" --repo upamune/agentpost --pattern $Asset --pattern SHA256SUMS --pattern release-manifest.json --pattern provenance.sigstore.json
 if ($LASTEXITCODE -ne 0) { throw "Download failed" }
 foreach ($File in @($Asset, "SHA256SUMS", "release-manifest.json")) {
@@ -61,7 +61,7 @@ if ((Get-FileHash -Algorithm SHA256 $Asset).Hash.ToLowerInvariant() -ne $Expecte
 
 A checksum alone is not publisher authentication. The bundle holds the signature and verification material; `provenance.intoto.jsonl` exposes the same signed DSSE envelope for SLSA consumers. A signature establishes origin, not absence of bugs or independent SLSA certification. `release-manifest.json` records source commit, version, Bun version and every payload's size/digest. Partial downloads verify only their selected checksum row; downloading every payload permits checking the complete `SHA256SUMS` file.
 
-`mise run release:build` archives Git HEAD into `dist/release/`; uncommitted changes, ignored files and local deployment credentials are excluded. `mise run cli:build PLATFORM --verify-reproducible` writes a standalone executable into `dist/executables/` and requires committed source, package, lockfile, TypeScript/tool configuration and build scripts. After all eight verified builds are collected, `mise run release:finalize` rejects missing, unexpected, empty or symlink assets and creates the combined checksums/manifest. It also checks source identity and the original source archive digest. PR/main CI builds and smoke-tests all targets through the same reusable workflow.
+`mise run release:build` archives Git HEAD into `dist/release/`; uncommitted changes, ignored files and local deployment credentials are excluded. `mise run cli:build PLATFORM --verify-reproducible` writes a standalone executable into `dist/executables/` (use target IDs without `.exe`, such as `windows-x64`) and requires committed source, package, lockfile, TypeScript/tool configuration and build scripts. After all seven verified builds are collected, `mise run release:finalize` rejects missing, unexpected, empty or symlink assets and creates the combined checksums/manifest. It also checks source identity and the original source archive digest. PR/main CI builds and smoke-tests all targets through the same reusable workflow.
 
 ## Preview and retry
 

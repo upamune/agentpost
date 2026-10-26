@@ -5,7 +5,6 @@ export const executableTargets = [
   { id: "linux-x64", target: "bun-linux-x64", runner: "ubuntu-24.04" },
   { id: "linux-arm64-musl", target: "bun-linux-arm64-musl", runner: "ubuntu-24.04-arm" },
   { id: "linux-x64-musl", target: "bun-linux-x64-musl", runner: "ubuntu-24.04" },
-  { id: "windows-arm64", target: "bun-windows-arm64", runner: "windows-11-arm" },
   { id: "windows-x64", target: "bun-windows-x64", runner: "windows-2025" },
 ] as const satisfies readonly { id: string; target: Bun.Build.CompileTarget; runner: string }[];
 

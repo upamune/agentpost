@@ -13,12 +13,12 @@ CLIとMCPが返すバージョンも`package.json`から読み込みます。
 
 Bunを内包し、CLIコマンドと `agentpost mcp` の両方を使えます。利用側にBun・Node.js・ソースcheckoutは不要です。名前は `agentpost-VERSION-SUFFIX` です。
 
-| プラットフォーム        | 成果物の末尾                            |
-| ----------------------- | --------------------------------------- |
-| macOS arm64 / x64       | `darwin-arm64` / `darwin-x64`           |
-| Linux glibc arm64 / x64 | `linux-arm64` / `linux-x64`             |
-| Linux musl arm64 / x64  | `linux-arm64-musl` / `linux-x64-musl`   |
-| Windows arm64 / x64     | `windows-arm64.exe` / `windows-x64.exe` |
+| プラットフォーム        | 成果物の末尾                          |
+| ----------------------- | ------------------------------------- |
+| macOS arm64 / x64       | `darwin-arm64` / `darwin-x64`         |
+| Linux glibc arm64 / x64 | `linux-arm64` / `linux-x64`           |
+| Linux musl arm64 / x64  | `linux-arm64-musl` / `linux-x64-musl` |
+| Windows x64             | `windows-x64.exe`                     |
 
 Alpine Linuxにはmusl版を選びます。実行ファイルはCLI/MCPクライアントであり、WorkerのホストにはソースとCloudflareのツールが必要です。v0.1.1を含む過去のソース限定リリースにバイナリは追加しません。必要な実行ファイルが実際に掲載されているリリースを選びます。
 
@@ -49,7 +49,7 @@ PowerShellでは次のように検証します。
 
 ```powershell
 $Version = "X.Y.Z"
-$Asset = "agentpost-$Version-windows-arm64.exe"
+$Asset = "agentpost-$Version-windows-x64.exe"
 gh release download "v$Version" --repo upamune/agentpost --pattern $Asset --pattern SHA256SUMS --pattern release-manifest.json --pattern provenance.sigstore.json
 if ($LASTEXITCODE -ne 0) { throw "Download failed" }
 foreach ($File in @($Asset, "SHA256SUMS", "release-manifest.json")) {
@@ -64,7 +64,7 @@ if ((Get-FileHash -Algorithm SHA256 $Asset).Hash.ToLowerInvariant() -ne $Expecte
 
 チェックサムだけでは配布元を認証できません。bundleには署名と検証資料を含み、`provenance.intoto.jsonl` は同じ署名付きDSSE envelopeをSLSA向けに公開します。署名は配布元の証明であり、バグ不在や独立したSLSA認証の証明ではありません。`release-manifest.json` にソースのコミット、バージョン、Bunのバージョン、全payloadのサイズとdigestを記録します。一部だけ取得した場合は選んだチェックサムの行を検証し、全payloadを取得した場合は `SHA256SUMS` 全体を検証できます。
 
-`mise run release:build` はGit HEADのアーカイブを `dist/release/` に作り、未コミットの変更、無視されたファイル、ローカルの導入用資格情報を含めません。`mise run cli:build PLATFORM --verify-reproducible` は `dist/executables/` に実行ファイルを作り、ソース・package・lockfile・TypeScriptとツールの設定・ビルドスクリプトのコミットを必須にします。検査済みの8ビルドを集め、`mise run release:finalize` で不足・余分・空・symlinkの成果物を拒否してチェックサムとmanifestをまとめます。ソースの本人性と元アーカイブのdigestも確認します。PR・mainのCIも同じ共通ワークフローで全ターゲットのビルド・起動確認を行います。
+`mise run release:build` はGit HEADのアーカイブを `dist/release/` に作り、未コミットの変更、無視されたファイル、ローカルの導入用資格情報を含めません。`mise run cli:build PLATFORM --verify-reproducible` は `dist/executables/` に実行ファイルを作ります。PLATFORMには `windows-x64` のように `.exe` を付けないターゲットIDを指定し、ソース・package・lockfile・TypeScriptとツールの設定・ビルドスクリプトのコミットを必須にします。検査済みの7ビルドを集め、`mise run release:finalize` で不足・余分・空・symlinkの成果物を拒否してチェックサムとmanifestをまとめます。ソースの本人性と元アーカイブのdigestも確認します。PR・mainのCIも同じ共通ワークフローで全ターゲットのビルド・起動確認を行います。
 
 ## プレビューと再実行
 

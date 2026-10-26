@@ -28,9 +28,10 @@ test("the native CI matrix covers every advertised executable target", async () 
   expect(workflow.jobs.executable.strategy.matrix.include).toEqual(
     executableTargets.map(({ id, runner }) => ({ platform: id, runner })),
   );
-  expect(executableTargets).toHaveLength(8);
-  expect(new Set(releasePayloads("1.2.3")).size).toBe(9);
-  expect(executableName("1.2.3", "windows-arm64")).toBe("agentpost-1.2.3-windows-arm64.exe");
+  expect(executableTargets).toHaveLength(7);
+  expect(new Set(releasePayloads("1.2.3")).size).toBe(8);
+  expect(executableName("1.2.3", "windows-x64")).toBe("agentpost-1.2.3-windows-x64.exe");
+  expect(() => executableTarget("windows-arm64")).toThrow("supported");
   expect(() => executableTarget("../../private")).toThrow("supported");
 });
 
@@ -85,7 +86,7 @@ async function fixture() {
   };
 }
 
-test("release finalization signs up all nine payloads with deterministic checksums and identity", async () => {
+test("release finalization signs up all eight payloads with deterministic checksums and identity", async () => {
   const files = await fixture();
   try {
     expect(await files.run("finalize-release")).toMatchObject({ code: 0, stderr: "" });

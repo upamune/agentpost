@@ -8,7 +8,7 @@ Use this document when a user asks an AI agent to install or configure agentpost
 
 - **Connect remote MCP with OAuth:** use a compatible client and an Access-protected `/mcp` URL. The client performs login and refresh. A source checkout, CLI, and `AGENTPOST_API_TOKEN` are unnecessary unless other workflows need them. See [authentication](docs/authentication.md).
 
-- **Connect to an existing Worker:** install the source checkout, configure `AGENTPOST_API_URL` and `AGENTPOST_API_TOKEN`, and optionally configure MCP and the skill. Cloudflare management credentials are not needed.
+- **Connect to an existing Worker:** install a verified standalone executable (or the source checkout), configure `AGENTPOST_API_URL` and `AGENTPOST_API_TOKEN`, and optionally configure MCP and the skill. Cloudflare management credentials are not needed.
 - **Try a local Worker:** follow the source installation, then the local verification section. No domain or Cloudflare credentials are needed.
 - **Host a Worker:** follow [the deployment guide](docs/deploy.md) for the user's Cloudflare account and domain. Hosting uses D1, R2, Queues and a SQLite-backed Durable Object per inbox. Wrangler creates the Durable Object binding and migration during deployment. Local installation does not deploy the service.
 
@@ -134,7 +134,7 @@ The smoke test provisions a local inbox, injects a fixture into Wrangler, waits 
 
 ## Build and completion
 
-GitHub Actions runs checks and the Worker dry-run build on pushes to `main` and on pull requests. `mise run build` invokes `wrangler deploy --dry-run`; it does not deploy or publish CLI binaries. The additional CI executable matrix compiles and smoke-tests all eight platforms. Version-tag releases attach them with signed provenance; see [releases](docs/releases.md). Build locally with `mise run cli:build PLATFORM --verify-reproducible` and test with `mise run cli:smoke --platform PLATFORM`; commit source/package/lock/config/build-script changes first. Local full checks use `mise install` followed by `mise run ci`.
+GitHub Actions runs checks and the Worker dry-run build on pushes to `main` and on pull requests. `mise run build` invokes `wrangler deploy --dry-run`; it does not deploy or publish CLI binaries. The additional CI executable matrix compiles and smoke-tests all seven platforms. Version-tag releases attach them with signed provenance; see [releases](docs/releases.md). Build locally with `mise run cli:build PLATFORM --verify-reproducible` and test with `mise run cli:smoke --platform PLATFORM`; commit source/package/lock/config/build-script changes first. Local full checks use `mise install` followed by `mise run ci`.
 
 Report the executable or checkout path, CLI version, skill installation scope, and which connection or local checks passed. List missing configuration without exposing values. Distinguish source installation, MCP connection, local Worker verification, and production deployment. Production mail requires the domain, Email Routing, Email Sending Beta, DNS, credentials, and explicit real send/receive checks in the deployment guide. Run a real send test only with a user-specified recipient; installation alone does not authorize sending mail.
 

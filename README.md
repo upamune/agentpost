@@ -26,7 +26,7 @@ See [continuous security checks](docs/security-checks.md) for scanner coverage, 
 
 - **Create inboxes on demand.** Issue random or custom-named addresses on your domain, give each agent an inbox token, and rotate or revoke access independently.
 - **Send, receive, and reply.** Read message bodies, attachments, and original `.eml` files. Reply using the sender's Reply-To and threading headers.
-- **Use your agent's existing tools.** Choose JSON CLI commands, an HTTP API, or MCP tools over stdio or Streamable HTTP. Standalone CLI/MCP release assets embed Bun for macOS, Linux (glibc/musl), and Windows, on x64 and arm64; see [verification and installation](docs/releases.md).
+- **Use your agent's existing tools.** Choose JSON CLI commands, an HTTP API, or MCP tools over stdio or Streamable HTTP. Standalone CLI/MCP release assets embed Bun for macOS and Linux (glibc/musl) on x64 and arm64, and Windows x64; see [verification and installation](docs/releases.md).
 - **Watch for new mail.** Subscribe to received messages and send-status changes, then resume from a saved cursor after a disconnect.
 - **Keep your deployment under your control.** Each operator brings their own Cloudflare account and domain. Agentpost does not provide a shared hosted email service.
 
@@ -240,7 +240,7 @@ mise run ci
 
 Pushes to `main` and pull requests run formatting, linting, type checks, tests, a Worker dry-run build, secret scanning, and formal/real-code/mutation verification. Dependency audits also run daily. [Formal verification](docs/formal-verification.md) records the checked properties and their bounds.
 
-The release workflow attaches standalone CLI/MCP executables for eight platforms to version-tag releases, with signed provenance and checksums. Older source-only releases remain unchanged, and npm publishing is not configured. CI smoke-tests all platforms without real mail or production deployment. [Release setup](docs/releases.md) documents verification and the optional tagpr GitHub App.
+The release workflow attaches standalone CLI/MCP executables for seven platforms to version-tag releases, with signed provenance and checksums. Older source-only releases remain unchanged, and npm publishing is not configured. CI smoke-tests all platforms without real mail or production deployment. [Release setup](docs/releases.md) documents verification and the optional tagpr GitHub App.
 
 Report bugs and proposals in [Issues](https://github.com/upamune/agentpost/issues). See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution and language conventions.
 

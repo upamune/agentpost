@@ -133,7 +133,7 @@ mise exec -- bun run smoke:local
 
 ## ビルドと完了の報告
 
-追加のCI実行ファイルmatrixは8プラットフォームすべてのビルドと起動確認を行います。版タグのリリースで来歴証明付きの実行ファイルを添付します。[リリース手順](docs/releases.ja.md)も参照してください。ローカルでは `mise run cli:build PLATFORM --verify-reproducible` と `mise run cli:smoke --platform PLATFORM` を使い、ソース・package・lockfile・設定・ビルドスクリプトの変更を先にコミットします。
+追加のCI実行ファイルmatrixは7プラットフォームすべてのビルドと起動確認を行います。版タグのリリースで来歴証明付きの実行ファイルを添付します。[リリース手順](docs/releases.ja.md)も参照してください。ローカルでは `mise run cli:build PLATFORM --verify-reproducible` と `mise run cli:smoke --platform PLATFORM` を使い、ソース・package・lockfile・設定・ビルドスクリプトの変更を先にコミットします。
 
 GitHub ActionsはmainへのpushとPRで検査とWorkerのdry-runビルドを行います。`mise run build`は`wrangler deploy --dry-run`で、デプロイやCLIバイナリ公開ではありません。ローカルの全検査は`mise install`後に`mise run ci`を使います。
 
