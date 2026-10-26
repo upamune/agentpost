@@ -17,7 +17,7 @@ agentpost reply INBOX_ID MESSAGE_ID --text 'Here are the results.' \
 
 Repeat `--attach` for multiple files. Only bounded regular files are read; FIFOs and devices are rejected. Paths are relative to the calling directory, so use absolute paths with the source-checkout wrapper. Upload filenames are basenames, not local paths.
 
-For durable retries, upload once with `agentpost attachment upload INBOX_ID ./report.pdf`, save the returned `id` with task state, and use `--attachment-id ID` on send or reply. This avoids rereading files that might have changed. Identical bytes and filename uploaded to the same inbox reuse the same ID and do not consume a new-upload rate slot. Files can still require an upload request before CLI send retries; if storage is unavailable, inspect the outbox and retry using the saved IDs.
+For durable retries, upload once with `agentpost attachment upload INBOX_ID ./report.pdf`, save the returned `id` with task state, and use `--attachment-id ID` on send or reply. This avoids rereading files that might have changed. Reusing an already-stored identical upload in the same inbox returns the same ID without consuming a new-upload rate slot. Simultaneous first uploads may each consume a slot. Files can still require an upload request before CLI send retries; if storage is unavailable, inspect the outbox and retry using the saved IDs.
 
 ## HTTP API
 

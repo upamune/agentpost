@@ -1,0 +1,45 @@
+---
+config:
+  markdownAutoWrap: false
+  state:
+    useMaxWidth: false
+---
+stateDiagram-v2
+  classDef group0 fill:#d6eaf8,stroke:#6b757c,color:#1b2631
+  classDef group1 fill:#fdebd0,stroke:#7f7668,color:#1b2631
+  state "Legend" as legend {
+    state "Safely stopped before sending" as legendGroup0
+    state "Verified attachment flow" as legendGroup1
+  }
+  class legendGroup0 group0
+  class legendGroup1 group1
+  state "Attachment bytes verified<br/>and copied into payload;<br/>Provider not called" as s0
+  state "Attachment bytes verified<br/>and copied into payload;<br/>Provider not called;<br/>stored object changed or<br/>became unavailable" as s1
+  state "Attachment snapshot<br/>awaiting integrity check;<br/>Provider not called" as s2
+  state "Attachment snapshot<br/>awaiting integrity check;<br/>Provider not called;<br/>stored object changed or<br/>became unavailable" as s3
+  state "Attachment unavailable or<br/>invalid; sending blocked;<br/>Provider not called;<br/>stored object changed or<br/>became unavailable" as s4
+  state "Attachment waiting to be<br/>read; Provider not called" as s5
+  state "Attachment waiting to be<br/>read; Provider not called;<br/>stored object changed or<br/>became unavailable" as s6
+  state "Prepared payload handed to<br/>provider; Provider<br/>received report" as s7
+  state "Prepared payload handed to<br/>provider; Provider<br/>received report; stored<br/>object changed or became<br/>unavailable" as s8
+  [*] --> s5
+  s5 --> s2 : Read one immutable object<br/>snapshot
+  s5 --> s6 : Stored object is deleted,<br/>replaced, corrupted or<br/>unavailable
+  s2 --> s0 : Check identity, size and<br/>content digest
+  s2 --> s3 : Stored object is deleted,<br/>replaced, corrupted or<br/>unavailable
+  s6 --> s3 : Read one immutable object<br/>snapshot
+  s0 --> s7 : Send the verified in-memory<br/>bytes
+  s0 --> s1 : Stored object is deleted,<br/>replaced, corrupted or<br/>unavailable
+  s3 --> s1 : Check identity, size and<br/>content digest
+  s3 --> s4 : Check identity, size and<br/>content digest
+  s7 --> s8 : Stored object is deleted,<br/>replaced, corrupted or<br/>unavailable
+  s1 --> s8 : Send the verified in-memory<br/>bytes
+  class s0 group1
+  class s1 group1
+  class s2 group1
+  class s3 group1
+  class s4 group0
+  class s5 group1
+  class s6 group1
+  class s7 group1
+  class s8 group1

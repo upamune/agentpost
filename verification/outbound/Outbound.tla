@@ -16,7 +16,7 @@ Init == /\ status = "pending" /\ active = TRUE
         /\ owner = "none" /\ valid = [w \in Workers |-> TRUE]
 
 Acquire(w) ==
-  /\ pc[w] = "idle" /\ attempts < MaxAttempts \* src/coordinator.ts:18; bounded by outbound.ts:132 retry cap
+  /\ pc[w] = "idle" /\ attempts < MaxAttempts \* src/coordinator.ts:18; bounded by outbound.ts:131 retry cap
   /\ owner = "none" \* src/coordinator.ts:18-23: mutex acquisition before awaited D1 claim
   /\ owner' = w /\ valid' = [valid EXCEPT ![w] = TRUE]
   /\ pc' = [pc EXCEPT ![w] = "claiming"]
@@ -24,31 +24,46 @@ Acquire(w) ==
                  ambiguous, ambiguousAttempts, badDisabled, badUnknown>>
 
 Claim(w) ==
-  /\ pc[w] = "claiming" /\ attempts < MaxAttempts \* src/outbound.ts:105-110; awaited D1 claim completes, even after replacement
-  /\ (status = "pending" \/ UnsafeClaim) \* src/outbound.ts:106; due-time abstracted away
+  /\ pc[w] = "claiming" /\ attempts < MaxAttempts \* src/outbound.ts:107-112; awaited D1 claim completes, even after replacement
+  /\ (status = "pending" \/ UnsafeClaim) \* src/outbound.ts:108; due-time abstracted away
   /\ status' = "sending" /\ attempts' = attempts + 1
   /\ pc' = [pc EXCEPT ![w] = "claimed"]
   /\ UNCHANGED <<active, snapshot, result, submissions, acceptances,
                  ambiguous, ambiguousAttempts, badDisabled, badUnknown, owner, valid>>
 
 NoClaim(w) ==
-  /\ pc[w] = "claiming" /\ status # "pending" /\ ~UnsafeClaim \* src/outbound.ts:110
+  /\ pc[w] = "claiming" /\ status # "pending" /\ ~UnsafeClaim \* src/outbound.ts:112
   /\ pc' = [pc EXCEPT ![w] = "done"]
   /\ owner' = IF owner = w THEN "none" ELSE owner
   /\ UNCHANGED <<status, active, snapshot, result, attempts, submissions, acceptances,
                  ambiguous, ambiguousAttempts, badDisabled, badUnknown, valid>>
 
 ReadActive(w) ==
-  /\ pc[w] = "claimed" \* src/outbound.ts:111-113; a separate awaited SELECT
+  /\ pc[w] = "claimed" \* src/outbound.ts:113-115; a separate awaited SELECT
   /\ snapshot' = [snapshot EXCEPT ![w] = active]
   /\ pc' = [pc EXCEPT ![w] = "checked"]
   /\ UNCHANGED <<status, active, result, attempts, submissions, acceptances,
                  ambiguous, ambiguousAttempts, badDisabled, badUnknown, owner, valid>>
 
+\* Attachment reads, integrity/format checks, and Base64 preparation finish before ownership fencing.
+PrepareSuccess(w) ==
+  /\ pc[w] = "checked" /\ snapshot[w] \* src/outbound.ts: dispatchPrepared; src/attachments.ts: prepareAttachments
+  /\ pc' = [pc EXCEPT ![w] = "prepared"]
+  /\ UNCHANGED <<status, active, snapshot, result, attempts, submissions, acceptances,
+                 ambiguous, ambiguousAttempts, badDisabled, badUnknown, owner, valid>>
+
+PrepareFailure(w, outcome) ==
+  /\ pc[w] = "checked" /\ snapshot[w] \* src/outbound.ts: dispatchPrepared catch; no provider request started
+  /\ outcome \in {"failed", "retry"}
+  /\ result' = [result EXCEPT ![w] = outcome]
+  /\ pc' = [pc EXCEPT ![w] = "result"]
+  /\ UNCHANGED <<status, active, snapshot, attempts, submissions, acceptances,
+                 ambiguous, ambiguousAttempts, badDisabled, badUnknown, owner, valid>>
+
 Dispatch(w) ==
-  /\ pc[w] = "checked" /\ snapshot[w] \* src/outbound.ts:115
+  /\ pc[w] = "prepared" /\ snapshot[w] \* src/outbound.ts: dispatchPrepared, after attachment reads
   /\ (valid[w] \/ UnsafeFence) \* src/coordinator.ts:29-35: synchronous ownership storage fence, then send without await
-  \* src/outbound.ts:115-119; cached active inside the mutex, synchronous fence and provider call in one turn
+  \* src/outbound.ts:157-176; cached active inside the mutex, synchronous fence and provider call in one turn
   /\ submissions' = submissions + 1
   /\ badDisabled' = (badDisabled \/ ~active)
   /\ badUnknown' = (badUnknown \/ (status = "unknown"))
@@ -57,7 +72,7 @@ Dispatch(w) ==
                  ambiguous, ambiguousAttempts, owner, valid>>
 
 RejectDisabled(w) ==
-  /\ pc[w] = "checked" /\ ~snapshot[w] \* src/outbound.ts:115-121
+  /\ pc[w] = "checked" /\ ~snapshot[w] \* src/outbound.ts:117-121
   /\ result' = [result EXCEPT ![w] = "failed"]
   /\ pc' = [pc EXCEPT ![w] = "result"]
   /\ UNCHANGED <<status, active, snapshot, attempts, submissions, acceptances,
@@ -76,7 +91,7 @@ ProviderReply(w, outcome, effect) ==
   /\ UNCHANGED <<status, active, snapshot, attempts, submissions, badDisabled, badUnknown, owner, valid>>
 
 Persist(w) ==
-  /\ pc[w] = "result" /\ status = "sending" \* src/outbound.ts:126-147 (settleSend)
+  /\ pc[w] = "result" /\ status = "sending" \* src/outbound.ts:125-151 (settleSend)
   /\ status' = IF result[w] = "retry"
                 THEN IF attempts < 8 THEN "pending" ELSE "failed"
                 ELSE result[w]
@@ -87,7 +102,7 @@ Persist(w) ==
                  ambiguous, ambiguousAttempts, badDisabled, badUnknown>>
 
 StaleCompletion(w) ==
-  /\ pc[w] = "result" /\ status # "sending" \* src/outbound.ts:135,144; conditional write affects zero rows
+  /\ pc[w] = "result" /\ status # "sending" \* src/outbound.ts:134,143; conditional write affects zero rows
   /\ pc' = [pc EXCEPT ![w] = "done"]
   /\ owner' = IF owner = w THEN "none" ELSE owner
   /\ valid' = valid
@@ -95,7 +110,7 @@ StaleCompletion(w) ==
                  acceptances, ambiguous, ambiguousAttempts, badDisabled, badUnknown>>
 
 Crash(w, effect) ==
-  /\ pc[w] \in {"claiming", "claimed", "checked", "waiting", "result"} \* docs/operations.md: worker can stop at an await
+  /\ pc[w] \in {"claiming", "claimed", "checked", "prepared", "waiting", "result"} \* docs/operations.md: worker can stop at an await
   /\ effect \in (IF pc[w] = "waiting" THEN {0,1} ELSE {0})
   /\ pc' = [pc EXCEPT ![w] = "done"] /\ acceptances' = acceptances + effect
   /\ ambiguous' = (ambiguous \/ (pc[w] = "waiting"))
@@ -130,14 +145,15 @@ Replace(w) ==
                  acceptances, ambiguous, ambiguousAttempts, badDisabled, badUnknown>>
 
 FenceRejected(w) ==
-  /\ pc[w] = "checked" /\ snapshot[w] /\ ~valid[w] /\ ~UnsafeFence \* src/coordinator.ts:29-35, outbound.ts:117
+  /\ pc[w] = "prepared" /\ snapshot[w] /\ ~valid[w] /\ ~UnsafeFence \* src/coordinator.ts:29-35, outbound.ts:174
   /\ pc' = [pc EXCEPT ![w] = "done"]
   /\ UNCHANGED <<status, active, snapshot, result, attempts, submissions,
                  acceptances, ambiguous, ambiguousAttempts, badDisabled, badUnknown, owner, valid>>
 
 Next == \/ Disable \/ Cron
-        \/ \E w \in Workers: Acquire(w) \/ Claim(w) \/ NoClaim(w) \/ ReadActive(w) \/ Dispatch(w) \/ Replace(w) \/ FenceRejected(w)
+        \/ \E w \in Workers: Acquire(w) \/ Claim(w) \/ NoClaim(w) \/ ReadActive(w) \/ PrepareSuccess(w) \/ Dispatch(w) \/ Replace(w) \/ FenceRejected(w)
               \/ RejectDisabled(w) \/ Persist(w) \/ StaleCompletion(w) \/ NextJob(w)
+              \/ (\E o \in {"failed", "retry"}: PrepareFailure(w,o))
               \/ (\E o \in {"accepted","failed","retry","unknown"}, e \in {0,1}: ProviderReply(w,o,e))
               \/ (\E e \in {0,1}: Crash(w,e))
 Spec == Init /\ [][Next]_vars
@@ -146,7 +162,7 @@ TypeOK == /\ owner \in Workers \cup {"none"} /\ valid \in [Workers -> BOOLEAN]
           /\ status \in {"pending","sending","accepted","failed","unknown"}
           /\ active \in BOOLEAN /\ attempts \in 0..MaxAttempts
           /\ submissions \in 0..MaxAttempts /\ acceptances \in 0..MaxAttempts
-          /\ pc \in [Workers -> {"idle","claiming","claimed","checked","waiting","result","done"}]
+          /\ pc \in [Workers -> {"idle","claiming","claimed","checked","prepared","waiting","result","done"}]
           /\ snapshot \in [Workers -> BOOLEAN]
           /\ result \in [Workers -> {"none","accepted","failed","retry","unknown"}]
           /\ ambiguous \in BOOLEAN /\ ambiguousAttempts \in 0..MaxAttempts

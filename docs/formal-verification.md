@@ -99,13 +99,13 @@ mise run verify
 mise run ci
 ```
 
-Individual tasks are `verify:outbound`, `verify:inbound`, and each area's `:selftest`. Normal checks return 0 on success, 1 on property/assertion failure, and 2 on tool/harness failure. Missing cases and runtime startup failures never count as success.
+Individual tasks are `verify:outbound`, `verify:inbound`, `verify:attachments`, and each area's `:selftest`. Normal checks return 0 on success, 1 on property/assertion failure, and 2 on tool/harness failure. Missing cases and runtime startup failures never count as success.
 
 Each TLC JVM receives a private `java.io.tmpdir` inside the runner's scratch directory. The pinned tool extracts standard modules by basename and deletes them on exit; sharing the system temporary directory caused a reproduced parser failure during parallel checks. Real-TLC regressions check inherited-file preservation and distinct extraction paths under concurrent execution. Models, properties, bounds, and failure handling remain unchanged.
 
-Selftests inspect scratch copies with conditional claims, serialization, fencing, version checks, poison continuation, original retention, parsed persistence, or attention persistence broken. A mutation passes only when both the model and real-code check detect it. Product files stay intact.
+Selftests inspect scratch copies with conditional claims, serialization, fencing, version checks, poison continuation, original retention, parsed persistence, or attention persistence broken. Each original outbound/inbound mutation passes only when both its model and real-code check detect it. Attachment selftests separately report six model and two source mutations, as described below. Product files stay intact.
 
-GitHub Actions has separate outbound/inbound jobs for models, replays, and mutations. TLC's jar is SHA-256 checked, and Actions are SHA pinned. `.verification/outbound/` and `.verification/inbound/` results/logs are retained as CI artifacts for 14 days. Snapshots live in `verification/*/evidence/results.json`.
+GitHub Actions has separate outbound, inbound, and attachment jobs for models, replays, and mutations. TLC's jar is SHA-256 checked, and Actions are SHA pinned. `.verification/outbound/`, `.verification/inbound/`, and `.verification/attachments/` results/logs are retained as CI artifacts for 14 days. Snapshots live in `verification/*/evidence/results.json`.
 
 Outbound replays run in separate isolates: leaving injected Object closures across reset crashed local workerd. Isolation does not ignore product exceptions or failures.
 
@@ -116,3 +116,31 @@ Generate diagrams with pstack `/statechart` and visually inspect PNGs. Outbound 
 Read the bundled statechart skill's current instructions before regenerating. Copy models, `*.chart.cfg`, and `*.map.mjs` outside the repository. The outbound baseline is `Outbound.tla` / `Outbound.chart.cfg` at `b50dd4b`. Return generated `summary.json`, `stories.md`, Mermaid, and PNG files to the relevant evidence directory.
 
 Follow [verify-outbound-safety](../.agents/skills/verify-outbound-safety/SKILL.md) for outbound changes and [verify-inbound-recovery](../.agents/skills/verify-inbound-recovery/SKILL.md) for inbound changes. Use pstack `/maintain-formal-verification-skill` for drift. Earlier counterexamples were product bugs; mutex/fencing/version model changes reflected the fix. No invariant was weakened to remove a counterexample.
+
+## Outbound attachments (2026-10-26)
+
+Product revision `cf0404a` adds private attachment uploads and verified preparation before the final ownership fence. `Outbound.tla` now has separate preparation success/failure actions, preserving the original bounds and five safety invariants. All eight original real-code replays and four outbound model/code mutation pairs pass. An additional real Durable Object/D1/R2 regression pauses the attachment read, replaces the actor, completes disable and stale-send recovery, then resumes the old event: the ownership fence rejects it, no provider call occurs, and `unknown` is preserved.
+
+[`Attachments.tla`](../verification/attachments/Attachments.tla) checks four bounded scenarios:
+
+| Scenario             | Concrete states | Checked properties                                                                                                               |
+| -------------------- | --------------: | -------------------------------------------------------------------------------------------------------------------------------- |
+| Concurrent uploads   |               9 | Conditional writes never rewrite an existing upload                                                                              |
+| Inbox isolation      |              24 | Foreign-inbox references are not accepted; accepted payload matches the saved key                                                |
+| Idempotency race     |              45 | Competing payloads cannot both be accepted under one key                                                                         |
+| Preparation snapshot |              28 | Missing/unavailable/corrupt/substituted bytes cannot be dispatched; verified in-memory bytes remain bound to the queued identity |
+
+Bounds are two inboxes, two immutable files, two concurrent requests, one idempotency key, and one storage fault. Content/metadata hashes are idealized as collision-free; D1 uniqueness and conditional R2 writes are atomic, and a GET returns one coherent object snapshot. Provider uncertainty and fencing are checked separately by the outbound model. This is bounded model checking, not a cryptographic, MIME/parser, malware, delivery, or whole-program proof.
+
+Six deliberate model mutants remove conditional puts, inbox binding, idempotency hash equality, integrity, availability, or snapshot use; all produce the expected invariant counterexample. Two real-code scratch mutations remove API inbox authorization or SHA-256 verification, and both fail their designated assertions. The other four are model-only mutations. Real-storage tests cover corrupt or missing objects, immutable upload reuse, idempotency conflicts after changes, pre-dispatch storage retries, threaded reply attachments, limits, maximum-size remote MCP uploads, and actor handoff.
+
+The pstack statecharts were rendered and visually inspected for all four scenarios: [uploads](../verification/attachments/evidence/upload/chart.png), [isolation](../verification/attachments/evidence/isolation/chart.png), [queue race](../verification/attachments/evidence/queue/chart.png), and [preparation](../verification/attachments/evidence/prepare/chart.png). Their Mermaid, stories, configs, summaries, source hashes, and mutation results are retained in [evidence](../verification/attachments/evidence/). The refreshed outbound chart is under [attachment preparation](../verification/outbound/evidence/attachments/).
+
+```sh
+mise run verify:attachments
+mise run verify:attachments:selftest
+# All models, mutation checks, and ordinary checks:
+mise run ci
+```
+
+CI runs an `attachments` formal matrix job and retains raw logs/reports. To regenerate a chart, copy `Attachments.tla`, the selected evidence `Attachments.cfg`, and the matching `Upload.map.mjs`, `Queue.map.mjs`, or `Attachments.map.mjs` into a scratch directory. Run `node .agents/skills/statechart/scripts/statechart.mjs from-spec /scratch/Attachments.tla --map /scratch/Attachments.map.mjs --cover --png` from a checkout with the pinned tools; render outputs outside the repository and inspect each PNG.

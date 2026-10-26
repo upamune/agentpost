@@ -99,13 +99,13 @@ mise run verify
 mise run ci
 ```
 
-個別には`verify:outbound`、`verify:inbound`、それぞれの`:selftest`を使う。通常検査は成功で終了コード0、性質・assertionの失敗は1、ツールやテスト起動の失敗は2。検証専用テストの欠落やランタイム異常を成功として扱わない。
+個別には`verify:outbound`、`verify:inbound`、`verify:attachments`、それぞれの`:selftest`を使う。通常検査は成功で終了コード0、性質・assertionの失敗は1、ツールやテスト起動の失敗は2。検証専用テストの欠落やランタイム異常を成功として扱わない。
 
 TLC の JVM ごとに、検証ランナーの一時領域内の専用ディレクトリを `java.io.tmpdir` として渡す。固定したツールは標準モジュールを同じファイル名で展開し、終了時に削除するため、システムの一時領域を共有すると並列検査で解析エラーになることを再現した。実際の TLC を使う回帰テストで、継承した一時領域のファイル保持と、並列実行時の展開先の分離を検査する。モデル・性質・探索範囲・失敗の扱いは変えていない。
 
-selftestは、条件付きclaim、直列化、所有権fence、版の比較、メタデータ不正時の継続、原文保持、解析結果の永続化、失敗記録の保存を壊した一時コピーを検査する。各変異はモデルと実コードの両方で失敗を検出した場合だけ成功する。元の製品ファイルは変更しない。
+selftestは、条件付きclaim、直列化、所有権fence、版の比較、メタデータ不正時の継続、原文保持、解析結果の永続化、失敗記録の保存を壊した一時コピーを検査する。既存の送信・受信の各変異は、モデルと実コードの両方で失敗を検出した場合だけ成功する。添付は後述の6種類のモデル変異と2種類の実コード変異を別に報告する。元の製品ファイルは変更しない。
 
-GitHub Actionsでは送信・受信の2ジョブで、モデル検査・実コードの再現・変異検査を実行する。TLCのjarはSHA-256を確認し、ActionsもSHA固定。結果とログは`.verification/outbound/`・`.verification/inbound/`へ出力し、CIのartifactとして14日保持する。証拠のスナップショットは各`verification/*/evidence/results.json`に保存した。
+GitHub Actionsでは送信・受信・添付の3ジョブで、モデル検査・実コードの再現・変異検査を実行する。TLCのjarはSHA-256を確認し、ActionsもSHA固定。結果とログは`.verification/outbound/`・`.verification/inbound/`・`.verification/attachments/`へ出力し、CIのartifactとして14日保持する。証拠のスナップショットは各`verification/*/evidence/results.json`に保存した。
 
 送信の再現はケースごとに別のテストisolateで実行する。テストで注入したObject内のクロージャーを残したまま同一isolateをresetすると、ローカルworkerdがクラッシュしたため分離した。製品の例外や失敗を無視する設定ではない。
 
@@ -116,3 +116,31 @@ GitHub Actionsでは送信・受信の2ジョブで、モデル検査・実コ�
 再生成は同梱のstatechartスキルの現行手順を読み、各モデル・`*.chart.cfg`・`*.map.mjs`をリポジトリ外にコピーして行う。送信の比較元は`b50dd4b`の`Outbound.tla`と`Outbound.chart.cfg`。生成した`summary.json`、`stories.md`、MermaidとPNGを対応するevidenceディレクトリへ戻す。
 
 送信変更時は[verify-outbound-safety](../.agents/skills/verify-outbound-safety/SKILL.md)、受信変更時は[verify-inbound-recovery](../.agents/skills/verify-inbound-recovery/SKILL.md)に従う。コード変更後の同期が不明ならpstack `/maintain-formal-verification-skill`で照合する。今回は、旧コードの失敗は実際の不具合、mutexと所有権・版を加えたモデル更新はコードの形の変更に対応したものと判断した。性質を弱めて反例を消す変更はしていない。
+
+## 送信添付（2026-10-26）
+
+製品リビジョン `cf0404a` は非公開の添付アップロードと、最終所有権検査前の内容検証を追加しています。`Outbound.tla` に準備成功・失敗の独立したactionを追加し、既存の上限と5つの安全性条件を維持しました。既存8本の実コード再現と4組のモデル・実コードmutation検査が通過しています。追加の実Durable Object・D1・R2テストでは、添付読み込みを停止し、コーディネーター交代・無効化・結果不明への回復後に古い処理を再開します。所有権検査で停止し、プロバイダー呼び出し0回と `unknown` の維持を確認しています。
+
+[`Attachments.tla`](../verification/attachments/Attachments.tla) は4つの有限シナリオを検証します。
+
+| シナリオ                 | 具体状態数 | 検査する性質                                                                         |
+| ------------------------ | ---------: | ------------------------------------------------------------------------------------ |
+| 同時アップロード         |          9 | 条件付き書き込みは既存アップロードを上書きしない                                     |
+| 受信箱の分離             |         24 | 別受信箱の参照を受理せず、受理した要求は保存済みキーの内容と一致する                 |
+| 冪等性の競合             |         45 | 異なる内容を同じキーで両方受理しない                                                 |
+| 準備中のスナップショット |         28 | 欠損・取得不能・改変・差し替えを送信せず、検証済みメモリ上の内容はキューのIDに紐づく |
+
+上限は受信箱2個・不変ファイル2個・同時要求2本・冪等性キー1個・保存障害1回です。内容・メタデータのハッシュは衝突しないものと理想化し、D1一意制約とR2条件付き書き込みを原子的操作、GETを一貫したオブジェクトのスナップショットとして扱います。プロバイダーの不確実な結果と所有権は送信モデルで別に検証します。有限範囲のモデル検査であり、暗号・MIMEやパーサー・マルウェア・配達・プログラム全体を証明するものではありません。
+
+条件付きput・受信箱紐づけ・冪等性ハッシュ一致・内容検証・取得可能性・スナップショット利用を外す6種類のモデルmutationは、すべて想定した条件の反例になります。実コードではAPI受信箱認可またはSHA-256検証を外した2種類を一時コピーで実行し、対応するassertionが失敗しました。残り4種類はモデルのみのmutationです。通常の実ストレージテストでは、変更不可の再利用・内容変更のキー競合・欠損と改変・接続前の保存障害再試行・スレッド返信・上限・最大サイズのリモートMCP・コーディネーター交代を検査します。
+
+pstackの状態図は4シナリオすべてを描画して目視確認しました。[アップロード](../verification/attachments/evidence/upload/chart.png)・[分離](../verification/attachments/evidence/isolation/chart.png)・[キー競合](../verification/attachments/evidence/queue/chart.png)・[準備](../verification/attachments/evidence/prepare/chart.png)です。Mermaid・説明・設定・概要・ソースハッシュ・mutation結果は[証跡](../verification/attachments/evidence/)に保存しています。更新した送信の図は[添付準備](../verification/outbound/evidence/attachments/)にあります。
+
+```sh
+mise run verify:attachments
+mise run verify:attachments:selftest
+# 全モデル・mutation・通常チェック
+mise run ci
+```
+
+CIはformal matrixの `attachments` を実行して生ログとレポートを保存します。状態図の再生成は、一時ディレクトリに `Attachments.tla`・対象の証跡の `Attachments.cfg`・対応する `Upload.map.mjs` / `Queue.map.mjs` / `Attachments.map.mjs` をコピーします。固定ツールを用意したcheckoutから `node .agents/skills/statechart/scripts/statechart.mjs from-spec /scratch/Attachments.tla --map /scratch/Attachments.map.mjs --cover --png` を実行し、リポジトリ外に生成した各PNGを確認します。
