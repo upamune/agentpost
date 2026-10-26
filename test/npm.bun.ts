@@ -4,7 +4,6 @@ import { createHash } from "node:crypto";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 import { npmArchiveName, npmPackageName } from "../scripts/npm-package";
 import { version } from "../package.json";
 
@@ -83,7 +82,14 @@ async function registryFixture(mode: string, status = 200, mutation?: string) {
       .map((line) => line.slice(10))
       .join("\n"),
   );
-  const setup = `process.argv = ['node', 'script', ${JSON.stringify(mode)}]; globalThis.fetch = async () => new Response(${JSON.stringify(JSON.stringify(metadata))}, {status: ${status}}); await import(${JSON.stringify(pathToFileURL(script).href)});`;
+  await writeFile(join(directory, "fixture.json"), JSON.stringify({ mode, status, metadata }));
+  const setup = `
+    import { readFile } from 'node:fs/promises';
+    const fixture = JSON.parse(await readFile('fixture.json', 'utf8'));
+    process.argv = ['node', 'verify', fixture.mode];
+    globalThis.fetch = async () => Response.json(fixture.metadata, {status: fixture.status});
+    await import('./verify.mjs');
+  `;
   const child = Bun.spawn([Bun.which("node")!, "--input-type=module", "-e", setup], {
     cwd: directory,
     env: {
