@@ -51,9 +51,9 @@ Call `upload_attachment` with `inbox_id`, `filename`, and canonical standard `co
 
 ## Persistence and failure behavior
 
-R2 stores immutable bytes under `outbound-attachments/{inbox_id}/{id}` with an encoded metadata manifest. Outbox rows retain only IDs; events contain no file content. Cloudflare's [structured send API](https://developers.cloudflare.com/email-service/api/send-emails/rest-api/) composes MIME from the verified bytes; Agentpost does not construct multipart MIME itself.
+R2 stores immutable bytes under `outbound-attachments/{inbox_id}/{id}` with an encoded metadata manifest. Outbox rows retain only IDs; events contain no file content. Messages with attachments use Cloudflare's [raw MIME send API](https://developers.cloudflare.com/api/resources/email_sending/methods/send_raw/); messages without attachments retain the structured send API.
 
-Text artifacts (including CSV and JSON) use `application/octet-stream` in outgoing MIME to prevent the provider from normalizing file line endings. Upload metadata retains the inferred type, and filenames stay unchanged. Images and PDFs retain their MIME types for recipient previews.
+Agentpost encodes file parts with Base64 transfer encoding, preserving their bytes and inferred MIME types. This avoids line-ending normalization observed in the provider's structured builder, including with `application/octet-stream`. Text/HTML bodies also use Base64; UTF-8 subjects and filenames use encoded headers. MIME construction is synchronous before the provider request, and the final encoded message must fit 5 MiB. This does not alter attachment IDs or the stored idempotency payload.
 
 A new send validates attachment metadata and aggregate limits before persistence. Dispatch reads the bytes again, verifies size/digest/format, and prepares Base64 **before** the coordinator's final ownership fence. Missing or invalid objects fail without contacting the provider. Transient R2 failures before dispatch can retry with the existing bounded backoff; a crash after claiming remains conservatively subject to stale-send reconciliation. The fence and provider initiation stay in the same JavaScript turn. A provider's ambiguous outcome is never automatically resent.
 

@@ -51,9 +51,9 @@ curl "$AGENTPOST_API_URL/v1/inboxes/INBOX_ID/attachments" \
 
 ## 永続化と障害時の動作
 
-R2の `outbound-attachments/{inbox_id}/{id}` に変更不可のバイト列とエンコード済みメタデータを保存します。outboxにはIDだけを置き、イベントに内容を載せません。検証したバイト列からのMIME生成はCloudflareの[構造化送信API](https://developers.cloudflare.com/email-service/api/send-emails/rest-api/)が担当します。
+R2の `outbound-attachments/{inbox_id}/{id}` に変更不可のバイト列とエンコード済みメタデータを保存します。outboxにはIDだけを置き、イベントに内容を載せません。添付付きメールはCloudflareの[raw MIME送信API](https://developers.cloudflare.com/api/resources/email_sending/methods/send_raw/)を使い、添付なしは構造化送信APIを維持します。
 
-CSV・JSONを含むテキストファイルは、プロバイダーによる改行の正規化を防ぐため、送信MIMEで `application/octet-stream` を使います。アップロードのメタデータには推定したMIME型を保持し、ファイル名は変更しません。画像・PDFは受信側のプレビュー用に元のMIME型を維持します。
+添付パートの転送エンコードをBase64に固定し、バイト列と推定MIME型を保持します。構造化送信では `application/octet-stream` を指定しても改行が正規化されたため、その経路を避けます。本文・HTMLもBase64を使い、UTF-8の件名・ファイル名はヘッダー用にエンコードします。MIME生成はプロバイダー要求前の同期処理で行い、完成したメールも5 MiB以内に制限します。添付ID・保存済みの冪等性ペイロードは変更しません。
 
 新規送信は保存前に添付のメタデータと合計サイズを検証します。送信処理ではバイト列を再取得し、サイズ・ハッシュ・形式を検証してBase64化した **後で** コーディネーターの最終所有権検査を行います。欠損・不正なオブジェクトはプロバイダーに接続せず失敗します。接続前の一時的なR2障害は既存の回数制限付きバックオフで再試行できます。claim後のクラッシュは保守的に既存のstale送信調停の対象です。所有権検査とプロバイダー要求開始の間にawaitを入れず、プロバイダーの結果不明は自動再送しません。
 

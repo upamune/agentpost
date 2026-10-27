@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { prepareAttachments } from "./attachments";
 import { AttachmentError } from "./attachment-policy";
+import { attachmentMime } from "./outbound-mime";
 import { readBounded } from "./common";
 import type { Env, Outbox, SendPayload } from "./types";
 
@@ -50,10 +51,24 @@ export async function cloudflareSend(
   if (!credentials) {
     return { status: "failed", error: "Email Sending credentials are not configured" };
   }
+  let body: string;
+  const endpoint = payload.attachments?.length ? "send_raw" : "send";
+  try {
+    body = JSON.stringify(
+      endpoint === "send_raw"
+        ? { from: payload.from, recipients: payload.to, mime_message: attachmentMime(payload) }
+        : payload,
+    );
+  } catch {
+    return {
+      status: "failed",
+      error: "Cannot construct outbound message; no provider request was made",
+    };
+  }
   let response: Response;
   try {
     response = await request(
-      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(credentials.accountId)}/email/sending/send`,
+      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(credentials.accountId)}/email/sending/${endpoint}`,
       {
         method: "POST",
         redirect: "manual",
@@ -61,7 +76,7 @@ export async function cloudflareSend(
           Authorization: `Bearer ${credentials.token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body,
         signal: AbortSignal.timeout(20_000),
       },
     );
