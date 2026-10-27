@@ -1261,3 +1261,35 @@ tasks:
       push_comments: false
     created_at: 2026-10-26T23:08:13.473Z
     updated_at: 2026-10-26T23:25:02.340Z
+  - id: task_042
+    title: Restrict Cloudflare deployment credentials and audit cross-project access
+    description: Use an account-owned token scoped to the existing agentpost Worker
+      for routine deployments. Audit other account/user token policies for
+      unintended agentpost access, safely narrow applicable policies, verify
+      allowed and denied operations, and document remaining administrative risks
+      in English and Japanese.
+    source_links: []
+    status: in_progress
+    priority: P1
+    labels: []
+    repo_targets: []
+    acceptance_criteria: []
+    dependencies: []
+    planning:
+      split_status: pending
+      risk: medium
+    execution_defaults:
+      manual_approval_required: false
+      auto_commit: true
+      push_when_done: true
+      create_pr: false
+      merge_pr: false
+      worktree_mode: direct
+      preferred_agents: []
+      max_subagents: 5
+    sync:
+      source_of_truth: backlog
+      push_status: false
+      push_comments: false
+    created_at: 2026-10-27T00:25:53.401Z
+    updated_at: 2026-10-27T00:37:25.131Z

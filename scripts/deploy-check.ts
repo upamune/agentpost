@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { authConfiguration } from "../src/auth-config";
 
+if (!process.env.CLOUDFLARE_API_TOKEN?.trim() || !process.env.CLOUDFLARE_ACCOUNT_ID?.trim()) {
+  throw new Error(
+    "Deployment requires explicit CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID. Use a dedicated account-owned token scoped to the intended Worker; do not fall back to shared Wrangler OAuth. See docs/cloudflare-permissions.md.",
+  );
+}
+
 const config = z
   .object({
     vars: z.object({
