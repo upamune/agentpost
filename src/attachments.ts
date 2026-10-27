@@ -114,7 +114,11 @@ async function readProviderAttachment(object: R2ObjectBody, inbox: string, id: s
   return {
     content: encodeAttachment(new Uint8Array(bytes)),
     filename: descriptor.filename,
-    type: descriptor.type,
+    // Cloudflare canonicalizes text MIME parts; binary transport preserves file bytes.
+    type:
+      descriptor.type.startsWith("image/") || descriptor.type === "application/pdf"
+        ? descriptor.type
+        : "application/octet-stream",
     disposition: "attachment" as const,
   };
 }

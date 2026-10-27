@@ -98,7 +98,7 @@ test("immutable inbox-scoped uploads round-trip through the actual provider requ
   expect(payload.attachments).toEqual([
     {
       filename: "report.csv",
-      type: "text/csv",
+      type: "application/octet-stream",
       disposition: "attachment",
       content: encodeAttachment(bytes),
     },
@@ -115,6 +115,43 @@ test("immutable inbox-scoped uploads round-trip through the actual provider requ
   expect(
     (await send(box, [(await (await upload(box, bytes, "other.csv")).json<Uploaded>()).id])).status,
   ).toBe(409);
+});
+
+test.each([
+  ["report.csv", "text/csv", "application/octet-stream", "name,value\nanswer,42\n"],
+  ["report.txt", "text/plain", "application/octet-stream", "first\nsecond\r\nthird\rfinal"],
+  ["report.log", "text/plain", "application/octet-stream", "log\n"],
+  ["report.md", "text/markdown", "application/octet-stream", "# Report\n日本語\n"],
+  ["report.json", "application/json", "application/octet-stream", '{"answer":42}\n'],
+  ["report.jsonl", "application/x-ndjson", "application/octet-stream", '{"answer":42}\n'],
+  ["report.ndjson", "application/x-ndjson", "application/octet-stream", '{"answer":42}\n'],
+  ["report.pdf", "application/pdf", "application/pdf", "%PDF-1.4\n%%EOF\n"],
+])("provider MIME preserves file bytes for %s", async (filename, detectedType, wireType, text) => {
+  const box = await inbox();
+  const original = new TextEncoder().encode(text);
+  const uploaded = await upload(box, original, filename);
+  expect(uploaded.status).toBe(201);
+  const file = await uploaded.json<Uploaded & { type: string }>();
+  expect(file.type).toBe(detectedType);
+  const row = await (await send(box, [file.id])).json<{ id: string }>();
+  const request = vi
+    .spyOn(globalThis, "fetch")
+    .mockResolvedValue(Response.json({ success: true, result: { id: "provider-file-integrity" } }));
+  await processOutbound(
+    bindings,
+    row.id,
+    box.id,
+    () => {},
+    async () => true,
+  );
+  const payload = JSON.parse(String(request.mock.calls[0]?.[1]?.body)) as SendPayload;
+  const attachment = payload.attachments?.[0];
+  // Cloudflare's text MIME builder changed LF files to 7bit/CRLF in a real delivery.
+  // Binary attachment MIME prevents text canonicalization without changing upload identity.
+  expect(attachment?.type).toBe(wireType);
+  expect(attachment?.filename).toBe(filename);
+  expect(decodeAttachment(attachment!.content)).toEqual(original);
+  expect((await (await upload(box, original, filename)).json<Uploaded>()).id).toBe(file.id);
 });
 
 test("foreign, missing, duplicate IDs and disabled inbox uploads cannot be queued", async () => {

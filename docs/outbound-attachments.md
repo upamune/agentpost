@@ -53,6 +53,8 @@ Call `upload_attachment` with `inbox_id`, `filename`, and canonical standard `co
 
 R2 stores immutable bytes under `outbound-attachments/{inbox_id}/{id}` with an encoded metadata manifest. Outbox rows retain only IDs; events contain no file content. Cloudflare's [structured send API](https://developers.cloudflare.com/email-service/api/send-emails/rest-api/) composes MIME from the verified bytes; Agentpost does not construct multipart MIME itself.
 
+Text artifacts (including CSV and JSON) use `application/octet-stream` in outgoing MIME to prevent the provider from normalizing file line endings. Upload metadata retains the inferred type, and filenames stay unchanged. Images and PDFs retain their MIME types for recipient previews.
+
 A new send validates attachment metadata and aggregate limits before persistence. Dispatch reads the bytes again, verifies size/digest/format, and prepares Base64 **before** the coordinator's final ownership fence. Missing or invalid objects fail without contacting the provider. Transient R2 failures before dispatch can retry with the existing bounded backoff; a crash after claiming remains conservatively subject to stale-send reconciliation. The fence and provider initiation stay in the same JavaScript turn. A provider's ambiguous outcome is never automatically resent.
 
 Uploads have no automatic expiration or garbage collection, including uploads never used by a send. Include them in private R2 backups; retain the same objects alongside outbox history and pending sends. Deleting one can prevent a pending send from completing. Operators manage storage costs and retention; no public bucket or lifecycle deletion rule is created. Provider acceptance still does not prove recipient delivery.
