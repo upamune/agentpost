@@ -1,6 +1,6 @@
 {
   "name": "agentpost",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Create as many email addresses as your AI agents need. Send and receive mail on your own domain with an API, CLI, and MCP.",
   "homepage": "https://github.com/upamune/agentpost#readme",

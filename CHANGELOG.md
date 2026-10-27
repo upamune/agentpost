@@ -2,6 +2,19 @@
 
 [English](CHANGELOG.md) | [日本語](CHANGELOG.ja.md)
 
+## 0.3.0
+
+- Forward incoming mail with global defaults and per-inbox inherit/custom/off settings. Retain originals, restrict destinations to verified operator-approved addresses, and block marked forwarding loops.
+- Add signed per-inbox received-email webhooks, encrypted receiver settings, delivery history, bounded retries and dedicated queues.
+- Generate UUIDv4 idempotency keys when omitted, return them on client success/failure, and preserve selected keys across retries.
+- Issue unnamed inboxes with three random English words joined by hyphens, while retaining custom names. Store and edit optional notes and multiple registration URLs through the API, CLI and MCP.
+- Preserve exact attachment bytes with Base64 raw MIME sending, including text-file line endings, Unicode names, alternative bodies and threaded replies.
+- Improve D1 indexes and bounded recovery, R2 integrity/size checks and stream cleanup, and mail/webhook queue isolation. Require explicit deployment credentials and document scoped Cloudflare permissions.
+- Expand bounded formal verification, real-storage race replays and mutation tests. Distribute the updated CLI/MCP and seven standalone executables through signed releases and npm OIDC publishing.
+- Add the bilingual product website, supplied logo and continuous alias animation. Explain receiving, forwarding, sending and replying in the README and website.
+
+Existing hosts must apply migrations through `0009_recovery_indexes.sql` and update queue bindings before deploying. Forwarding and webhooks remain disabled until configured by the operator. Updating a CLI does not update a Worker; see [installation](INSTALL.md) and [deployment](docs/deploy.md).
+
 ## 0.2.0
 
 - Send and reply with private, inbox-scoped attachments through the API, CLI, and MCP. Validate content integrity before dispatch, preserve idempotency, and document file limits, retention, and the absence of antivirus scanning.
