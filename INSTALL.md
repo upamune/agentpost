@@ -14,6 +14,12 @@ Use this document when a user asks an AI agent to install or configure agentpost
 
 Reuse the user's existing checkout, tools, credentials, and MCP configuration when available. If the repository is private, Git access must already be configured; report an access failure instead of changing repository visibility.
 
+## Upgrade to 0.3.0
+
+Use CLI/stdio MCP version 0.3.0 or newer for forwarding, received-email webhooks, inbox notes/URLs and automatic send keys. Verify the selected release archive before updating using the procedure below, then confirm `agentpost --version`. Preserve the existing API endpoint, credentials, MCP configuration and event checkpoints.
+
+Client installation and Worker deployment are separate. Remote MCP tools come from the deployed Worker; a new local CLI cannot add server features. Existing self-hosted Workers need migrations through `0009_recovery_indexes.sql` and current queue bindings before deployment; follow [deployment](docs/deploy.md). Forwarding and webhooks need additional operator configuration and remain off by default.
+
 ## Install with npm
 
 Use Node.js 22.14 or newer and the scoped package `@upamune/agentpost`. The unscoped `agentpost` package is unrelated. The npm client has no runtime dependencies, native addons, or lifecycle installation scripts; Bun is unnecessary.
