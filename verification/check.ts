@@ -29,6 +29,7 @@ const sourceFiles =
     ? [
         "src/coordinator.ts",
         "src/outbound.ts",
+        "src/outbound-mime.ts",
         "src/common.ts",
         "src/mail-storage.ts",
         "src/queue-jobs.ts",

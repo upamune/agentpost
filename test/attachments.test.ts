@@ -1,6 +1,7 @@
 import { applyD1Migrations, reset } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { beforeEach, afterEach, expect, test, vi } from "vitest";
+import PostalMime from "postal-mime";
 import app from "../src/api";
 import {
   MAX_ATTACHMENT_BYTES,
@@ -9,7 +10,8 @@ import {
   encodeAttachment,
   validateMailSize,
 } from "../src/attachment-policy";
-import { processOutbound } from "../src/outbound";
+import { cloudflareSend, processOutbound } from "../src/outbound";
+import { attachmentMime } from "../src/outbound-mime";
 import { parseMessage, receive } from "../src/inbound";
 import { sha256 } from "../src/common";
 import type { Env, SendPayload } from "../src/types";
@@ -94,15 +96,13 @@ test("immutable inbox-scoped uploads round-trip through the actual provider requ
     () => {},
     async () => true,
   );
-  const payload = JSON.parse(String(request.mock.calls[0]?.[1]?.body)) as SendPayload;
-  expect(payload.attachments).toEqual([
-    {
-      filename: "report.csv",
-      type: "text/csv",
-      disposition: "attachment",
-      content: encodeAttachment(bytes),
-    },
-  ]);
+  const payload = JSON.parse(String(request.mock.calls[0]?.[1]?.body));
+  expect(request.mock.calls[0]?.[0]).toMatch(/\/email\/sending\/send_raw$/);
+  expect(payload.from).toBe(box.address);
+  expect(payload.recipients).toEqual(["recipient@example.net"]);
+  const parsed = await PostalMime.parse(payload.mime_message);
+  expect(parsed.attachments[0]).toMatchObject({ filename: "report.csv", mimeType: "text/csv" });
+  expect(new Uint8Array(parsed.attachments[0]!.content as ArrayBuffer)).toEqual(bytes);
   await processOutbound(
     bindings,
     row.id,
@@ -115,6 +115,128 @@ test("immutable inbox-scoped uploads round-trip through the actual provider requ
   expect(
     (await send(box, [(await (await upload(box, bytes, "other.csv")).json<Uploaded>()).id])).status,
   ).toBe(409);
+});
+
+test.each([
+  ["report.csv", "text/csv", "name,value\nanswer,42\n"],
+  ["report.txt", "text/plain", "first\nsecond\r\nthird\rfinal"],
+  ["report.log", "text/plain", "log\n"],
+  ["report.md", "text/markdown", "# Report\n日本語\n"],
+  ["report.json", "application/json", '{"answer":42}\n'],
+  ["report.jsonl", "application/x-ndjson", '{"answer":42}\n'],
+  ["report.ndjson", "application/x-ndjson", '{"answer":42}\n'],
+  ["report.pdf", "application/pdf", "%PDF-1.4\n%%EOF\n"],
+])("provider MIME preserves file bytes for %s", async (filename, detectedType, text) => {
+  const box = await inbox();
+  const original = new TextEncoder().encode(text);
+  const uploaded = await upload(box, original, filename);
+  expect(uploaded.status).toBe(201);
+  const file = await uploaded.json<Uploaded & { type: string }>();
+  expect(file.type).toBe(detectedType);
+  const row = await (await send(box, [file.id])).json<{ id: string }>();
+  const request = vi
+    .spyOn(globalThis, "fetch")
+    .mockResolvedValue(Response.json({ success: true, result: { id: "provider-file-integrity" } }));
+  await processOutbound(
+    bindings,
+    row.id,
+    box.id,
+    () => {},
+    async () => true,
+  );
+  const payload = JSON.parse(String(request.mock.calls[0]?.[1]?.body));
+  const parsed = await PostalMime.parse(payload.mime_message);
+  const attachment = parsed.attachments[0];
+  // Cloudflare's structured builder changed even octet-stream LF files to 7bit/CRLF.
+  expect(payload.mime_message).toContain("Content-Transfer-Encoding: base64");
+  expect(attachment?.mimeType).toBe(detectedType);
+  expect(attachment?.filename).toBe(filename);
+  expect(new Uint8Array(attachment!.content as ArrayBuffer)).toEqual(original);
+  expect((await (await upload(box, original, filename)).json<Uploaded>()).id).toBe(file.id);
+});
+
+test("raw MIME preserves Unicode, alternative bodies, filenames, recipients and reply threading", async () => {
+  const text = "First line\n日本語\r\nFinal line\r";
+  const payload: SendPayload = {
+    from: "sender@example.com",
+    to: Array.from({ length: 50 }, (_, index) => `recipient-${index}@example.net`),
+    subject: "日本語🙂".repeat(199),
+    text,
+    html: "<p>日本語🙂</p>",
+    headers: {
+      "In-Reply-To": "<parent@example.net>",
+      References: "<first@example.net> <parent@example.net>",
+    },
+    attachments: [
+      {
+        filename: '日本語"; name="report.csv',
+        type: "text/csv",
+        content: encodeAttachment(bytes),
+        disposition: "attachment",
+      },
+      {
+        filename: "dot.png",
+        type: "image/png",
+        content: encodeAttachment(new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 255])),
+        disposition: "attachment",
+      },
+    ],
+  };
+  const raw = attachmentMime(payload);
+  const parsed = await PostalMime.parse(raw);
+  expect(parsed.subject).toBe(payload.subject);
+  expect(parsed.to?.map((mailbox) => ("address" in mailbox ? mailbox.address : ""))).toEqual(
+    payload.to,
+  );
+  expect(parsed.html).toBe(payload.html);
+  expect(parsed.text?.replace(/\r\n?/g, "\n")).toBe(text.replace(/\r\n?/g, "\n"));
+  expect(parsed.inReplyTo).toBe(payload.headers!["In-Reply-To"]);
+  expect(parsed.references).toBe(payload.headers!.References);
+  expect(parsed.attachments.map((file) => file.filename)).toEqual(
+    payload.attachments!.map((file) => file.filename),
+  );
+  expect(new Uint8Array(parsed.attachments[0]!.content as ArrayBuffer)).toEqual(bytes);
+  expect(new Uint8Array(parsed.attachments[1]!.content as ArrayBuffer)).toEqual(
+    decodeAttachment(payload.attachments![1]!.content),
+  );
+  expect(raw.split("\r\n").every((line) => line.length <= 998)).toBe(true);
+  expect(raw.replace(/\r\n/g, "")).not.toMatch(/[\r\n]/);
+  expect(raw.match(/Content-Transfer-Encoding: base64/g)).toHaveLength(4);
+});
+
+test("MIME construction errors and encoded size overflow never contact the provider", async () => {
+  const payload: SendPayload = {
+    from: "sender@example.com",
+    to: ["recipient@example.net"],
+    subject: "Report",
+    text: "Attached.",
+    attachments: [
+      {
+        filename: "report.csv",
+        type: "text/csv",
+        content: encodeAttachment(bytes),
+        disposition: "attachment",
+      },
+    ],
+  };
+  const request = vi.fn();
+  for (const invalid of [
+    { ...payload, subject: "Report\r\nBcc: stolen@example.org" },
+    { ...payload, headers: { Bcc: "stolen@example.org" } },
+    { ...payload, headers: { References: "<parent@example.net>\r\nBcc: stolen@example.org" } },
+    { ...payload, attachments: [{ ...payload.attachments![0]!, filename: "bad\r\nname.csv" }] },
+    {
+      ...payload,
+      attachments: [{ ...payload.attachments![0]!, type: "text/csv\r\nBcc: stolen@example.org" }],
+    },
+    {
+      ...payload,
+      attachments: [{ ...payload.attachments![0]!, content: "A".repeat(5 * 1024 * 1024) }],
+    },
+  ]) {
+    expect(await cloudflareSend(bindings, invalid, request)).toMatchObject({ status: "failed" });
+  }
+  expect(request).not.toHaveBeenCalled();
 });
 
 test("foreign, missing, duplicate IDs and disabled inbox uploads cannot be queued", async () => {

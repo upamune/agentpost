@@ -60,6 +60,8 @@ Set `vars.AGENTPOST_EMAIL_DOMAIN` in `wrangler.jsonc` to your domain. Set `AGENT
 
 Official references: [domains](https://developers.cloudflare.com/email-service/configuration/domains/), [sending](https://developers.cloudflare.com/email-service/get-started/send-emails/), [REST API](https://developers.cloudflare.com/email-service/api/send-emails/rest-api/).
 
+Sending, diagnostics, deployment and provisioning use separate credentials. After creating the Worker, scope routine deployment to **Individual Workers Editor** on that Worker and inject explicit `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`; `bun run deploy` rejects missing credentials instead of using a shared Wrangler login. These are Wrangler-owned variables. Review [Cloudflare permission boundaries](cloudflare-permissions.md), including Custom Domain and maintenance limitations, before choosing the deployment command. Audit other projects' account-wide credentials too: a private bucket is still accessible to an authorized account-wide token.
+
 After configuring DNS, run `mise exec -- bun run cli domain check` as an administrator and inspect [domain diagnostics](domain-diagnostics.md). `--strict` also fails on warnings. Provider comparison uses optional dedicated credentials, separate from sending. Propagation and real-message authentication still need verification.
 
 ## 2. Storage and queues
@@ -116,6 +118,8 @@ mise exec -- bun run deploy
 Deployment also creates the `AGENTPOST_INBOX_COORDINATOR` binding and the SQLite migration for `InboxCoordinator`. Declare that binding explicitly in named environments. Before upgrading or restoring an existing installation, read [coordinator state assumptions](operations.md#coordinator-state-assumptions).
 
 Use the returned Worker URL as `AGENTPOST_API_URL`. CI neither deploys production nor sends real mail.
+
+The commands above cover initial provisioning and configuration changes. For an existing installation's code-only rollout, prefer the scoped [versions workflow](cloudflare-permissions.md#deployment-commands-and-maintenance); keep resource creation, migrations, queue-consumer changes and route/domain administration in a separate supervised maintenance session. A deployment credential must never be stored as a Worker Secret.
 
 ## 4. Catch-all
 

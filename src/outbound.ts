@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { prepareAttachments } from "./attachments";
 import { AttachmentError } from "./attachment-policy";
+import { attachmentMime } from "./outbound-mime";
 import { readBounded } from "./common";
 import type { Env, Outbox, SendPayload } from "./types";
 
@@ -41,6 +42,18 @@ async function providerAcceptance(response: Response): Promise<SendResult> {
   };
 }
 
+function providerRequest(payload: SendPayload): { endpoint: string; body: string } {
+  if (!payload.attachments?.length) return { endpoint: "send", body: JSON.stringify(payload) };
+  return {
+    endpoint: "send_raw",
+    body: JSON.stringify({
+      from: payload.from,
+      recipients: payload.to,
+      mime_message: attachmentMime(payload),
+    }),
+  };
+}
+
 export async function cloudflareSend(
   env: Env,
   payload: SendPayload,
@@ -50,10 +63,19 @@ export async function cloudflareSend(
   if (!credentials) {
     return { status: "failed", error: "Email Sending credentials are not configured" };
   }
+  let prepared: ReturnType<typeof providerRequest>;
+  try {
+    prepared = providerRequest(payload);
+  } catch {
+    return {
+      status: "failed",
+      error: "Cannot construct outbound message; no provider request was made",
+    };
+  }
   let response: Response;
   try {
     response = await request(
-      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(credentials.accountId)}/email/sending/send`,
+      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(credentials.accountId)}/email/sending/${prepared.endpoint}`,
       {
         method: "POST",
         redirect: "manual",
@@ -61,7 +83,7 @@ export async function cloudflareSend(
           Authorization: `Bearer ${credentials.token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: prepared.body,
         signal: AbortSignal.timeout(20_000),
       },
     );
@@ -72,6 +94,10 @@ export async function cloudflareSend(
       error: "Provider connection failed; delivery outcome must be checked before resending",
     };
   }
+  return classifyProviderResponse(response);
+}
+
+function classifyProviderResponse(response: Response): Promise<SendResult> | SendResult {
   releaseRejectedResponse(response);
   if (response.status === 429) {
     return {

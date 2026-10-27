@@ -1,0 +1,87 @@
+---
+config:
+  markdownAutoWrap: false
+  state:
+    useMaxWidth: false
+---
+stateDiagram-v2
+  classDef group0 fill:#d6eaf8,stroke:#6b757c,color:#1b2631
+  state "Legend" as legend {
+    state "Inbox-owned attachments under one stable key" as legendGroup0
+  }
+  class legendGroup0 group0
+  state "First request checking<br/>inbox ownership; second<br/>request checking inbox<br/>ownership; key unused; 0<br/>requests accepted" as s0
+  state "First request checking<br/>inbox ownership; second<br/>request finding the key;<br/>key unused; 0 requests<br/>accepted" as s1
+  state "First request checking<br/>inbox ownership; second<br/>request finished; key<br/>unused; 0 requests<br/>accepted" as s2
+  state "First request checking the<br/>stored hash; second<br/>request checking inbox<br/>ownership; key assigned to<br/>report; 0 requests<br/>accepted" as s3
+  state "First request checking the<br/>stored hash; second<br/>request checking the<br/>stored hash; key assigned<br/>to report; 0 requests<br/>accepted" as s4
+  state "First request checking the<br/>stored hash; second<br/>request finding the key;<br/>key assigned to report; 0<br/>requests accepted" as s5
+  state "First request checking the<br/>stored hash; second<br/>request finished; key<br/>assigned to report; 0<br/>requests accepted" as s6
+  state "First request finding the<br/>key; second request<br/>checking inbox ownership;<br/>key unused; 0 requests<br/>accepted" as s7
+  state "First request finding the<br/>key; second request<br/>finding the key; key<br/>unused; 0 requests<br/>accepted" as s8
+  state "First request finding the<br/>key; second request<br/>finished; key unused; 0<br/>requests accepted" as s9
+  state "First request finished;<br/>second request checking<br/>inbox ownership; key<br/>assigned to report; 1<br/>requests accepted" as s10
+  state "First request finished;<br/>second request checking<br/>the stored hash; key<br/>assigned to report; 1<br/>requests accepted" as s11
+  state "First request finished;<br/>second request finding the<br/>key; key assigned to<br/>report; 1 requests<br/>accepted" as s12
+  state "First request finished;<br/>second request finished;<br/>key assigned to report; 1<br/>requests accepted" as s13
+  state "First request reading the<br/>winning row; second<br/>request checking inbox<br/>ownership; key assigned to<br/>report; 0 requests<br/>accepted" as s14
+  state "First request reading the<br/>winning row; second<br/>request checking the<br/>stored hash; key assigned<br/>to report; 0 requests<br/>accepted" as s15
+  state "First request reading the<br/>winning row; second<br/>request finding the key;<br/>key assigned to report; 0<br/>requests accepted" as s16
+  state "First request reading the<br/>winning row; second<br/>request finished; key<br/>assigned to report; 0<br/>requests accepted" as s17
+  state "First request waiting to<br/>create the row; second<br/>request checking inbox<br/>ownership; key unused; 0<br/>requests accepted" as s18
+  state "First request waiting to<br/>create the row; second<br/>request finding the key;<br/>key unused; 0 requests<br/>accepted" as s19
+  state "First request waiting to<br/>create the row; second<br/>request finished; key<br/>unused; 0 requests<br/>accepted" as s20
+  [*] --> s8
+  s8 --> s1 : Find the existing idempotency<br/>key
+  s8 --> s7 : Find the existing idempotency<br/>key
+  s1 --> s19 : Check the attachment belongs<br/>to this inbox
+  s1 --> s0 : Find the existing idempotency<br/>key
+  s7 --> s0 : Find the existing idempotency<br/>key
+  s7 --> s9 : Check the attachment belongs<br/>to this inbox
+  s19 --> s16 : Create the first outbox row<br/>atomically
+  s19 --> s18 : Find the existing idempotency<br/>key
+  s0 --> s18 : Check the attachment belongs<br/>to this inbox
+  s0 --> s2 : Check the attachment belongs<br/>to this inbox
+  s9 --> s2 : Find the existing idempotency<br/>key
+  s16 --> s5 : Read the row that won the race
+  s16 --> s15 : Find the existing idempotency<br/>key
+  s18 --> s14 : Create the first outbox row<br/>atomically
+  s18 --> s20 : Check the attachment belongs<br/>to this inbox
+  s2 --> s20 : Check the attachment belongs<br/>to this inbox
+  s5 --> s12 : Compare the request hash to<br/>the stored row
+  s5 --> s4 : Find the existing idempotency<br/>key
+  s15 --> s4 : Read the row that won the race
+  s15 --> s17 : Compare the request hash to<br/>the stored row
+  s14 --> s3 : Read the row that won the race
+  s14 --> s17 : Check the attachment belongs<br/>to this inbox
+  s20 --> s17 : Create the first outbox row<br/>atomically
+  s12 --> s11 : Find the existing idempotency<br/>key
+  s4 --> s11 : Compare the request hash to<br/>the stored row
+  s4 --> s6 : Compare the request hash to<br/>the stored row
+  s17 --> s6 : Read the row that won the race
+  s3 --> s10 : Compare the request hash to<br/>the stored row
+  s3 --> s6 : Check the attachment belongs<br/>to this inbox
+  s11 --> s13 : Compare the request hash to<br/>the stored row
+  s6 --> s13 : Compare the request hash to<br/>the stored row
+  s10 --> s13 : Check the attachment belongs<br/>to this inbox
+  class s0 group0
+  class s1 group0
+  class s2 group0
+  class s3 group0
+  class s4 group0
+  class s5 group0
+  class s6 group0
+  class s7 group0
+  class s8 group0
+  class s9 group0
+  class s10 group0
+  class s11 group0
+  class s12 group0
+  class s13 group0
+  class s14 group0
+  class s15 group0
+  class s16 group0
+  class s17 group0
+  class s18 group0
+  class s19 group0
+  class s20 group0

@@ -1,0 +1,35 @@
+{
+  "view": "customer",
+  "modelStates": 28,
+  "modelTransitions": 35,
+  "chartStates": 9,
+  "chartTransitions": 11,
+  "chartStatus": {
+    "works": 9,
+    "wrong": 0,
+    "fixed": 0,
+    "mixed": 0,
+    "after": 0
+  },
+  "mixedStatus": [],
+  "cover": {
+    "drawn": false,
+    "why": "no step in TLC's graph is a reader action"
+  },
+  "chartGroups": [
+    {
+      "name": "Safely stopped before sending",
+      "color": "#d6eaf8",
+      "states": 1
+    },
+    {
+      "name": "Verified attachment flow",
+      "color": "#fdebd0",
+      "states": 8
+    }
+  ],
+  "mixedGroups": [],
+  "classes": [],
+  "codeLike": [],
+  "brokenProperties": []
+}

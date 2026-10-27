@@ -64,6 +64,8 @@ token専用で`AGENTPOST_CURSOR_KEY`を省略した場合は管理者トーク�
 
 公式資料: [ドメイン設定](https://developers.cloudflare.com/email-service/configuration/domains/)、[送信](https://developers.cloudflare.com/email-service/get-started/send-emails/)、[REST API](https://developers.cloudflare.com/email-service/api/send-emails/rest-api/)。
 
+送信・診断・デプロイ・初期構築の資格情報は分離します。Worker作成後、通常デプロイはそのWorkerだけの**Individual Workers Editor**に限定し、`CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`を明示して渡してください。`bun run deploy`は未指定なら失敗し、共有Wranglerログインを使いません。これはWranglerが定義する環境変数です。[Cloudflareの権限境界](cloudflare-permissions.ja.md)にあるCustom Domain・保守作業の制約を確認してコマンドを選んでください。他プロジェクトのアカウント全体に有効な資格情報も棚卸しします。非公開バケットも、正当なアカウント全体のトークンからはアクセスできます。
+
 DNS設定後、管理者として `mise exec -- bun run cli domain check` を実行し、[ドメイン診断](domain-diagnostics.ja.md)の結果を確認してください。`--strict` は警告も失敗にします。Cloudflareとの照合用資格情報は任意で、送信用トークンとは分けます。伝播や実メールの認証確認は別途必要です。
 
 ## 2. ストレージとキュー
@@ -120,6 +122,8 @@ mise exec -- bun run deploy
 `wrangler.jsonc`の`AGENTPOST_INBOX_COORDINATOR`バインディングと`InboxCoordinator`のSQLite migrationもデプロイで作成される。名前付き環境を使う場合は、このバインディングも明示する。既存環境からの更新・復元時は[同期基盤の前提](operations.ja.md#同期基盤の前提)を確認する。
 
 コマンドが返すWorker URLを`AGENTPOST_API_URL`に使う。CIには実メール送信や自動デプロイを含めていない。
+
+上記は初期構築・設定変更も含む手順です。既存環境のコードだけを更新する場合は、権限を限定した[versionsの手順](cloudflare-permissions.ja.md#デプロイコマンドと保守作業)を優先し、リソース作成・マイグレーション・Queueコンシューマー変更・ルートやドメイン管理は監督下の別の保守セッションで行います。デプロイ用資格情報をWorker Secretに保存しないでください。
 
 ## 4. Catch-all
 

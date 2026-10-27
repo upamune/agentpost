@@ -1,0 +1,2002 @@
+{
+  "schemaVersion": 1,
+  "productRevision": "0bbbefd83b0713cdc42c8bcc518f9b1337387125",
+  "previousSync": "f59ee20f3a6f8eb5d910fa7a404a823314c74d1d",
+  "modelOutcome": "in-sync",
+  "localCI": "passed",
+  "workerTests": 195,
+  "clientAndDistributionTests": 162,
+  "fuzzTests": 5,
+  "scope": "State ordering and finite safety unchanged; MIME syntax and actual delivery require separate runtime verification",
+  "areas": {
+    "outbound": {
+      "baseline": {
+        "verifiedProductCommit": "0bbbefd83b0713cdc42c8bcc518f9b1337387125",
+        "bounds": {
+          "workers": 2,
+          "maxClaims": 8,
+          "actualRetryLimit": 8
+        },
+        "assumptions": [
+          "D1 statements atomic; no rollback",
+          "429/explicit rejection never accepted mail",
+          "unknown may have accepted mail",
+          "actor serialization and synchronous ownership fence; delayed replaced actors included"
+        ],
+        "sourceFiles": [
+          {
+            "path": "src/coordinator.ts",
+            "sha256": "3eead6e30132df24273821c65840d8170c9e62cda123c3de9815f318276b9ebf"
+          },
+          {
+            "path": "src/outbound.ts",
+            "sha256": "c879d49d84d23561b9fbb979df72b55606129967f4370aed7f2f99efb5f4eb8b"
+          },
+          {
+            "path": "src/outbound-mime.ts",
+            "sha256": "ed4f4f38af04e390ce70521e0be5cf3a60d79100ba8928d50744f71815f2eee7"
+          },
+          {
+            "path": "src/common.ts",
+            "sha256": "0d5fa58e68a91660a16c74e29610c39e984053ff125e9e013459ede5b54b21a9"
+          },
+          {
+            "path": "src/mail-storage.ts",
+            "sha256": "44f0b535e851a584e6a5453d9950724a2452bf148ae0c57d6ceb8ed3df98e70b"
+          },
+          {
+            "path": "src/queue-jobs.ts",
+            "sha256": "2c508fea249f7a35542d41e1cfaa7d9c810be3f760e2e4a84f1c39c53b6a92c8"
+          },
+          {
+            "path": "src/dispatch-barrier.ts",
+            "sha256": "0a096c0ea4716b910b4c8cb6764621676cd3005adcf76e936d27755503fee65d"
+          },
+          {
+            "path": "src/attachments.ts",
+            "sha256": "34ba038278c8fd453fa0d0d78c6284ad81a8b19dd0505106a60b05986c16ba6d"
+          },
+          {
+            "path": "src/attachment-policy.ts",
+            "sha256": "2b638e65863e54bdfc8d2524551bd1d6866db431c5504e8a41ba1bbc390ae8c1"
+          },
+          {
+            "path": "src/maintenance.ts",
+            "sha256": "d905d33bb67f5e99626daf6851631f02233947c013d652f454529ec3399144bb"
+          },
+          {
+            "path": "src/api.ts",
+            "sha256": "9933a20461125e8761975577ec65b86e5ab7c64cb77f0cbeb3e62f59eb64ecb1"
+          },
+          {
+            "path": "src/inbox-metadata.ts",
+            "sha256": "98e7834eaf98d9373081f043a9448a817a77f97dbdef09ef8f811b404cfd2213"
+          },
+          {
+            "path": "src/index.ts",
+            "sha256": "c2d5869b1e73017e2475d1922602f884e4ecf31e871d946d3df5a06d284f9403"
+          },
+          {
+            "path": "wrangler.jsonc",
+            "sha256": "3536298f0182c204767d0958364f47378a33bc22b33fa154a403259ba99d82bb"
+          },
+          {
+            "path": "migrations/0001_mail.sql",
+            "sha256": "19e4db34a1f7703fea52aff0af80511d09f2f14c32a3d919f4d04cbfb9b19953"
+          },
+          {
+            "path": "migrations/0004_inbox_active_version.sql",
+            "sha256": "e78b7beb536493c1dc19717d17d4c1ec899cd74b3fc3171f3e8da935b2ea1b81"
+          },
+          {
+            "path": "migrations/0009_recovery_indexes.sql",
+            "sha256": "5753592db41664b3cccdf0692a03e96aab66608ef52e568a546e3506aee9323d"
+          }
+        ],
+        "checks": [
+          {
+            "check": "TypeOK",
+            "outcome": "passed",
+            "log": "Outbound-baseline.log"
+          },
+          {
+            "check": "AtMostOneAcceptance",
+            "outcome": "passed",
+            "log": "Outbound-baseline.log"
+          },
+          {
+            "check": "NoBlindRetry",
+            "outcome": "passed",
+            "log": "Outbound-baseline.log"
+          },
+          {
+            "check": "NoDispatchAfterDisable",
+            "outcome": "passed",
+            "log": "Outbound-baseline.log"
+          },
+          {
+            "check": "NoDispatchAfterUnknown",
+            "outcome": "passed",
+            "log": "Outbound-baseline.log"
+          },
+          {
+            "check": "ActiveVersionTypeOK",
+            "outcome": "passed",
+            "log": "ActiveVersion-baseline.log"
+          },
+          {
+            "check": "NoStaleActiveWrite",
+            "outcome": "passed",
+            "log": "ActiveVersion-baseline.log"
+          }
+        ],
+        "replay": {
+          "exitCode": 0,
+          "cases": [
+            {
+              "ancestorTitles": [],
+              "fullName": "a delayed old disable committing after an active read blocks the replacement dispatch",
+              "status": "passed",
+              "title": "a delayed old disable committing after an active read blocks the replacement dispatch",
+              "duration": 27,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "no new provider request starts after disabling the inbox has completed",
+              "status": "passed",
+              "title": "no new provider request starts after disabling the inbox has completed",
+              "duration": 36,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "a replacement dispatch barrier rejects a delayed old disable projection",
+              "status": "passed",
+              "title": "a replacement dispatch barrier rejects a delayed old disable projection",
+              "duration": 26,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "provider accepts the same request at most once with duplicate queue jobs",
+              "status": "passed",
+              "title": "provider accepts the same request at most once with duplicate queue jobs",
+              "duration": 29,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "ownership fence failure after the active read prevents dispatch",
+              "status": "passed",
+              "title": "ownership fence failure after the active read prevents dispatch",
+              "duration": 95,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "actor failure releases serialization without allowing a cross-inbox claim",
+              "status": "passed",
+              "title": "actor failure releases serialization without allowing a cross-inbox claim",
+              "duration": 32,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "a fresh actor recovers an orphaned sending request without dispatching",
+              "status": "passed",
+              "title": "a fresh actor recovers an orphaned sending request without dispatching",
+              "duration": 37,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "stale worker does not start a provider call after Cron marks the outcome unknown",
+              "status": "passed",
+              "title": "stale worker does not start a provider call after Cron marks the outcome unknown",
+              "duration": 40,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "unknown outcomes never create a new automatic provider attempt",
+              "status": "passed",
+              "title": "unknown outcomes never create a new automatic provider attempt",
+              "duration": 37,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "a delayed old enable cannot overwrite a newer disable after actor handoff",
+              "status": "passed",
+              "title": "a delayed old enable cannot overwrite a newer disable after actor handoff",
+              "duration": 41,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            }
+          ]
+        }
+      },
+      "selftest": {
+        "baseline": "result.json",
+        "mutations": [
+          {
+            "name": "claim",
+            "checks": ["AtMostOneAcceptance", "NoBlindRetry"],
+            "baseline": "replay",
+            "model": "violated",
+            "source": "assertion-failed"
+          },
+          {
+            "name": "serialization",
+            "checks": ["NoDispatchAfterDisable", "NoDispatchAfterUnknown"],
+            "baseline": "replay",
+            "model": "violated",
+            "source": "assertion-failed"
+          },
+          {
+            "name": "fence",
+            "checks": ["NoDispatchAfterDisable", "NoDispatchAfterUnknown"],
+            "baseline": "replay",
+            "model": "violated",
+            "source": "assertion-failed"
+          },
+          {
+            "name": "version",
+            "checks": ["NoStaleActiveWrite"],
+            "baseline": "replay",
+            "model": "violated",
+            "source": "assertion-failed"
+          }
+        ],
+        "sourceMutations": [
+          {
+            "name": "dispatch-barrier",
+            "baseline": "replay",
+            "source": "assertion-failed",
+            "complementaryModel": "verification/webhooks/DispatchBarrier.tla (EmailOnly = TRUE)"
+          }
+        ],
+        "sourceFiles": [
+          {
+            "path": "src/coordinator.ts",
+            "sha256": "3eead6e30132df24273821c65840d8170c9e62cda123c3de9815f318276b9ebf"
+          },
+          {
+            "path": "src/outbound.ts",
+            "sha256": "c879d49d84d23561b9fbb979df72b55606129967f4370aed7f2f99efb5f4eb8b"
+          },
+          {
+            "path": "src/outbound-mime.ts",
+            "sha256": "ed4f4f38af04e390ce70521e0be5cf3a60d79100ba8928d50744f71815f2eee7"
+          },
+          {
+            "path": "src/common.ts",
+            "sha256": "0d5fa58e68a91660a16c74e29610c39e984053ff125e9e013459ede5b54b21a9"
+          },
+          {
+            "path": "src/mail-storage.ts",
+            "sha256": "44f0b535e851a584e6a5453d9950724a2452bf148ae0c57d6ceb8ed3df98e70b"
+          },
+          {
+            "path": "src/queue-jobs.ts",
+            "sha256": "2c508fea249f7a35542d41e1cfaa7d9c810be3f760e2e4a84f1c39c53b6a92c8"
+          },
+          {
+            "path": "src/dispatch-barrier.ts",
+            "sha256": "0a096c0ea4716b910b4c8cb6764621676cd3005adcf76e936d27755503fee65d"
+          },
+          {
+            "path": "src/attachments.ts",
+            "sha256": "34ba038278c8fd453fa0d0d78c6284ad81a8b19dd0505106a60b05986c16ba6d"
+          },
+          {
+            "path": "src/attachment-policy.ts",
+            "sha256": "2b638e65863e54bdfc8d2524551bd1d6866db431c5504e8a41ba1bbc390ae8c1"
+          },
+          {
+            "path": "src/maintenance.ts",
+            "sha256": "d905d33bb67f5e99626daf6851631f02233947c013d652f454529ec3399144bb"
+          },
+          {
+            "path": "src/api.ts",
+            "sha256": "9933a20461125e8761975577ec65b86e5ab7c64cb77f0cbeb3e62f59eb64ecb1"
+          },
+          {
+            "path": "src/inbox-metadata.ts",
+            "sha256": "98e7834eaf98d9373081f043a9448a817a77f97dbdef09ef8f811b404cfd2213"
+          },
+          {
+            "path": "src/index.ts",
+            "sha256": "c2d5869b1e73017e2475d1922602f884e4ecf31e871d946d3df5a06d284f9403"
+          },
+          {
+            "path": "wrangler.jsonc",
+            "sha256": "3536298f0182c204767d0958364f47378a33bc22b33fa154a403259ba99d82bb"
+          },
+          {
+            "path": "migrations/0001_mail.sql",
+            "sha256": "19e4db34a1f7703fea52aff0af80511d09f2f14c32a3d919f4d04cbfb9b19953"
+          },
+          {
+            "path": "migrations/0004_inbox_active_version.sql",
+            "sha256": "e78b7beb536493c1dc19717d17d4c1ec899cd74b3fc3171f3e8da935b2ea1b81"
+          },
+          {
+            "path": "migrations/0009_recovery_indexes.sql",
+            "sha256": "5753592db41664b3cccdf0692a03e96aab66608ef52e568a546e3506aee9323d"
+          }
+        ]
+      }
+    },
+    "inbound": {
+      "baseline": {
+        "verifiedProductCommit": "0bbbefd83b0713cdc42c8bcc518f9b1337387125",
+        "bounds": {
+          "originals": 3,
+          "valid": 2,
+          "poisoned": 1,
+          "pageSize": 1,
+          "transientFaults": 2,
+          "forwardingHandlers": 2,
+          "forwardingTargets": 3
+        },
+        "assumptions": [
+          "originals already successfully persisted in recovery model; conditional R2 put in forwarding model",
+          "native forwarding exists only during SMTP handler; claims never reset; no D1 rollback",
+          "forwarding configuration is captured at admission; later changes do not cancel admitted work",
+          "verified-destination enforcement and SMTP delivery are external assumptions",
+          "finite stable corpus",
+          "at most two transient faults",
+          "weakly fair successful Cron, queue and parse actions",
+          "two valid originals fit MIME and 16 MiB parsed-output limits and parse successfully; one poisoned metadata object"
+        ],
+        "sourceFiles": [
+          {
+            "path": "src/inbound.ts",
+            "sha256": "e8920d4427ec3b4267e2f310fbadc7be63ef0d4aae12760425ef1149a6df9110"
+          },
+          {
+            "path": "src/bounded-json.ts",
+            "sha256": "1a847ef629c4712a81bd83261c8f8728db149456cf32a59d116927721cd503b0"
+          },
+          {
+            "path": "src/common.ts",
+            "sha256": "0d5fa58e68a91660a16c74e29610c39e984053ff125e9e013459ede5b54b21a9"
+          },
+          {
+            "path": "src/mail-storage.ts",
+            "sha256": "44f0b535e851a584e6a5453d9950724a2452bf148ae0c57d6ceb8ed3df98e70b"
+          },
+          {
+            "path": "src/queue-jobs.ts",
+            "sha256": "2c508fea249f7a35542d41e1cfaa7d9c810be3f760e2e4a84f1c39c53b6a92c8"
+          },
+          {
+            "path": "src/forwarding.ts",
+            "sha256": "783742f249425146b4dd2a131d36c7cf5f7cacb854bf512fad322675b2c9d073"
+          },
+          {
+            "path": "src/forwarding-policy.ts",
+            "sha256": "02137ac6ff761c8fefb2188bed814d4b3434d338dd14677ae9bb3552c966825c"
+          },
+          {
+            "path": "src/forwarding-store.ts",
+            "sha256": "62b618c6febd800e1c2dea630620e74a159dd640e18d2b55c37490d9f6ab02f5"
+          },
+          {
+            "path": "migrations/0007_forwarding.sql",
+            "sha256": "bc033db783daf2525f5c45f926512c5a2cff403db58f0b92016fe2172865c6d1"
+          },
+          {
+            "path": "src/maintenance.ts",
+            "sha256": "d905d33bb67f5e99626daf6851631f02233947c013d652f454529ec3399144bb"
+          },
+          {
+            "path": "src/index.ts",
+            "sha256": "c2d5869b1e73017e2475d1922602f884e4ecf31e871d946d3df5a06d284f9403"
+          },
+          {
+            "path": "src/api.ts",
+            "sha256": "9933a20461125e8761975577ec65b86e5ab7c64cb77f0cbeb3e62f59eb64ecb1"
+          },
+          {
+            "path": "src/inbox-metadata.ts",
+            "sha256": "98e7834eaf98d9373081f043a9448a817a77f97dbdef09ef8f811b404cfd2213"
+          },
+          {
+            "path": "migrations/0001_mail.sql",
+            "sha256": "19e4db34a1f7703fea52aff0af80511d09f2f14c32a3d919f4d04cbfb9b19953"
+          },
+          {
+            "path": "migrations/0002_events.sql",
+            "sha256": "1f1beb2e59e4aec125c0f82009a5abc8a2e0e1183f844ce862748c43718df820"
+          },
+          {
+            "path": "migrations/0003_raw_recovery.sql",
+            "sha256": "657488eada56313dd675661fe39e300c187e766f31f0ac298f5d7a16449aede5"
+          },
+          {
+            "path": "migrations/0009_recovery_indexes.sql",
+            "sha256": "5753592db41664b3cccdf0692a03e96aab66608ef52e568a546e3506aee9323d"
+          },
+          {
+            "path": "wrangler.jsonc",
+            "sha256": "3536298f0182c204767d0958364f47378a33bc22b33fa154a403259ba99d82bb"
+          }
+        ],
+        "checks": [
+          {
+            "check": "TypeOK",
+            "outcome": "passed",
+            "log": "Inbound-baseline.log"
+          },
+          {
+            "check": "OriginalRetained",
+            "outcome": "passed",
+            "log": "Inbound-baseline.log"
+          },
+          {
+            "check": "IndexHasOriginal",
+            "outcome": "passed",
+            "log": "Inbound-baseline.log"
+          },
+          {
+            "check": "ReadyHasParsed",
+            "outcome": "passed",
+            "log": "Inbound-baseline.log"
+          },
+          {
+            "check": "PoisonVisible",
+            "outcome": "passed",
+            "log": "Inbound-baseline.log"
+          },
+          {
+            "check": "EventuallyReady",
+            "outcome": "passed",
+            "log": "Inbound-baseline.log"
+          },
+          {
+            "check": "ForwardingTypeOK",
+            "outcome": "passed",
+            "log": "Forwarding-baseline.log"
+          },
+          {
+            "check": "ForwardingRawBeforeForward",
+            "outcome": "passed",
+            "log": "Forwarding-baseline.log"
+          },
+          {
+            "check": "ForwardingSnapshotPreserved",
+            "outcome": "passed",
+            "log": "Forwarding-baseline.log"
+          },
+          {
+            "check": "ForwardingTrustedDestination",
+            "outcome": "passed",
+            "log": "Forwarding-baseline.log"
+          },
+          {
+            "check": "ForwardingAtMostOneForward",
+            "outcome": "passed",
+            "log": "Forwarding-baseline.log"
+          },
+          {
+            "check": "ForwardingNoBlindRetry",
+            "outcome": "passed",
+            "log": "Forwarding-baseline.log"
+          }
+        ],
+        "replay": {
+          "exitCode": 0,
+          "cases": [
+            {
+              "ancestorTitles": [],
+              "fullName": "global defaults, custom overrides, explicit off and restored inheritance are independent",
+              "status": "passed",
+              "title": "global defaults, custom overrides, explicit off and restored inheritance are independent",
+              "duration": 29,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "configuration and destination history are administrator-only even for the inbox token",
+              "status": "passed",
+              "title": "configuration and destination history are administrator-only even for the inbox token",
+              "duration": 13,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "destinations reject open relay targets, same-domain loops, malformed policy and input",
+              "status": "passed",
+              "title": "destinations reject open relay targets, same-domain loops, malformed policy and input",
+              "duration": 14,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "native forwarding starts only after durable MIME, indexing and a conditional claim",
+              "status": "passed",
+              "title": "native forwarding starts only after durable MIME, indexing and a conditional claim",
+              "duration": 31,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "explicit off skips forwarding while other inboxes use the default or their custom destination",
+              "status": "passed",
+              "title": "explicit off skips forwarding while other inboxes use the default or their custom destination",
+              "duration": 32,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "duplicate SMTP delivery never forwards twice or adopts a changed destination",
+              "status": "passed",
+              "title": "duplicate SMTP delivery never forwards twice or adopts a changed destination",
+              "duration": 21,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "enabling a default never replays an earlier skipped message",
+              "status": "passed",
+              "title": "enabling a default never replays an earlier skipped message",
+              "duration": 18,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "simultaneous duplicates share one native attempt",
+              "status": "passed",
+              "title": "simultaneous duplicates share one native attempt",
+              "duration": 28,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "a native exception retains mail, reports unknown and cannot cause an automatic resend",
+              "status": "passed",
+              "title": "a native exception retains mail, reports unknown and cannot cause an automatic resend",
+              "duration": 24,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "loop markers and a withdrawn allowlist block disclosure without losing original mail",
+              "status": "passed",
+              "title": "loop markers and a withdrawn allowlist block disclosure without losing original mail",
+              "duration": 21,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "raw-storage failure prevents forwarding",
+              "status": "passed",
+              "title": "raw-storage failure prevents forwarding",
+              "duration": 13,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "raw-index repair restores forwarding intent but never performs a native forward",
+              "status": "passed",
+              "title": "raw-index repair restores forwarding intent but never performs a native forward",
+              "duration": 19,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "stale recovery and late completion preserve unknown without repeating a native call",
+              "status": "passed",
+              "title": "stale recovery and late completion preserve unknown without repeating a native call",
+              "duration": 23,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "racing first receipts preserve the winning raw snapshot across a global-setting change",
+              "status": "passed",
+              "title": "racing first receipts preserve the winning raw snapshot across a global-setting change",
+              "duration": 22,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "a disabled recipient cannot admit a native forward",
+              "status": "passed",
+              "title": "a disabled recipient cannot admit a native forward",
+              "duration": 18,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "disabling after retention but before the native claim prevents forwarding",
+              "status": "passed",
+              "title": "disabling after retention but before the native claim prevents forwarding",
+              "duration": 22,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "a D1 failure after raw persistence is repaired from the original metadata",
+              "status": "passed",
+              "title": "a D1 failure after raw persistence is repaired from the original metadata",
+              "duration": 38,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "queue outage and duplicate recovery preserve one message and one received event",
+              "status": "passed",
+              "title": "queue outage and duplicate recovery preserve one message and one received event",
+              "duration": 32,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "failures before parsed storage and before ready commit retain the original and recover",
+              "status": "passed",
+              "title": "failures before parsed storage and before ready commit retain the original and recover",
+              "duration": 26,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "poisoned first page cannot starve healthy later raw objects and stays visible in health",
+              "status": "passed",
+              "title": "poisoned first page cannot starve healthy later raw objects and stays visible in health",
+              "duration": 32,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "orphaned inbox metadata is reported, retried and cleared after the inbox is restored",
+              "status": "passed",
+              "title": "orphaned inbox metadata is reported, retried and cleared after the inbox is restored",
+              "duration": 24,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "cursor commit failure repeats safe inserts without downgrading ready messages",
+              "status": "passed",
+              "title": "cursor commit failure repeats safe inserts without downgrading ready messages",
+              "duration": 24,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "failed inbound republishing does not prevent outbound republishing",
+              "status": "passed",
+              "title": "failed inbound republishing does not prevent outbound republishing",
+              "duration": 20,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            },
+            {
+              "ancestorTitles": [],
+              "fullName": "failed attention persistence keeps the cursor before the poisoned original",
+              "status": "passed",
+              "title": "failed attention persistence keeps the cursor before the poisoned original",
+              "duration": 20,
+              "failureMessages": [],
+              "meta": {},
+              "tags": [],
+              "benchmarks": []
+            }
+          ]
+        }
+      },
+      "selftest": {
+        "baseline": "result.json",
+        "mutations": [
+          {
+            "name": "poison",
+            "checks": ["EventuallyReady"],
+            "baseline": "replay",
+            "model": "violated",
+            "source": "assertion-failed"
+          },
+          {
+            "name": "retention",
+            "checks": ["OriginalRetained", "IndexHasOriginal"],
+            "baseline": "replay",
+            "model": "violated",
+            "source": "assertion-failed"
+          },
+          {
+            "name": "ready",
+            "checks": ["ReadyHasParsed"],
+            "baseline": "replay",
+            "model": "violated",
+            "source": "assertion-failed"
+          },
+          {
+            "name": "attention",
+            "checks": ["PoisonVisible"],
+            "baseline": "replay",
+            "model": "violated",
+            "source": "assertion-failed"
+          },
+          {
+            "name": "forward-snapshot",
+            "checks": ["SnapshotPreserved"],
+            "baseline": "replay",
+            "model": "violated",
+            "source": "assertion-failed"
+          },
+          {
+            "name": "forward-claim",
+            "checks": ["NoBlindRetry", "AtMostOneForward"],
+            "baseline": "replay",
+            "model": "violated",
+            "source": "assertion-failed"
+          },
+          {
+            "name": "forward-retry",
+            "checks": ["NoBlindRetry"],
+            "baseline": "replay",
+            "model": "violated",
+            "source": "assertion-failed"
+          },
+          {
+            "name": "forward-policy",
+            "checks": ["TrustedDestination"],
+            "baseline": "replay",
+            "model": "violated",
+            "source": "assertion-failed"
+          }
+        ],
+        "sourceMutations": [],
+        "sourceFiles": [
+          {
+            "path": "src/inbound.ts",
+            "sha256": "e8920d4427ec3b4267e2f310fbadc7be63ef0d4aae12760425ef1149a6df9110"
+          },
+          {
+            "path": "src/bounded-json.ts",
+            "sha256": "1a847ef629c4712a81bd83261c8f8728db149456cf32a59d116927721cd503b0"
+          },
+          {
+            "path": "src/common.ts",
+            "sha256": "0d5fa58e68a91660a16c74e29610c39e984053ff125e9e013459ede5b54b21a9"
+          },
+          {
+            "path": "src/mail-storage.ts",
+            "sha256": "44f0b535e851a584e6a5453d9950724a2452bf148ae0c57d6ceb8ed3df98e70b"
+          },
+          {
+            "path": "src/queue-jobs.ts",
+            "sha256": "2c508fea249f7a35542d41e1cfaa7d9c810be3f760e2e4a84f1c39c53b6a92c8"
+          },
+          {
+            "path": "src/forwarding.ts",
+            "sha256": "783742f249425146b4dd2a131d36c7cf5f7cacb854bf512fad322675b2c9d073"
+          },
+          {
+            "path": "src/forwarding-policy.ts",
+            "sha256": "02137ac6ff761c8fefb2188bed814d4b3434d338dd14677ae9bb3552c966825c"
+          },
+          {
+            "path": "src/forwarding-store.ts",
+            "sha256": "62b618c6febd800e1c2dea630620e74a159dd640e18d2b55c37490d9f6ab02f5"
+          },
+          {
+            "path": "migrations/0007_forwarding.sql",
+            "sha256": "bc033db783daf2525f5c45f926512c5a2cff403db58f0b92016fe2172865c6d1"
+          },
+          {
+            "path": "src/maintenance.ts",
+            "sha256": "d905d33bb67f5e99626daf6851631f02233947c013d652f454529ec3399144bb"
+          },
+          {
+            "path": "src/index.ts",
+            "sha256": "c2d5869b1e73017e2475d1922602f884e4ecf31e871d946d3df5a06d284f9403"
+          },
+          {
+            "path": "src/api.ts",
+            "sha256": "9933a20461125e8761975577ec65b86e5ab7c64cb77f0cbeb3e62f59eb64ecb1"
+          },
+          {
+            "path": "src/inbox-metadata.ts",
+            "sha256": "98e7834eaf98d9373081f043a9448a817a77f97dbdef09ef8f811b404cfd2213"
+          },
+          {
+            "path": "migrations/0001_mail.sql",
+            "sha256": "19e4db34a1f7703fea52aff0af80511d09f2f14c32a3d919f4d04cbfb9b19953"
+          },
+          {
+            "path": "migrations/0002_events.sql",
+            "sha256": "1f1beb2e59e4aec125c0f82009a5abc8a2e0e1183f844ce862748c43718df820"
+          },
+          {
+            "path": "migrations/0003_raw_recovery.sql",
+            "sha256": "657488eada56313dd675661fe39e300c187e766f31f0ac298f5d7a16449aede5"
+          },
+          {
+            "path": "migrations/0009_recovery_indexes.sql",
+            "sha256": "5753592db41664b3cccdf0692a03e96aab66608ef52e568a546e3506aee9323d"
+          },
+          {
+            "path": "wrangler.jsonc",
+            "sha256": "3536298f0182c204767d0958364f47378a33bc22b33fa154a403259ba99d82bb"
+          }
+        ]
+      }
+    },
+    "attachments": {
+      "baseline": {
+        "bounds": {
+          "inboxes": 2,
+          "immutableFiles": 2,
+          "concurrentRequests": 2,
+          "idempotencyKeys": 1,
+          "storageFaults": 1
+        },
+        "assumptions": [
+          "Collision-free content and descriptor hashes",
+          "Atomic D1 uniqueness and conditional R2 puts",
+          "One immutable R2 GET snapshot",
+          "Provider ambiguity and actor fencing remain covered by Outbound.tla"
+        ],
+        "checks": [
+          {
+            "name": "upload",
+            "outcome": "passed"
+          },
+          {
+            "name": "isolation",
+            "outcome": "passed"
+          },
+          {
+            "name": "queue",
+            "outcome": "passed"
+          },
+          {
+            "name": "prepare",
+            "outcome": "passed"
+          }
+        ],
+        "sourceMutations": [],
+        "sources": [
+          {
+            "path": "src/attachments.ts",
+            "sha256": "34ba038278c8fd453fa0d0d78c6284ad81a8b19dd0505106a60b05986c16ba6d"
+          },
+          {
+            "path": "src/attachment-policy.ts",
+            "sha256": "2b638e65863e54bdfc8d2524551bd1d6866db431c5504e8a41ba1bbc390ae8c1"
+          },
+          {
+            "path": "src/api.ts",
+            "sha256": "9933a20461125e8761975577ec65b86e5ab7c64cb77f0cbeb3e62f59eb64ecb1"
+          },
+          {
+            "path": "src/outbound.ts",
+            "sha256": "c879d49d84d23561b9fbb979df72b55606129967f4370aed7f2f99efb5f4eb8b"
+          },
+          {
+            "path": "src/outbound-mime.ts",
+            "sha256": "ed4f4f38af04e390ce70521e0be5cf3a60d79100ba8928d50744f71815f2eee7"
+          },
+          {
+            "path": "src/common.ts",
+            "sha256": "0d5fa58e68a91660a16c74e29610c39e984053ff125e9e013459ede5b54b21a9"
+          }
+        ]
+      },
+      "selftest": {
+        "bounds": {
+          "inboxes": 2,
+          "immutableFiles": 2,
+          "concurrentRequests": 2,
+          "idempotencyKeys": 1,
+          "storageFaults": 1
+        },
+        "assumptions": [
+          "Collision-free content and descriptor hashes",
+          "Atomic D1 uniqueness and conditional R2 puts",
+          "One immutable R2 GET snapshot",
+          "Provider ambiguity and actor fencing remain covered by Outbound.tla"
+        ],
+        "checks": [
+          {
+            "name": "upload",
+            "outcome": "passed"
+          },
+          {
+            "name": "isolation",
+            "outcome": "passed"
+          },
+          {
+            "name": "queue",
+            "outcome": "passed"
+          },
+          {
+            "name": "prepare",
+            "outcome": "passed"
+          },
+          {
+            "name": "conditional-put",
+            "outcome": "mutation-detected"
+          },
+          {
+            "name": "inbox-binding",
+            "outcome": "mutation-detected"
+          },
+          {
+            "name": "payload-hash",
+            "outcome": "mutation-detected"
+          },
+          {
+            "name": "integrity",
+            "outcome": "mutation-detected"
+          },
+          {
+            "name": "missing-object-validation",
+            "outcome": "mutation-detected"
+          },
+          {
+            "name": "snapshot",
+            "outcome": "mutation-detected"
+          }
+        ],
+        "sourceMutations": [
+          {
+            "name": "inbox-binding",
+            "baseline": "passed",
+            "mutation": "assertion-failed"
+          },
+          {
+            "name": "integrity",
+            "baseline": "passed",
+            "mutation": "assertion-failed"
+          }
+        ],
+        "sources": [
+          {
+            "path": "src/attachments.ts",
+            "sha256": "34ba038278c8fd453fa0d0d78c6284ad81a8b19dd0505106a60b05986c16ba6d"
+          },
+          {
+            "path": "src/attachment-policy.ts",
+            "sha256": "2b638e65863e54bdfc8d2524551bd1d6866db431c5504e8a41ba1bbc390ae8c1"
+          },
+          {
+            "path": "src/api.ts",
+            "sha256": "9933a20461125e8761975577ec65b86e5ab7c64cb77f0cbeb3e62f59eb64ecb1"
+          },
+          {
+            "path": "src/outbound.ts",
+            "sha256": "c879d49d84d23561b9fbb979df72b55606129967f4370aed7f2f99efb5f4eb8b"
+          },
+          {
+            "path": "src/outbound-mime.ts",
+            "sha256": "ed4f4f38af04e390ce70521e0be5cf3a60d79100ba8928d50744f71815f2eee7"
+          },
+          {
+            "path": "src/common.ts",
+            "sha256": "0d5fa58e68a91660a16c74e29610c39e984053ff125e9e013459ede5b54b21a9"
+          }
+        ]
+      }
+    },
+    "webhooks": {
+      "baseline": {
+        "bounds": {
+          "inboxes": 2,
+          "coordinatorIncarnations": 3,
+          "configurationWrites": 2,
+          "deliveryClaims": 2,
+          "messagesPerInbox": 1,
+          "logicalSendCalls": 2
+        },
+        "assumptions": [
+          "Atomic D1 writes, triggers, uniqueness and conditional updates",
+          "Monotonic SQLite ownership fences; no await between fence and fetch initiation",
+          "Webhook retries are at-least-once and preserve their delivery identity; receivers deduplicate",
+          "Distinct generated UUIDv4 values are collision-free within this finite model",
+          "Cryptography, exact-origin validation, HTTP behavior and elapsed timeout arithmetic require real-code tests",
+          "The existing outbound model independently protects email unknown-outcome non-retry"
+        ],
+        "sourceMutations": [],
+        "realCodeReplays": 8,
+        "checks": [
+          {
+            "name": "outbound-dispatch-barrier",
+            "checks": [
+              {
+                "check": "TypeOK",
+                "outcome": "passed"
+              },
+              {
+                "check": "NoObsoleteDispatch",
+                "outcome": "passed"
+              }
+            ],
+            "generatedStates": 61,
+            "distinctStates": 39
+          },
+          {
+            "name": "dispatch-barrier",
+            "checks": [
+              {
+                "check": "TypeOK",
+                "outcome": "passed"
+              },
+              {
+                "check": "NoObsoleteDispatch",
+                "outcome": "passed"
+              }
+            ],
+            "generatedStates": 121,
+            "distinctStates": 77
+          },
+          {
+            "name": "configuration",
+            "checks": [
+              {
+                "check": "TypeOK",
+                "outcome": "passed"
+              },
+              {
+                "check": "NoStaleConfiguration",
+                "outcome": "passed"
+              }
+            ],
+            "generatedStates": 5,
+            "distinctStates": 4
+          },
+          {
+            "name": "delivery",
+            "checks": [
+              {
+                "check": "TypeOK",
+                "outcome": "passed"
+              },
+              {
+                "check": "NoObsoleteDispatch",
+                "outcome": "passed"
+              },
+              {
+                "check": "ImmutableDestination",
+                "outcome": "passed"
+              },
+              {
+                "check": "ConditionalClaim",
+                "outcome": "passed"
+              },
+              {
+                "check": "ClaimBoundSettlement",
+                "outcome": "passed"
+              }
+            ],
+            "generatedStates": 310,
+            "distinctStates": 177
+          },
+          {
+            "name": "events",
+            "checks": [
+              {
+                "check": "TypeOK",
+                "outcome": "passed"
+              },
+              {
+                "check": "InboxIsolation",
+                "outcome": "passed"
+              },
+              {
+                "check": "ImmutableEventIdentity",
+                "outcome": "passed"
+              },
+              {
+                "check": "OneEventPerTransition",
+                "outcome": "passed"
+              }
+            ],
+            "generatedStates": 14,
+            "distinctStates": 10
+          },
+          {
+            "name": "generated-key",
+            "checks": [
+              {
+                "check": "TypeOK",
+                "outcome": "passed"
+              },
+              {
+                "check": "KeyRetained",
+                "outcome": "passed"
+              },
+              {
+                "check": "NoImplicitRetry",
+                "outcome": "passed"
+              },
+              {
+                "check": "RequestKeyBound",
+                "outcome": "passed"
+              },
+              {
+                "check": "SelectionPolicy",
+                "outcome": "passed"
+              }
+            ],
+            "generatedStates": 41,
+            "distinctStates": 25
+          },
+          {
+            "name": "explicit-key",
+            "checks": [
+              {
+                "check": "TypeOK",
+                "outcome": "passed"
+              },
+              {
+                "check": "KeyRetained",
+                "outcome": "passed"
+              },
+              {
+                "check": "NoImplicitRetry",
+                "outcome": "passed"
+              },
+              {
+                "check": "RequestKeyBound",
+                "outcome": "passed"
+              },
+              {
+                "check": "SelectionPolicy",
+                "outcome": "passed"
+              }
+            ],
+            "generatedStates": 41,
+            "distinctStates": 25
+          }
+        ],
+        "sources": [
+          {
+            "path": "src/webhook-delivery.ts",
+            "sha256": "cb7c87a0a97ec70f586d99a4d79c3a121543f1dfe3aad75d735c05b5a2ca6c38"
+          },
+          {
+            "path": "src/webhooks.ts",
+            "sha256": "1d768a052e37b0598a7e6fb8a9554571d176d5b08d5eccc8b1f5fe881de0b515"
+          },
+          {
+            "path": "src/webhook-policy.ts",
+            "sha256": "68dc17d668f4162b6d3f3a46373e33e9257f573612848383fcb0021a2a5f684a"
+          },
+          {
+            "path": "src/webhook-crypto.ts",
+            "sha256": "ea7f2ee6e47c12621644b2d0496679869f12b6abb1d11f8e85a85f9ee3d03596"
+          },
+          {
+            "path": "src/webhook-store.ts",
+            "sha256": "b5056e53c6aacd00c5f330206e44eca46db7153c68fa2b134900834c7a1f019d"
+          },
+          {
+            "path": "src/coordinator.ts",
+            "sha256": "3eead6e30132df24273821c65840d8170c9e62cda123c3de9815f318276b9ebf"
+          },
+          {
+            "path": "src/inbound.ts",
+            "sha256": "e8920d4427ec3b4267e2f310fbadc7be63ef0d4aae12760425ef1149a6df9110"
+          },
+          {
+            "path": "src/api.ts",
+            "sha256": "9933a20461125e8761975577ec65b86e5ab7c64cb77f0cbeb3e62f59eb64ecb1"
+          },
+          {
+            "path": "src/events.ts",
+            "sha256": "05502c3a83b7df09152e8eddc2bca9026df7d907ab42814f5a62dd766029c235"
+          },
+          {
+            "path": "src/inbox-metadata.ts",
+            "sha256": "98e7834eaf98d9373081f043a9448a817a77f97dbdef09ef8f811b404cfd2213"
+          },
+          {
+            "path": "src/maintenance.ts",
+            "sha256": "d905d33bb67f5e99626daf6851631f02233947c013d652f454529ec3399144bb"
+          },
+          {
+            "path": "src/queue-jobs.ts",
+            "sha256": "2c508fea249f7a35542d41e1cfaa7d9c810be3f760e2e4a84f1c39c53b6a92c8"
+          },
+          {
+            "path": "src/index.ts",
+            "sha256": "c2d5869b1e73017e2475d1922602f884e4ecf31e871d946d3df5a06d284f9403"
+          },
+          {
+            "path": "src/idempotency.ts",
+            "sha256": "2edd6fe7d50f78d8fe57daad2926d90365b35fd1eefcf572b965d2132c899c41"
+          },
+          {
+            "path": "src/client.ts",
+            "sha256": "1506442906598936865fdd6da6a47d0e1281fce25e33b4195deba1070c74f823"
+          },
+          {
+            "path": "src/outbound.ts",
+            "sha256": "c879d49d84d23561b9fbb979df72b55606129967f4370aed7f2f99efb5f4eb8b"
+          },
+          {
+            "path": "src/dispatch-barrier.ts",
+            "sha256": "0a096c0ea4716b910b4c8cb6764621676cd3005adcf76e936d27755503fee65d"
+          },
+          {
+            "path": "migrations/0006_inbox_webhooks.sql",
+            "sha256": "f7502d26e44c92427b4415d27eb2f2c67c798739b8bbdd2f02e24df404fd52f2"
+          },
+          {
+            "path": "migrations/0009_recovery_indexes.sql",
+            "sha256": "5753592db41664b3cccdf0692a03e96aab66608ef52e568a546e3506aee9323d"
+          },
+          {
+            "path": "wrangler.jsonc",
+            "sha256": "3536298f0182c204767d0958364f47378a33bc22b33fa154a403259ba99d82bb"
+          }
+        ]
+      },
+      "selftest": {
+        "bounds": {
+          "inboxes": 2,
+          "coordinatorIncarnations": 3,
+          "configurationWrites": 2,
+          "deliveryClaims": 2,
+          "messagesPerInbox": 1,
+          "logicalSendCalls": 2
+        },
+        "assumptions": [
+          "Atomic D1 writes, triggers, uniqueness and conditional updates",
+          "Monotonic SQLite ownership fences; no await between fence and fetch initiation",
+          "Webhook retries are at-least-once and preserve their delivery identity; receivers deduplicate",
+          "Distinct generated UUIDv4 values are collision-free within this finite model",
+          "Cryptography, exact-origin validation, HTTP behavior and elapsed timeout arithmetic require real-code tests",
+          "The existing outbound model independently protects email unknown-outcome non-retry"
+        ],
+        "sourceMutations": [
+          {
+            "name": "configuration-version",
+            "baseline": "passed",
+            "mutation": "assertion-failed"
+          },
+          {
+            "name": "conditional-claim",
+            "baseline": "passed",
+            "mutation": "assertion-failed"
+          },
+          {
+            "name": "ownership-fence",
+            "baseline": "passed",
+            "mutation": "assertion-failed"
+          },
+          {
+            "name": "claim-token",
+            "baseline": "passed",
+            "mutation": "assertion-failed"
+          },
+          {
+            "name": "dispatch-barrier",
+            "baseline": "passed",
+            "mutation": "assertion-failed"
+          }
+        ],
+        "realCodeReplays": 8,
+        "checks": [
+          {
+            "name": "outbound-dispatch-barrier",
+            "checks": [
+              {
+                "check": "TypeOK",
+                "outcome": "passed"
+              },
+              {
+                "check": "NoObsoleteDispatch",
+                "outcome": "passed"
+              }
+            ],
+            "generatedStates": 61,
+            "distinctStates": 39
+          },
+          {
+            "name": "dispatch-barrier",
+            "checks": [
+              {
+                "check": "TypeOK",
+                "outcome": "passed"
+              },
+              {
+                "check": "NoObsoleteDispatch",
+                "outcome": "passed"
+              }
+            ],
+            "generatedStates": 121,
+            "distinctStates": 77
+          },
+          {
+            "name": "configuration",
+            "checks": [
+              {
+                "check": "TypeOK",
+                "outcome": "passed"
+              },
+              {
+                "check": "NoStaleConfiguration",
+                "outcome": "passed"
+              }
+            ],
+            "generatedStates": 5,
+            "distinctStates": 4
+          },
+          {
+            "name": "delivery",
+            "checks": [
+              {
+                "check": "TypeOK",
+                "outcome": "passed"
+              },
+              {
+                "check": "NoObsoleteDispatch",
+                "outcome": "passed"
+              },
+              {
+                "check": "ImmutableDestination",
+                "outcome": "passed"
+              },
+              {
+                "check": "ConditionalClaim",
+                "outcome": "passed"
+              },
+              {
+                "check": "ClaimBoundSettlement",
+                "outcome": "passed"
+              }
+            ],
+            "generatedStates": 310,
+            "distinctStates": 177
+          },
+          {
+            "name": "events",
+            "checks": [
+              {
+                "check": "TypeOK",
+                "outcome": "passed"
+              },
+              {
+                "check": "InboxIsolation",
+                "outcome": "passed"
+              },
+              {
+                "check": "ImmutableEventIdentity",
+                "outcome": "passed"
+              },
+              {
+                "check": "OneEventPerTransition",
+                "outcome": "passed"
+              }
+            ],
+            "generatedStates": 14,
+            "distinctStates": 10
+          },
+          {
+            "name": "generated-key",
+            "checks": [
+              {
+                "check": "TypeOK",
+                "outcome": "passed"
+              },
+              {
+                "check": "KeyRetained",
+                "outcome": "passed"
+              },
+              {
+                "check": "NoImplicitRetry",
+                "outcome": "passed"
+              },
+              {
+                "check": "RequestKeyBound",
+                "outcome": "passed"
+              },
+              {
+                "check": "SelectionPolicy",
+                "outcome": "passed"
+              }
+            ],
+            "generatedStates": 41,
+            "distinctStates": 25
+          },
+          {
+            "name": "explicit-key",
+            "checks": [
+              {
+                "check": "TypeOK",
+                "outcome": "passed"
+              },
+              {
+                "check": "KeyRetained",
+                "outcome": "passed"
+              },
+              {
+                "check": "NoImplicitRetry",
+                "outcome": "passed"
+              },
+              {
+                "check": "RequestKeyBound",
+                "outcome": "passed"
+              },
+              {
+                "check": "SelectionPolicy",
+                "outcome": "passed"
+              }
+            ],
+            "generatedStates": 41,
+            "distinctStates": 25
+          }
+        ],
+        "sources": [
+          {
+            "path": "src/webhook-delivery.ts",
+            "sha256": "cb7c87a0a97ec70f586d99a4d79c3a121543f1dfe3aad75d735c05b5a2ca6c38"
+          },
+          {
+            "path": "src/webhooks.ts",
+            "sha256": "1d768a052e37b0598a7e6fb8a9554571d176d5b08d5eccc8b1f5fe881de0b515"
+          },
+          {
+            "path": "src/webhook-policy.ts",
+            "sha256": "68dc17d668f4162b6d3f3a46373e33e9257f573612848383fcb0021a2a5f684a"
+          },
+          {
+            "path": "src/webhook-crypto.ts",
+            "sha256": "ea7f2ee6e47c12621644b2d0496679869f12b6abb1d11f8e85a85f9ee3d03596"
+          },
+          {
+            "path": "src/webhook-store.ts",
+            "sha256": "b5056e53c6aacd00c5f330206e44eca46db7153c68fa2b134900834c7a1f019d"
+          },
+          {
+            "path": "src/coordinator.ts",
+            "sha256": "3eead6e30132df24273821c65840d8170c9e62cda123c3de9815f318276b9ebf"
+          },
+          {
+            "path": "src/inbound.ts",
+            "sha256": "e8920d4427ec3b4267e2f310fbadc7be63ef0d4aae12760425ef1149a6df9110"
+          },
+          {
+            "path": "src/api.ts",
+            "sha256": "9933a20461125e8761975577ec65b86e5ab7c64cb77f0cbeb3e62f59eb64ecb1"
+          },
+          {
+            "path": "src/events.ts",
+            "sha256": "05502c3a83b7df09152e8eddc2bca9026df7d907ab42814f5a62dd766029c235"
+          },
+          {
+            "path": "src/inbox-metadata.ts",
+            "sha256": "98e7834eaf98d9373081f043a9448a817a77f97dbdef09ef8f811b404cfd2213"
+          },
+          {
+            "path": "src/maintenance.ts",
+            "sha256": "d905d33bb67f5e99626daf6851631f02233947c013d652f454529ec3399144bb"
+          },
+          {
+            "path": "src/queue-jobs.ts",
+            "sha256": "2c508fea249f7a35542d41e1cfaa7d9c810be3f760e2e4a84f1c39c53b6a92c8"
+          },
+          {
+            "path": "src/index.ts",
+            "sha256": "c2d5869b1e73017e2475d1922602f884e4ecf31e871d946d3df5a06d284f9403"
+          },
+          {
+            "path": "src/idempotency.ts",
+            "sha256": "2edd6fe7d50f78d8fe57daad2926d90365b35fd1eefcf572b965d2132c899c41"
+          },
+          {
+            "path": "src/client.ts",
+            "sha256": "1506442906598936865fdd6da6a47d0e1281fce25e33b4195deba1070c74f823"
+          },
+          {
+            "path": "src/outbound.ts",
+            "sha256": "c879d49d84d23561b9fbb979df72b55606129967f4370aed7f2f99efb5f4eb8b"
+          },
+          {
+            "path": "src/dispatch-barrier.ts",
+            "sha256": "0a096c0ea4716b910b4c8cb6764621676cd3005adcf76e936d27755503fee65d"
+          },
+          {
+            "path": "migrations/0006_inbox_webhooks.sql",
+            "sha256": "f7502d26e44c92427b4415d27eb2f2c67c798739b8bbdd2f02e24df404fd52f2"
+          },
+          {
+            "path": "migrations/0009_recovery_indexes.sql",
+            "sha256": "5753592db41664b3cccdf0692a03e96aab66608ef52e568a546e3506aee9323d"
+          },
+          {
+            "path": "wrangler.jsonc",
+            "sha256": "3536298f0182c204767d0958364f47378a33bc22b33fa154a403259ba99d82bb"
+          }
+        ],
+        "mutations": [
+          {
+            "name": "outbound-delayed-projection-barrier",
+            "check": "NoObsoleteDispatch",
+            "outcome": "mutation-detected"
+          },
+          {
+            "name": "outbound-barrier-final-fence",
+            "check": "NoObsoleteDispatch",
+            "outcome": "mutation-detected"
+          },
+          {
+            "name": "delayed-projection-barrier",
+            "check": "NoObsoleteDispatch",
+            "outcome": "mutation-detected"
+          },
+          {
+            "name": "barrier-final-fence",
+            "check": "NoObsoleteDispatch",
+            "outcome": "mutation-detected"
+          },
+          {
+            "name": "configuration-version",
+            "check": "NoStaleConfiguration",
+            "outcome": "mutation-detected"
+          },
+          {
+            "name": "ownership-fence",
+            "check": "NoObsoleteDispatch",
+            "outcome": "mutation-detected"
+          },
+          {
+            "name": "conditional-claim",
+            "check": "ConditionalClaim",
+            "outcome": "mutation-detected"
+          },
+          {
+            "name": "claim-token-settlement",
+            "check": "ClaimBoundSettlement",
+            "outcome": "mutation-detected"
+          },
+          {
+            "name": "inbox-isolation",
+            "check": "InboxIsolation",
+            "outcome": "mutation-detected"
+          },
+          {
+            "name": "event-identity",
+            "check": "ImmutableEventIdentity",
+            "outcome": "mutation-detected"
+          },
+          {
+            "name": "failure-key",
+            "check": "KeyRetained",
+            "outcome": "mutation-detected"
+          },
+          {
+            "name": "implicit-retry",
+            "check": "NoImplicitRetry",
+            "outcome": "mutation-detected"
+          }
+        ]
+      }
+    }
+  },
+  "charts": [
+    {
+      "scenario": "outbound",
+      "summary": {
+        "view": "customer",
+        "modelStates": 8494,
+        "modelTransitions": 21371,
+        "chartStates": 21,
+        "chartTransitions": 20,
+        "chartStatus": {
+          "works": 40,
+          "wrong": 0,
+          "fixed": 0,
+          "mixed": 0,
+          "after": 0
+        },
+        "mixedStatus": [],
+        "cover": {
+          "drawn": true,
+          "states": 40,
+          "transitions": 101,
+          "leftOutStates": [
+            "Inbox disabled; Attachments verified; ready to check ownership; sending; accepted 0",
+            "Inbox disabled; Attachments verified; ready to check ownership; unknown; accepted 0",
+            "Inbox disabled; Earlier check said inbox disabled; unknown; accepted 0",
+            "Inbox disabled; Earlier check said inbox enabled; sending; accepted 0",
+            "Inbox disabled; Earlier check said inbox enabled; unknown; accepted 0",
+            "Inbox disabled; No provider call running; sending; accepted 1",
+            "Inbox disabled; Provider request in flight; sending; accepted 0",
+            "Inbox disabled; Provider request in flight; unknown; accepted 0",
+            "Inbox disabled; Send result awaits saving; sending; accepted 1",
+            "Inbox disabled; Send result awaits saving; unknown; accepted 0",
+            "Inbox disabled; Send result awaits saving; unknown; accepted 1",
+            "Inbox disabled; Worker claimed request; unknown; accepted 0",
+            "Inbox enabled; Attachments verified; ready to check ownership; unknown; accepted 0",
+            "Inbox enabled; Earlier check said inbox enabled; unknown; accepted 0",
+            "Inbox enabled; No provider call running; sending; accepted 1",
+            "Inbox enabled; Provider request in flight; unknown; accepted 0",
+            "Inbox enabled; Send result awaits saving; unknown; accepted 0",
+            "Inbox enabled; Send result awaits saving; unknown; accepted 1",
+            "Inbox enabled; Worker claimed request; unknown; accepted 0"
+          ],
+          "leftOutTransitions": [
+            "Inbox disabled; Attachments verified; ready to check ownership; sending; accepted 0 --> Inbox disabled; Attachments verified; ready to check ownership; unknown; accepted 0: Cron marks stale request outcome unknown",
+            "Inbox disabled; Attachments verified; ready to check ownership; sending; accepted 0 --> Inbox disabled; No provider call running; sending; accepted 0: Stop the old actor before it can send or Worker stops at an await",
+            "Inbox disabled; Attachments verified; ready to check ownership; unknown; accepted 0 --> Inbox disabled; No provider call running; unknown; accepted 0: Stop the old actor before it can send or Worker stops at an await",
+            "Inbox disabled; Earlier check said inbox disabled; sending; accepted 0 --> Inbox disabled; Earlier check said inbox disabled; unknown; accepted 0: Cron marks stale request outcome unknown",
+            "Inbox disabled; Earlier check said inbox disabled; sending; accepted 0 --> Inbox disabled; No provider call running; sending; accepted 0: Worker stops at an await",
+            "Inbox disabled; Earlier check said inbox disabled; unknown; accepted 0 --> Inbox disabled; No provider call running; unknown; accepted 0: Worker stops at an await",
+            "Inbox disabled; Earlier check said inbox disabled; unknown; accepted 0 --> Inbox disabled; Send result awaits saving; unknown; accepted 0: Reject a disabled inbox",
+            "Inbox disabled; Earlier check said inbox enabled; sending; accepted 0 --> Inbox disabled; Attachments verified; ready to check ownership; sending; accepted 0: Read and verify private attachments",
+            "Inbox disabled; Earlier check said inbox enabled; sending; accepted 0 --> Inbox disabled; Earlier check said inbox enabled; unknown; accepted 0: Cron marks stale request outcome unknown",
+            "Inbox disabled; Earlier check said inbox enabled; sending; accepted 0 --> Inbox disabled; No provider call running; sending; accepted 0: Worker stops at an await",
+            "Inbox disabled; Earlier check said inbox enabled; sending; accepted 0 --> Inbox disabled; Send result awaits saving; sending; accepted 0: Stop before provider; missing, invalid or unavailable attachment",
+            "Inbox disabled; Earlier check said inbox enabled; unknown; accepted 0 --> Inbox disabled; Attachments verified; ready to check ownership; unknown; accepted 0: Read and verify private attachments",
+            "Inbox disabled; Earlier check said inbox enabled; unknown; accepted 0 --> Inbox disabled; No provider call running; unknown; accepted 0: Worker stops at an await",
+            "Inbox disabled; Earlier check said inbox enabled; unknown; accepted 0 --> Inbox disabled; Send result awaits saving; unknown; accepted 0: Stop before provider; missing, invalid or unavailable attachment",
+            "Inbox disabled; No provider call running; sending; accepted 1 --> Inbox disabled; No provider call running; unknown; accepted 1: Cron marks stale request outcome unknown",
+            "Inbox disabled; Provider request in flight; sending; accepted 0 --> Inbox disabled; No provider call running; sending; accepted 0: Worker stops at an await",
+            "Inbox disabled; Provider request in flight; sending; accepted 0 --> Inbox disabled; No provider call running; sending; accepted 1: Worker stops at an await",
+            "Inbox disabled; Provider request in flight; sending; accepted 0 --> Inbox disabled; Provider request in flight; unknown; accepted 0: Cron marks stale request outcome unknown",
+            "Inbox disabled; Provider request in flight; sending; accepted 0 --> Inbox disabled; Send result awaits saving; sending; accepted 0: Provider replies",
+            "Inbox disabled; Provider request in flight; sending; accepted 0 --> Inbox disabled; Send result awaits saving; sending; accepted 1: Provider replies",
+            "Inbox disabled; Provider request in flight; unknown; accepted 0 --> Inbox disabled; No provider call running; unknown; accepted 0: Worker stops at an await",
+            "Inbox disabled; Provider request in flight; unknown; accepted 0 --> Inbox disabled; No provider call running; unknown; accepted 1: Worker stops at an await",
+            "Inbox disabled; Provider request in flight; unknown; accepted 0 --> Inbox disabled; Send result awaits saving; unknown; accepted 0: Provider replies",
+            "Inbox disabled; Provider request in flight; unknown; accepted 0 --> Inbox disabled; Send result awaits saving; unknown; accepted 1: Provider replies",
+            "Inbox disabled; Send result awaits saving; sending; accepted 0 --> Inbox disabled; No provider call running; sending; accepted 0: Worker stops at an await",
+            "Inbox disabled; Send result awaits saving; sending; accepted 0 --> Inbox disabled; No provider call running; unknown; accepted 0: Save provider outcome conditionally",
+            "Inbox disabled; Send result awaits saving; sending; accepted 0 --> Inbox disabled; Queued for a worker; pending; accepted 0: Save provider outcome conditionally",
+            "Inbox disabled; Send result awaits saving; sending; accepted 0 --> Inbox disabled; Send result awaits saving; unknown; accepted 0: Cron marks stale request outcome unknown",
+            "Inbox disabled; Send result awaits saving; sending; accepted 1 --> Inbox disabled; No provider call running; accepted; accepted 1: Save provider outcome conditionally",
+            "Inbox disabled; Send result awaits saving; sending; accepted 1 --> Inbox disabled; No provider call running; sending; accepted 1: Worker stops at an await",
+            "Inbox disabled; Send result awaits saving; sending; accepted 1 --> Inbox disabled; No provider call running; unknown; accepted 1: Save provider outcome conditionally",
+            "Inbox disabled; Send result awaits saving; sending; accepted 1 --> Inbox disabled; Send result awaits saving; unknown; accepted 1: Cron marks stale request outcome unknown",
+            "Inbox disabled; Send result awaits saving; unknown; accepted 0 --> Inbox disabled; No provider call running; unknown; accepted 0: Ignore a result after state changed or Worker stops at an await",
+            "Inbox disabled; Send result awaits saving; unknown; accepted 1 --> Inbox disabled; No provider call running; unknown; accepted 1: Ignore a result after state changed or Worker stops at an await",
+            "Inbox disabled; Worker claimed request; sending; accepted 0 --> Inbox disabled; Worker claimed request; unknown; accepted 0: Cron marks stale request outcome unknown",
+            "Inbox disabled; Worker claimed request; unknown; accepted 0 --> Inbox disabled; Earlier check said inbox disabled; unknown; accepted 0: Read whether inbox is enabled",
+            "Inbox disabled; Worker claimed request; unknown; accepted 0 --> Inbox disabled; No provider call running; unknown; accepted 0: Worker stops at an await",
+            "Inbox enabled; Attachments verified; ready to check ownership; sending; accepted 0 --> Inbox disabled; Attachments verified; ready to check ownership; sending; accepted 0: Admin disables inbox",
+            "Inbox enabled; Attachments verified; ready to check ownership; sending; accepted 0 --> Inbox enabled; Attachments verified; ready to check ownership; unknown; accepted 0: Cron marks stale request outcome unknown",
+            "Inbox enabled; Attachments verified; ready to check ownership; sending; accepted 0 --> Inbox enabled; No provider call running; sending; accepted 0: Worker stops at an await or Stop the old actor before it can send",
+            "Inbox enabled; Attachments verified; ready to check ownership; unknown; accepted 0 --> Inbox disabled; Attachments verified; ready to check ownership; unknown; accepted 0: Admin disables inbox",
+            "Inbox enabled; Attachments verified; ready to check ownership; unknown; accepted 0 --> Inbox enabled; No provider call running; unknown; accepted 0: Stop the old actor before it can send or Worker stops at an await",
+            "Inbox enabled; Earlier check said inbox enabled; sending; accepted 0 --> Inbox disabled; Earlier check said inbox enabled; sending; accepted 0: Admin disables inbox",
+            "Inbox enabled; Earlier check said inbox enabled; sending; accepted 0 --> Inbox enabled; Earlier check said inbox enabled; unknown; accepted 0: Cron marks stale request outcome unknown",
+            "Inbox enabled; Earlier check said inbox enabled; sending; accepted 0 --> Inbox enabled; No provider call running; sending; accepted 0: Worker stops at an await",
+            "Inbox enabled; Earlier check said inbox enabled; unknown; accepted 0 --> Inbox disabled; Earlier check said inbox enabled; unknown; accepted 0: Admin disables inbox",
+            "Inbox enabled; Earlier check said inbox enabled; unknown; accepted 0 --> Inbox enabled; Attachments verified; ready to check ownership; unknown; accepted 0: Read and verify private attachments",
+            "Inbox enabled; Earlier check said inbox enabled; unknown; accepted 0 --> Inbox enabled; No provider call running; unknown; accepted 0: Worker stops at an await",
+            "Inbox enabled; Earlier check said inbox enabled; unknown; accepted 0 --> Inbox enabled; Send result awaits saving; unknown; accepted 0: Stop before provider; missing, invalid or unavailable attachment",
+            "Inbox enabled; No provider call running; failed; accepted 0 --> Inbox disabled; No provider call running; failed; accepted 0: Admin disables inbox",
+            "Inbox enabled; No provider call running; sending; accepted 0 --> Inbox disabled; No provider call running; sending; accepted 0: Admin disables inbox",
+            "Inbox enabled; No provider call running; sending; accepted 1 --> Inbox disabled; No provider call running; sending; accepted 1: Admin disables inbox",
+            "Inbox enabled; No provider call running; sending; accepted 1 --> Inbox enabled; No provider call running; unknown; accepted 1: Cron marks stale request outcome unknown",
+            "Inbox enabled; No provider call running; unknown; accepted 0 --> Inbox disabled; No provider call running; unknown; accepted 0: Admin disables inbox",
+            "Inbox enabled; Provider request in flight; sending; accepted 0 --> Inbox disabled; Provider request in flight; sending; accepted 0: Admin disables inbox",
+            "Inbox enabled; Provider request in flight; sending; accepted 0 --> Inbox enabled; No provider call running; sending; accepted 0: Worker stops at an await",
+            "Inbox enabled; Provider request in flight; sending; accepted 0 --> Inbox enabled; No provider call running; sending; accepted 1: Worker stops at an await",
+            "Inbox enabled; Provider request in flight; sending; accepted 0 --> Inbox enabled; Provider request in flight; unknown; accepted 0: Cron marks stale request outcome unknown",
+            "Inbox enabled; Provider request in flight; sending; accepted 0 --> Inbox enabled; Send result awaits saving; sending; accepted 0: Provider replies",
+            "Inbox enabled; Provider request in flight; unknown; accepted 0 --> Inbox disabled; Provider request in flight; unknown; accepted 0: Admin disables inbox",
+            "Inbox enabled; Provider request in flight; unknown; accepted 0 --> Inbox enabled; No provider call running; unknown; accepted 0: Worker stops at an await",
+            "Inbox enabled; Provider request in flight; unknown; accepted 0 --> Inbox enabled; No provider call running; unknown; accepted 1: Worker stops at an await",
+            "Inbox enabled; Provider request in flight; unknown; accepted 0 --> Inbox enabled; Send result awaits saving; unknown; accepted 0: Provider replies",
+            "Inbox enabled; Provider request in flight; unknown; accepted 0 --> Inbox enabled; Send result awaits saving; unknown; accepted 1: Provider replies",
+            "Inbox enabled; Send result awaits saving; sending; accepted 0 --> Inbox disabled; Send result awaits saving; sending; accepted 0: Admin disables inbox",
+            "Inbox enabled; Send result awaits saving; sending; accepted 0 --> Inbox enabled; No provider call running; sending; accepted 0: Worker stops at an await",
+            "Inbox enabled; Send result awaits saving; sending; accepted 0 --> Inbox enabled; No provider call running; unknown; accepted 0: Save provider outcome conditionally",
+            "Inbox enabled; Send result awaits saving; sending; accepted 0 --> Inbox enabled; Queued for a worker; pending; accepted 0: Save provider outcome conditionally",
+            "Inbox enabled; Send result awaits saving; sending; accepted 0 --> Inbox enabled; Send result awaits saving; unknown; accepted 0: Cron marks stale request outcome unknown",
+            "Inbox enabled; Send result awaits saving; sending; accepted 1 --> Inbox disabled; Send result awaits saving; sending; accepted 1: Admin disables inbox",
+            "Inbox enabled; Send result awaits saving; sending; accepted 1 --> Inbox enabled; No provider call running; sending; accepted 1: Worker stops at an await",
+            "Inbox enabled; Send result awaits saving; sending; accepted 1 --> Inbox enabled; Send result awaits saving; unknown; accepted 1: Cron marks stale request outcome unknown",
+            "Inbox enabled; Send result awaits saving; unknown; accepted 0 --> Inbox disabled; Send result awaits saving; unknown; accepted 0: Admin disables inbox",
+            "Inbox enabled; Send result awaits saving; unknown; accepted 0 --> Inbox enabled; No provider call running; unknown; accepted 0: Ignore a result after state changed or Worker stops at an await",
+            "Inbox enabled; Send result awaits saving; unknown; accepted 1 --> Inbox disabled; Send result awaits saving; unknown; accepted 1: Admin disables inbox",
+            "Inbox enabled; Send result awaits saving; unknown; accepted 1 --> Inbox enabled; No provider call running; unknown; accepted 1: Ignore a result after state changed or Worker stops at an await",
+            "Inbox enabled; Worker claimed request; sending; accepted 0 --> Inbox disabled; Worker claimed request; sending; accepted 0: Admin disables inbox",
+            "Inbox enabled; Worker claimed request; sending; accepted 0 --> Inbox enabled; Worker claimed request; unknown; accepted 0: Cron marks stale request outcome unknown",
+            "Inbox enabled; Worker claimed request; unknown; accepted 0 --> Inbox disabled; Worker claimed request; unknown; accepted 0: Admin disables inbox",
+            "Inbox enabled; Worker claimed request; unknown; accepted 0 --> Inbox enabled; Earlier check said inbox enabled; unknown; accepted 0: Read whether inbox is enabled",
+            "Inbox enabled; Worker claimed request; unknown; accepted 0 --> Inbox enabled; No provider call running; unknown; accepted 0: Worker stops at an await"
+          ]
+        },
+        "chartGroups": [
+          {
+            "name": "Within the checked rules",
+            "color": "#d6eaf8",
+            "states": 21
+          }
+        ],
+        "mixedGroups": [],
+        "classes": [],
+        "codeLike": [],
+        "brokenProperties": []
+      },
+      "pngSha256": "83bd79db47e5b79daba4e606257a0c6ebc84a0f773f1b05fa8978458245dc3c5",
+      "visuallyInspected": true
+    },
+    {
+      "scenario": "activity",
+      "summary": {
+        "view": "customer",
+        "modelStates": 4,
+        "modelTransitions": 4,
+        "chartStates": 4,
+        "chartTransitions": 4,
+        "chartStatus": {
+          "works": 4,
+          "wrong": 0,
+          "fixed": 0,
+          "mixed": 0,
+          "after": 0
+        },
+        "mixedStatus": [],
+        "cover": {
+          "drawn": false,
+          "why": "no step in TLC's graph is a reader action"
+        },
+        "chartGroups": [
+          {
+            "name": "Within the checked rule",
+            "color": "#d6eaf8",
+            "states": 4
+          }
+        ],
+        "mixedGroups": [],
+        "classes": [],
+        "codeLike": [],
+        "brokenProperties": []
+      },
+      "pngSha256": "f72ffcd7afb2f2b891061fb88995060cfbb25ece6cf988625702d504ac0f1992",
+      "visuallyInspected": true
+    },
+    {
+      "scenario": "attachments-upload",
+      "summary": {
+        "view": "customer",
+        "modelStates": 9,
+        "modelTransitions": 12,
+        "chartStates": 9,
+        "chartTransitions": 12,
+        "chartStatus": {
+          "works": 9,
+          "wrong": 0,
+          "fixed": 0,
+          "mixed": 0,
+          "after": 0
+        },
+        "mixedStatus": [],
+        "cover": {
+          "drawn": false,
+          "why": "no step in TLC's graph is a reader action"
+        },
+        "chartGroups": [
+          {
+            "name": "Immutable stored file",
+            "color": "#d6eaf8",
+            "states": 9
+          }
+        ],
+        "mixedGroups": [],
+        "classes": [],
+        "codeLike": [],
+        "brokenProperties": []
+      },
+      "pngSha256": "df3d8e22b2822688f54be849c48db13e8e8a5f55b0bfde52005824ae5a41530f",
+      "visuallyInspected": true
+    },
+    {
+      "scenario": "attachments-isolation",
+      "summary": {
+        "view": "customer",
+        "modelStates": 24,
+        "modelTransitions": 34,
+        "chartStates": 21,
+        "chartTransitions": 32,
+        "chartStatus": {
+          "works": 21,
+          "wrong": 0,
+          "fixed": 0,
+          "mixed": 0,
+          "after": 0
+        },
+        "mixedStatus": [],
+        "cover": {
+          "drawn": false,
+          "why": "no step in TLC's graph is a reader action"
+        },
+        "chartGroups": [
+          {
+            "name": "Inbox-owned attachments under one stable key",
+            "color": "#d6eaf8",
+            "states": 21
+          }
+        ],
+        "mixedGroups": [],
+        "classes": [],
+        "codeLike": [],
+        "brokenProperties": []
+      },
+      "pngSha256": "d6fb46a5ce34b52b5142f2415d096d436434fb355ee51b2785902083c0878bb9",
+      "visuallyInspected": true
+    },
+    {
+      "scenario": "attachments-queue",
+      "summary": {
+        "view": "customer",
+        "modelStates": 45,
+        "modelTransitions": 72,
+        "chartStates": 45,
+        "chartTransitions": 72,
+        "chartStatus": {
+          "works": 45,
+          "wrong": 0,
+          "fixed": 0,
+          "mixed": 0,
+          "after": 0
+        },
+        "mixedStatus": [],
+        "cover": {
+          "drawn": false,
+          "why": "no step in TLC's graph is a reader action"
+        },
+        "chartGroups": [
+          {
+            "name": "Inbox-owned attachments under one stable key",
+            "color": "#d6eaf8",
+            "states": 45
+          }
+        ],
+        "mixedGroups": [],
+        "classes": [],
+        "codeLike": [],
+        "brokenProperties": []
+      },
+      "pngSha256": "978159fa8cfd5ae82d44fb53d05f62898b979f7207f19f21f838cd3d893a63d9",
+      "visuallyInspected": true
+    },
+    {
+      "scenario": "attachments-prepare",
+      "summary": {
+        "view": "customer",
+        "modelStates": 28,
+        "modelTransitions": 35,
+        "chartStates": 9,
+        "chartTransitions": 11,
+        "chartStatus": {
+          "works": 9,
+          "wrong": 0,
+          "fixed": 0,
+          "mixed": 0,
+          "after": 0
+        },
+        "mixedStatus": [],
+        "cover": {
+          "drawn": false,
+          "why": "no step in TLC's graph is a reader action"
+        },
+        "chartGroups": [
+          {
+            "name": "Safely stopped before sending",
+            "color": "#d6eaf8",
+            "states": 1
+          },
+          {
+            "name": "Verified attachment flow",
+            "color": "#fdebd0",
+            "states": 8
+          }
+        ],
+        "mixedGroups": [],
+        "classes": [],
+        "codeLike": [],
+        "brokenProperties": []
+      },
+      "pngSha256": "8ddb9eb3246a29f4def8991c578b3ceffda78e6e9d53928976d5e27a832c2da0",
+      "visuallyInspected": true
+    }
+  ]
+}
