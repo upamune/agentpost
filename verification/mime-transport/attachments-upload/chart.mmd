@@ -1,0 +1,43 @@
+---
+config:
+  markdownAutoWrap: false
+  state:
+    useMaxWidth: false
+---
+stateDiagram-v2
+  classDef group0 fill:#d6eaf8,stroke:#6b757c,color:#1b2631
+  state "Legend" as legend {
+    state "Immutable stored file" as legendGroup0
+  }
+  class legendGroup0 group0
+  state "First upload checking<br/>storage; second upload<br/>checking storage; existing<br/>files retained" as s0
+  state "First upload checking<br/>storage; second upload<br/>finished; existing files<br/>retained" as s1
+  state "First upload checking<br/>storage; second upload<br/>waiting to create the<br/>file; existing files<br/>retained" as s2
+  state "First upload finished;<br/>second upload checking<br/>storage; existing files<br/>retained" as s3
+  state "First upload finished;<br/>second upload finished;<br/>existing files retained" as s4
+  state "First upload finished;<br/>second upload waiting to<br/>create the file; existing<br/>files retained" as s5
+  state "First upload waiting to<br/>create the file; second<br/>upload checking storage;<br/>existing files retained" as s6
+  state "First upload waiting to<br/>create the file; second<br/>upload finished; existing<br/>files retained" as s7
+  state "First upload waiting to<br/>create the file; second<br/>upload waiting to create<br/>the file; existing files<br/>retained" as s8
+  [*] --> s0
+  s0 --> s6 : Upload observes whether its<br/>object exists
+  s0 --> s2 : Upload observes whether its<br/>object exists
+  s6 --> s3 : Upload conditionally creates<br/>its object
+  s6 --> s8 : Upload observes whether its<br/>object exists
+  s2 --> s8 : Upload observes whether its<br/>object exists
+  s2 --> s1 : Upload conditionally creates<br/>its object
+  s3 --> s4 : Upload observes whether its<br/>object exists
+  s8 --> s5 : Upload conditionally creates<br/>its object
+  s8 --> s7 : Upload conditionally creates<br/>its object
+  s1 --> s4 : Upload observes whether its<br/>object exists
+  s5 --> s4 : Upload conditionally creates<br/>its object
+  s7 --> s4 : Upload conditionally creates<br/>its object
+  class s0 group0
+  class s1 group0
+  class s2 group0
+  class s3 group0
+  class s4 group0
+  class s5 group0
+  class s6 group0
+  class s7 group0
+  class s8 group0

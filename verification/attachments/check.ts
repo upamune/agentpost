@@ -145,6 +145,7 @@ async function sourceHashes() {
       "src/attachment-policy.ts",
       "src/api.ts",
       "src/outbound.ts",
+      "src/outbound-mime.ts",
       "src/common.ts",
     ].map(async (path) => ({
       path,

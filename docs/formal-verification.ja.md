@@ -206,3 +206,11 @@ mise exec -- node .agents/skills/statechart/scripts/statechart.mjs from-spec \
 キューの不正body、D1失敗記録の障害、バッチ上限、索引選択、R2のサイズ超過・チェックサム・未読body解放は実コードの回帰テストです。今回の状態モデルはこれらのパーサー・数値制限・プラットフォーム性能を形式証明しません。[監査結果](cloudflare-audit.ja.md)のとおり、本番設定、実配達、実過負荷、任意の障害・履歴、プログラム全体の無欠陥性も保証範囲外です。
 
 `f59ee20`の追加修正では、inbox一覧とイベント取得の任意条件を索引利用可能な条件へ分けました。権限・イベント順序・カーソル範囲は維持し、モデルの状態遷移は変更しません。実コードのpollで200 inbox・2,000イベントから該当10件を50行以下の読み込みで取得する回帰テストを追加し、既存の所有権・OAuth・カーソル検証も再実行しました。SQL最適化の検証は実行時テストであり、状態モデルの証明とは分けています。
+
+## 添付MIME転送との同期（2026-10-27）
+
+製品revision `0bbbefd83b0713cdc42c8bcc518f9b1337387125`では、添付ID・変更不可のR2読み込み・条件付きclaim・送信認可・同期の所有権fence・結果確定を維持します。添付付き送信は同期処理でBase64 MIMEを作りraw APIへ渡し、添付なしは構造化APIを使います。MIME生成の失敗ではプロバイダーに要求しません。最後のfenceの後にawaitを追加せず、unknownも自動再送しません。有限状態モデルは変更していません。MIME構文・プロバイダーの書き換えはモデルの抽象化の対象外です。
+
+4領域すべてのベースライン・replay・変異検証が通り、その後に別の出力先でベースラインを再実行しました。ローカルCIはWorker 195件、クライアント・配布162件、fuzz 5件が成功しました。実際のプロバイダー要求を独立したPostalMimeで解析し、添付バイト列・Unicodeの件名と名前・本文とHTML・宛先・返信ヘッダーを照合します。ヘッダー注入とサイズ超過ではHTTP要求しないことも確認します。RFC全体の適合性・実配達の証明ではありません。
+
+関連する6図を作業用領域で再生成し目視しました：[送信](../verification/mime-transport/outbound/chart.png)、[activity](../verification/mime-transport/activity/chart.png)、[upload](../verification/mime-transport/attachments-upload/chart.png)、[isolation](../verification/mime-transport/attachments-isolation/chart.png)、[queue](../verification/mime-transport/attachments-queue/chart.png)、[準備](../verification/mime-transport/attachments-prepare/chart.png)。同じ場所にMermaidと探索範囲の要約を保存しています。`verification/cloudflare-audit/`の設定と現行モデル・マッピングを使い、前述のstatechartコマンドで再現できます。isolation・queueはどちらも`Queue.map.mjs`を使います。[結果とソースハッシュ](../verification/mime-transport/results.json)に同期内容を記録しました。SMTPの実転送は、許可された宛先で別途確認する必要があります。
