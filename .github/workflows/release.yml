@@ -31,7 +31,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+      - uses: jdx/mise-action@82a612c5ab8bcda7cc5db6b7e81a8e7584c3dc6e # v5.2.3
         with:
           version: 2026.10.17
           cache: false
@@ -90,7 +90,7 @@ jobs:
         with:
           ref: ${{ needs.build.outputs.commit }}
           persist-credentials: false
-      - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+      - uses: jdx/mise-action@82a612c5ab8bcda7cc5db6b7e81a8e7584c3dc6e # v5.2.3
         with:
           version: 2026.10.17
           install_args: bun
@@ -288,7 +288,7 @@ jobs:
       TAG: ${{ needs.build.outputs.tag }}
       SOURCE_COMMIT: ${{ needs.build.outputs.commit }}
     steps:
-      - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+      - uses: jdx/mise-action@82a612c5ab8bcda7cc5db6b7e81a8e7584c3dc6e # v5.2.3
         with:
           version: 2026.10.17
           install_args: node@24.22.1
