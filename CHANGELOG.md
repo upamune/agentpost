@@ -2,6 +2,14 @@
 
 [English](CHANGELOG.md) | [日本語](CHANGELOG.ja.md)
 
+## [v0.3.1](https://github.com/upamune/agentpost/compare/v0.3.0...v0.3.1) - 2026-11-08
+
+### Dependencies
+- Bump the nonbreaking-updates group with 3 updates by @dependabot[bot] in https://github.com/upamune/agentpost/pull/25
+- Bump jdx/mise-action from 5.2.2 to 5.2.3 by @dependabot[bot] in https://github.com/upamune/agentpost/pull/26
+### Other Changes
+- Record completed v0.3.0 release verification by @upamune in https://github.com/upamune/agentpost/pull/24
+
 ## 0.3.0
 
 - Forward incoming mail with global defaults and per-inbox inherit/custom/off settings. Retain originals, restrict destinations to verified operator-approved addresses, and block marked forwarding loops.
