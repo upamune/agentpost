@@ -1,7 +1,5 @@
 # Changelog
 
-[English](CHANGELOG.md) | [日本語](CHANGELOG.ja.md)
-
 ## 0.3.0
 
 - Forward incoming mail with global defaults and per-inbox inherit/custom/off settings. Retain originals, restrict destinations to verified operator-approved addresses, and block marked forwarding loops.
