@@ -14,6 +14,12 @@ export default defineConfig({
           AGENTPOST_CF_EMAIL_API_TOKEN: "test-provider-token",
           TEST_MIGRATIONS: await readD1Migrations("./migrations"),
         },
+        // Keep fixture producers separate from Wrangler's automatic consumers.
+        // The pool merges queueConsumers, so {} does not reliably clear them.
+        queueProducers: {
+          JOBS: "agentpost-test",
+          AGENTPOST_WEBHOOK_JOBS: "agentpost-webhooks-test",
+        },
         queueConsumers: {},
       },
     }),

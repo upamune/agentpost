@@ -36,23 +36,23 @@
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.4.0",
-    "hono": "^4.13.14",
-    "jose": "6.2.13",
-    "postal-mime": "^4.1.4",
+    "hono": "^4.13.17",
+    "jose": "6.2.16",
+    "postal-mime": "^4.2.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "^1.4.7",
-    "@cloudflare/workers-types": "^5.20261026.1",
+    "@cloudflare/vitest-plugin": "^1.6.0",
+    "@cloudflare/workers-types": "^5.20261109.1",
     "@modelcontextprotocol/client": "2.4.0",
     "@types/bun": "^1.4.4",
     "fast-check": "4.10.2",
-    "knip": "^6.43.0",
-    "oxfmt": "^0.74.0",
-    "oxlint": "^1.89.0",
+    "knip": "^6.44.2",
+    "oxfmt": "^0.77.0",
+    "oxlint": "^1.92.0",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.5",
-    "wrangler": "^4.152.0"
+    "vitest": "^5.1.0",
+    "wrangler": "^4.158.0"
   },
   "overrides": {
     "undici": "7.30.1",
