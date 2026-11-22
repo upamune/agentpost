@@ -37,6 +37,8 @@ APIは選択した[認証方式](authentication.ja.md)を使います。トー�
 | POST   | `/v1/events/poll`                                            | イベントの取得                                            |
 | GET    | `/v1/domain/check`                                           | ドメインの送信DNS・Cloudflare設定診断（管理者）           |
 | GET    | `/v1/health`                                                 | ストレージ疎通、滞留、要確認件数（管理者）                |
+| GET    | `/v1/catchall`                                               | catch-all受信箱の状態（管理者）                           |
+| POST   | `/v1/catchall`                                               | catch-all受信箱を冪等に作成（管理者）                     |
 
 一覧の`limit`は1〜100、既定値は25です。
 受信一覧の続きは応答の`next_cursor`、受信箱と送信要求の一覧の続きは`next_offset`を使って取得します。
@@ -119,3 +121,23 @@ CLI・stdio MCPの成功JSON応答は64 MiBまでです。大きなoutbox一覧�
 ## 受信メールの転送
 
 管理者専用の全体設定、受信箱ごとの継承・個別・off設定、履歴、調査記録は[転送API](forwarding.ja.md#http-apiとmcp)を参照してください。通常の認証・JSON Content-Type・サイズ・Origin・レート制限も適用します。
+
+## catch-all受信箱
+
+Email Routingはドメイン宛の全宛先をWorkerへ渡します。catch-all受信箱がない場合、受信箱レコードのない宛先にはSMTP拒否を返すため、受信箱を作る前にそのアドレスへ届いたメールは失われます。管理者は、そのようなメールを保持する隔離用の受信箱を1つ作成できます。
+
+```sh
+curl -X POST "$AGENTPOST_API_URL/v1/catchall" \
+  -H "Authorization: Bearer $AGENTPOST_API_TOKEN"
+```
+
+初回の呼び出しは`_catchall@<AGENTPOST_EMAIL_DOMAIN>`を作成し（local partは任意のWorker変数`AGENTPOST_CATCHALL_LOCAL_PART`で変更でき、規則は`local_part`と同じ）、D1の`maintenance`キー`catchall_inbox_id`に記録し、転送を`off`に設定して、201と`{"configured":true,"created":true,"inbox":{...},"forwarding":{"mode":"off"}}`を返します。トークン認証の場合は受信箱の`token`も一度だけ返すため、非公開で保存してください。2回目以降は同じ受信箱を200で返し、トークンは返しません。転送設定が変更されていれば`off`に戻します。同じアドレスを別の受信箱が使っている場合は409を返して何も変更しません。local partの設定が不正な場合は503です。`GET /v1/catchall`は何も作成せず、`{"configured":false}`または同じ状態を返します。どちらも管理者権限が必要です。
+
+SMTPの宛先ごとの受け入れ順序:
+
+1. そのアドレスの有効な受信箱があれば、従来どおりその受信箱に保存します。
+2. 無効化された受信箱はレコードが残るため、従来どおり拒否します（`Unknown or disabled recipient`）。
+3. `AGENTPOST_EMAIL_DOMAIN`上で受信箱レコードのないアドレスは、catch-all受信箱が作成済みかつ有効ならそこに保存します。そうでなければ従来どおり拒否します。他のドメインは対象外です。
+4. 10 MiBの上限は受け入れ判定の後に、catch-all宛にも適用します。
+
+catch-all宛のメールも通常の原文優先の保存処理を通ります。元の宛先はR2メタデータとD1のメッセージの`envelope_to`に残り、メッセージの識別にもその宛先を含めるため、複数の未知アドレス宛の同一MIMEは宛先ごとに1件ずつ保持します。catch-all受信箱のIDを使い、通常の受信箱APIやCLI・MCPで読めます。未知アドレス宛のメールは転送しません。全体転送や受信箱の個別設定があっても、転送判断は常に`skipped`です。`PATCH /v1/inboxes/{inbox}`でcatch-all受信箱を無効化すると拒否に戻ります。保持期間と自動削除は未実装のため、隔離したメールは手動で確認・整理してください。

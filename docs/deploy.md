@@ -14,6 +14,7 @@ All application environment variables use the `AGENTPOST_` prefix. The CLI and s
 | `AGENTPOST_API_TOKEN`                    | CLI / stdio MCP       | Admin or inbox token for the operation                                              |
 | `AGENTPOST_ADMIN_TOKEN`                  | Worker Secret         | Administration in token/both mode                                                   |
 | `AGENTPOST_EMAIL_DOMAIN`                 | `wrangler.jsonc` vars | Domain for generated addresses                                                      |
+| `AGENTPOST_CATCHALL_LOCAL_PART`          | Worker vars           | Optional catch-all inbox local part; defaults to `_catchall`                        |
 | `AGENTPOST_CF_ZONE_ID`                   | Worker vars           | Optional diagnostic zone ID                                                         |
 | `AGENTPOST_CF_SENDING_SUBDOMAIN_ID`      | Worker vars           | Optional diagnostic sending-domain ID                                               |
 | `AGENTPOST_CF_DIAGNOSTICS_API_TOKEN`     | Worker Secret         | Dedicated diagnostic credential, used with both IDs above                           |
@@ -126,6 +127,8 @@ The commands above cover initial provisioning and configuration changes. For an 
 Set the domain's Email Routing catch-all destination to **Worker `agentpost`**. Do not point it at an ordinary forwarding address.
 
 Per-address routing rules are unnecessary. The Worker accepts only addresses issued in D1 and currently active; other recipients receive an SMTP rejection. Admissions already in progress when an inbox is disabled can finish retaining mail.
+
+To retain mail for addresses that have no inbox yet instead of rejecting it, provision the optional [catch-all inbox](http-api.md#catch-all-inbox) with admin `POST /v1/catchall`. Disabled inboxes still reject, and catch-all mail is never forwarded.
 
 Official reference: [routing addresses](https://developers.cloudflare.com/email-service/configuration/email-routing-addresses/).
 

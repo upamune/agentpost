@@ -15,6 +15,7 @@ CLIとstdioのMCPはプロセスの環境変数を読み、Workerは`wrangler.js
 | `AGENTPOST_API_TOKEN`                    | CLI / stdio MCP          | 操作に使う管理者トークンまたは受信箱トークン                            |
 | `AGENTPOST_ADMIN_TOKEN`                  | Worker Secret            | 全受信箱を管理するトークン                                              |
 | `AGENTPOST_EMAIL_DOMAIN`                 | `wrangler.jsonc`の`vars` | メールアドレスを発行するドメイン                                        |
+| `AGENTPOST_CATCHALL_LOCAL_PART`          | Worker vars              | 任意。catch-all受信箱のlocal part。既定値は`_catchall`                  |
 | `AGENTPOST_CF_ZONE_ID`                   | Worker vars              | 診断対象のゾーンID（任意）                                              |
 | `AGENTPOST_CF_SENDING_SUBDOMAIN_ID`      | Worker vars              | 診断対象の送信ドメインID（任意）                                        |
 | `AGENTPOST_CF_DIAGNOSTICS_API_TOKEN`     | Worker Secret            | 上記2件と併せて使う専用の診断資格情報                                   |
@@ -130,6 +131,8 @@ mise exec -- bun run deploy
 Email Routingの対象ドメインで、catch-allの宛先を**Worker `agentpost`**にする。通常の転送先メールアドレスに向けない。
 
 メールアドレスごとのRouting ruleは不要。WorkerはD1で発行済みかつ有効な宛先のみ受け入れ、その他にはSMTP拒否を返す。アドレスの有効化・無効化はAPIに反映される。無効化より前に受け入れた受信処理は、後から原文保存を完了できる。
+
+受信箱のないアドレス宛のメールを拒否せずに保持するには、管理者の`POST /v1/catchall`で任意の[catch-all受信箱](http-api.ja.md#catch-all受信箱)を作成する。無効化された受信箱は引き続き拒否し、catch-all宛のメールは転送しない。
 
 公式資料: [ルーティング設定](https://developers.cloudflare.com/email-service/configuration/email-routing-addresses/)。
 

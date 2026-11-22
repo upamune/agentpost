@@ -18,7 +18,7 @@ Raw-index repair, interrupted-send recovery, inbound republishing, and outbound 
 
 ## Deduplication and retries
 
-- Inbound identity combines inbox ID and original MIME SHA-256. Identical MIME in one inbox deduplicates; another inbox retains its own message. A sender changing MIME on redelivery creates another identity.
+- Inbound identity combines inbox ID and original MIME SHA-256. Identical MIME in one inbox deduplicates; another inbox retains its own message. A sender changing MIME on redelivery creates another identity. The [catch-all inbox](http-api.md#catch-all-inbox) also includes the lowercase envelope recipient, so each unknown recipient keeps its own message.
 - Outbound uniqueness combines inbox ID and Idempotency-Key. Keys remain in D1 indefinitely.
 - New sends/replies are limited to 10 requests per minute per inbox. Rejected 429/503 requests are not saved. Requests already saved under the same key return their existing state without using another slot. Provider-429 retries are a separate mechanism.
 - A conditional `pending → sending` UPDATE admits only one duplicate queue delivery.
