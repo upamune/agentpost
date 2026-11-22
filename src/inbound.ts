@@ -1,4 +1,5 @@
 import PostalMime from "postal-mime";
+import { catchallAdmission } from "./catchall";
 import { forwardingAdmission, indexForwarding } from "./forwarding-store";
 import { forwardingMetadata } from "./forwarding-policy";
 import { forwardReceived } from "./forwarding";
@@ -27,7 +28,8 @@ export async function enqueue(env: Env, kind: "inbound" | "outbound", id: string
 }
 
 export async function receive(message: ForwardableEmailMessage, env: Env): Promise<void> {
-  const inbox = await forwardingAdmission(env, message.to);
+  const inbox =
+    (await forwardingAdmission(env, message.to)) ?? (await catchallAdmission(env, message.to));
   if (!inbox) {
     message.setReject("Unknown or disabled recipient");
     return;
@@ -38,7 +40,7 @@ export async function receive(message: ForwardableEmailMessage, env: Env): Promi
   }
   const raw = await readBounded(message.raw, MAX_MAIL_BYTES);
   const hash = await sha256(raw);
-  const id = await sha256(`${inbox.id}:${hash}`);
+  const id = await sha256(`${messageScope(inbox, message.to)}:${hash}`);
   const key = `raw/${inbox.id}/${id}.eml`;
   // Persist the original MIME before any parsing or queue operation.
   const existing = await env.MAIL.head(key);
@@ -65,6 +67,11 @@ export async function receive(message: ForwardableEmailMessage, env: Env): Promi
     // Forwarding failures cannot discard retained mail or request a blind SMTP retry.
     console.error(JSON.stringify({ event: "forwarding_attention_required", id }));
   }
+}
+
+// The catch-all inbox receives one MIME for many recipients; keep each original recipient distinct.
+function messageScope(inbox: { id: string; catchall?: true }, to: string): string {
+  return inbox.catchall ? `${inbox.id}:${to.toLowerCase()}` : inbox.id;
 }
 
 async function rawMetadata(env: Env, key: string, existing: R2Object | null) {

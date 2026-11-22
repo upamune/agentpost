@@ -12,6 +12,7 @@ import { WebhookError, webhookInput, webhookTarget, webhookEncryptionKey } from 
 import { publicWebhook } from "./webhook-store";
 import type { WebhookDelivery } from "./webhook-store";
 import { coordinator } from "./coordinator";
+import { CatchallError, getCatchall, provisionCatchall } from "./catchall";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { z } from "zod";
@@ -216,6 +217,23 @@ app.put("/v1/forwarding", async (context) => {
   requireAdmin(context);
   const input = await readJson(context, globalForwardingInput);
   return context.json(await setGlobalForwarding(context.env, input.destination));
+});
+
+app.get("/v1/catchall", async (context) => {
+  requireAdmin(context);
+  return context.json(await getCatchall(context.env));
+});
+app.post("/v1/catchall", async (context) => {
+  requireAdmin(context);
+  mailDomain(context.env);
+  const token = randomToken();
+  const result = await provisionCatchall(context.env, {
+    id: crypto.randomUUID(),
+    tokenHash: await sha256(token),
+    now: Date.now(),
+  });
+  const issued = result.created && context.get("principal").credential === "token";
+  return context.json({ ...result, ...(issued ? { token } : {}) }, result.created ? 201 : 200);
 });
 
 app.get("/v1/inboxes", async (context) => {
@@ -701,8 +719,8 @@ function apiErrorResponse(error: ApiError, context: Context<Bindings>) {
 
 function isPublicPolicyError(
   error: Error,
-): error is ForwardingError | WebhookError | EventQueryError | AttachmentError {
-  return [ForwardingError, WebhookError, EventQueryError, AttachmentError].some(
+): error is ForwardingError | WebhookError | EventQueryError | AttachmentError | CatchallError {
+  return [ForwardingError, WebhookError, EventQueryError, AttachmentError, CatchallError].some(
     (Type) => error instanceof Type,
   );
 }

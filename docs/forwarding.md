@@ -44,6 +44,8 @@ The Worker retains the original MIME first, using a conditional R2 put to freeze
 
 Global and per-inbox setting changes affect **future admissions**. They do not replay retained mail, change an admitted destination, or recall a native forward. An inbox disable prevents new admissions and new forwarding claims; a forward claimed before disable may finish afterward. Disable/off changes cannot recall a copy already dispatched. Re-enabling an inbox never replays its skipped mail.
 
+Mail admitted to the [catch-all inbox](http-api.md#catch-all-inbox) for an unknown recipient is never forwarded. Its decision is always `skipped`, regardless of global defaults or an override on the catch-all inbox.
+
 Original storage or indexing failure prevents a native forward. Once retained, forwarding failures do not discard the inbox copy or stop its parsing/events/webhooks. Raw-index repair restores the recorded intent but cannot recreate the original SMTP session. Legacy originals without forwarding metadata are never retroactively forwarded.
 
 ## Outcomes and recovery

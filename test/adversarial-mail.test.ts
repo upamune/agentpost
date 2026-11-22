@@ -109,7 +109,7 @@ test("inbound retention contract: an admission already in progress can finish af
   expect((await bindings.MAIL.list({ prefix: `raw/${box.id}/` })).objects).toHaveLength(1);
 });
 
-test("audit boundary: a new inbound admission after disable is rejected without storing MIME", async () => {
+test("audit boundary: a new inbound admission after disable is rejected without storing MIME (no catch-all)", async () => {
   const box = await inbox();
   const disabled = await app.request(
     `https://mail.test/v1/inboxes/${box.id}`,
