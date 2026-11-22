@@ -5,6 +5,7 @@
     ".claude/**",
     "worker-configuration.d.ts",
     "bun.lock",
+    "CHANGELOG.md",
     ".backlog/**"
   ]
 }
