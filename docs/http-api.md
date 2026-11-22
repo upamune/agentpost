@@ -33,6 +33,8 @@ An admin token provisions and administers inboxes and can access every inbox. An
 | POST   | `/v1/events/poll`                                            | Poll events                                           |
 | GET    | `/v1/domain/check`                                           | Read-only domain DNS/provider diagnostics (admin)     |
 | GET    | `/v1/health`                                                 | Storage access, backlog, and attention counts (admin) |
+| GET    | `/v1/catchall`                                               | Catch-all inbox state (admin)                         |
+| POST   | `/v1/catchall`                                               | Provision the catch-all inbox idempotently (admin)    |
 
 List limits range from 1 to 100, default 25. Use `next_cursor` for inbound message pagination and `next_offset` for inbox/outbox pagination. See [MCP and Events](mcp-events.md) for event inputs and cursor behavior. The CLI/stdio MCP client bounds successful JSON responses at 64 MiB; reduce the page limit for unusually large outbox pages.
 
@@ -102,3 +104,23 @@ Use `GET`, `PUT`, and `DELETE /v1/inboxes/{inbox}/webhook` for configuration, an
 ## Incoming forwarding
 
 See [forwarding API](forwarding.md#http-api-and-mcp) for administrator-only global defaults, inbox inherit/custom/off overrides, recent outcomes and acknowledgment. All endpoints retain the usual authentication, JSON content-type, size, origin and rate-limit checks.
+
+## Catch-all inbox
+
+Email Routing sends every recipient on the domain to the Worker. Without a catch-all inbox, recipients without an inbox record receive an SMTP rejection, so mail sent to an address before its inbox exists is lost. An administrator can provision one quarantine inbox that retains that mail instead:
+
+```sh
+curl -X POST "$AGENTPOST_API_URL/v1/catchall" \
+  -H "Authorization: Bearer $AGENTPOST_API_TOKEN"
+```
+
+The first call creates `_catchall@<AGENTPOST_EMAIL_DOMAIN>` (override the local part with the optional `AGENTPOST_CATCHALL_LOCAL_PART` Worker variable, same rules as `local_part`), records it under the D1 `maintenance` key `catchall_inbox_id`, sets its forwarding to `off`, and returns 201 with `{"configured":true,"created":true,"inbox":{...},"forwarding":{"mode":"off"}}`. A token-authenticated call also returns its inbox `token` once; store it privately. Later calls return 200 with the same inbox and no token, and reset its forwarding to `off` if it was changed. If another inbox already owns the address the call returns 409 and changes nothing; an invalid local-part setting returns 503. `GET /v1/catchall` returns `{"configured":false}` or the same state without creating anything. Both endpoints require admin access.
+
+Admission order for each SMTP recipient:
+
+1. An active inbox with the address receives the mail as before.
+2. A disabled inbox keeps its record and still rejects (`Unknown or disabled recipient`).
+3. An address on `AGENTPOST_EMAIL_DOMAIN` with no inbox record goes to the catch-all inbox, if one is provisioned and active. Otherwise it is rejected exactly as before. Other domains are never caught.
+4. The 10 MiB limit applies after admission, including catch-all delivery.
+
+Catch-all mail uses the normal raw-first pipeline. The original recipient stays in `envelope_to` in both R2 metadata and the D1 message, and the message identity includes that recipient, so one MIME sent to several unknown addresses keeps one message per recipient. Read it through the ordinary inbox endpoints, CLI, or MCP with the catch-all inbox ID. Unknown-recipient mail is never forwarded: its forwarding decision is always `skipped`, even if global forwarding or an inbox override is configured. Disable the catch-all inbox with `PATCH /v1/inboxes/{inbox}` to return to rejection. Retention and automatic deletion are not implemented yet; review and clean up the quarantine manually.

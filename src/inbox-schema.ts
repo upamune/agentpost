@@ -33,16 +33,18 @@ export const inboxMetadataSchema = z
     "Provide at least one metadata field",
   );
 
+export const mailboxLocalPart = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[A-Za-z0-9_+-]+(?:\.[A-Za-z0-9_+-]+)*$/);
+
 export const inboxInputSchema = z
   .object({
     label: metadata.label.default(""),
     notes: metadata.notes.optional(),
     urls: metadata.urls.optional(),
-    local_part: z
-      .string()
-      .min(1)
-      .max(64)
-      .regex(/^[A-Za-z0-9_+-]+(?:\.[A-Za-z0-9_+-]+)*$/)
+    local_part: mailboxLocalPart
       .describe(
         "Optional mailbox name before @ on the configured domain. ASCII letters, digits, _, +, -, and single internal dots; 1–64 characters. Stored lowercase. Omit for three random English words joined by hyphens (e.g. cedar-moon-river). Explicit existing names return a conflict, even if disabled.",
       )

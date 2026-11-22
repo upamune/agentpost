@@ -12,6 +12,7 @@ export interface Env {
   AGENTPOST_REQUEST_LIMITER: RateLimit;
   AGENTPOST_SEND_LIMITER: RateLimit;
   AGENTPOST_EMAIL_DOMAIN: string;
+  AGENTPOST_CATCHALL_LOCAL_PART?: string;
   AGENTPOST_ADMIN_TOKEN?: string;
   AGENTPOST_AUTH_MODE?: "token" | "oauth" | "both";
   AGENTPOST_CURSOR_KEY?: string;

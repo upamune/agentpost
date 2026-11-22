@@ -299,7 +299,7 @@ describe("API and inbox isolation", () => {
     expect((await request(`/v1/inboxes/${first.id}`, { token: first.token })).status).toBe(200);
   });
 
-  test("disabling an inbox revokes its token and rejects future mail", async () => {
+  test("disabling an inbox revokes its token and rejects future mail (catch-all unconfigured)", async () => {
     const box = await inbox();
     expect(
       (await request(`/v1/inboxes/${box.id}`, { method: "PATCH", body: { active: false } })).status,
@@ -381,7 +381,7 @@ describe("durable inbound processing", () => {
     expect(new Set(seen).size).toBe(3);
   });
 
-  test("rejects unissued addresses without storing arbitrary mail", async () => {
+  test("rejects unissued addresses without storing arbitrary mail when no catch-all is provisioned", async () => {
     const incoming = email("unissued@example.com", mime);
     await receive(incoming.input, bindings);
     expect(incoming.rejected).toEqual(["Unknown or disabled recipient"]);
